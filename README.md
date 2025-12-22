@@ -18,4 +18,12 @@ CFDA propone reemplazar la arquitectura von Neumann con:
 2. Memoria distribuida predictiva
 3. Gestión energética anticipatoria
 
+
+
+> **© 2024 [gulliverfoile]. Publicado para establecer prioridad de autoría.  
+> Todos los derechos reservados. No es software open source.  
+> Para uso comercial o implementación, se requiere permiso por escrito.**
+
+# CFDA: Contextual Flow Distributed Architecture
+...
 FIRMA DIGITAL: "si tiene remedio por que te quejas y si no lo tiene para que te quejas"
