@@ -1,0 +1,453 @@
+La fábrica del consentimiento: gubernamentalidad neoliberal y producción de subjetividad en el capitalismo extractivo
+Autores:
+
+Usuario (conceptualización, marco crítico, intuiciones centrales)
+
+Asistente de IA (sistematización, búsqueda bibliográfica, estructuración académica)
+
+Advertencia:
+Este documento es el resultado de un diálogo colaborativo prolongado entre un humano y una inteligencia artificial. El marco teórico, las preguntas fundamentales, la capacidad de detectar contradicciones en los modelos establecidos y la mayoría de las intuiciones críticas pertenecen al usuario. La IA ha contribuido con nomenclatura, conexiones con literatura académica, ejemplos de apoyo y estructuración. No es un trabajo revisado por pares, sino la sistematización de un proceso de pensamiento crítico. Su certeza no está establecida; es una invitación al debate, no una verdad dogmática. Se ofrece como herramienta para contrastar modelos, no como conclusión.
+
+Resumen
+Este artículo analiza el entorno político-narrativo que legitima y sostiene los mecanismos de extracción del capitalismo tardío. Partiendo de la confrontación entre la ingeniería del deseo de Edward Bernays y la gubernamentalidad de Michel Foucault, se argumenta que el poder neoliberal no solo reprime, sino que produce sujetos que desean lo que el sistema necesita. Se examina cómo tres saberes —economía, antropología y psicología— son pervertidos para convertirse en tecnologías de gobierno: la economía produce el homo economicus; la antropología coapta las estructuras tribales (pertenencia, rito, mito, chamán, tabú) para crear "tribus de marca"; la psicología se convierte en ingeniería del deseo, desde Bernays hasta los algoritmos de las redes sociales, pasando por la estética como tecnología de insatisfacción (Disney, Marilyn Monroe, moda, anorexia). Se analiza la educación como institución de normalización disciplinaria y las redes sociales como laboratorio donde estos mecanismos convergen y se refinan. Se incluye una nota crítica sobre pensadores como Ayn Rand (legitimación filosófica del egoísmo), Andy Warhol (cuya obra y figura han sido utilizadas para legitimar la fusión entre arte y mercancía, aunque admita lecturas ambivalentes) y Byung-Chul Han (crítica sintomática no estructural). Se concluye que esta producción de subjetividad es la condición de posibilidad de la extracción económica, desactivando la resistencia organizada, y que el sistema, sostenido sobre la frágil base de la confianza, revela sus grietas cuando la manipulación deja de ser creíble.
+
+Palabras clave: Gubernamentalidad, propaganda, biopolítica, neoliberalismo, producción de subjetividad, Edward Bernays, Michel Foucault, Ayn Rand, Andy Warhol, Byung-Chul Han.
+
+1. Introducción: más allá de la ideología, el poder productivo
+La pregunta clásica de la crítica social solía ser: ¿cómo se sostiene un sistema que beneficia a unos pocos a costa de muchos? Las respuestas tradicionales apuntaban a la ideología (falsa conciencia), la represión (policía, ejército) o la coerción económica (necesidad de trabajar para sobrevivir). Sin embargo, estas explicaciones resultan insuficientes ante la evidencia de que millones de personas adhieren activamente a los valores del mercado, consumen con entusiasmo productos que no necesitan y defienden un orden que objetivamente les perjudica.
+
+Este artículo parte de una tesis: el capitalismo tardío no se sostiene principalmente por represión, sino por producción de subjetividad. El poder neoliberal ha aprendido a fabricar sujetos que desean lo que el sistema necesita, que viven como libertad la elección entre opciones pre-diseñadas y que aceptan la evaluación, la competencia y la precariedad como algo natural. Para entender este proceso, confrontamos dos pensadores clave:
+
+Edward Bernays, el padre de las relaciones públicas, que desarrolló las técnicas de ingeniería del deseo y mostró cómo conectar productos con pulsiones inconscientes.
+
+Michel Foucault, que analizó el paso del poder soberano al disciplinario y de este a la gubernamentalidad: el arte de conducir conductas sin coerción directa, produciendo realidades y sujetos.
+
+La tesis que atraviesa el texto es que Bernays describe el mecanismo, Foucault la dinámica. Juntos permiten comprender cómo el mercado ha ido ocupando el vacío dejado por las estructuras comunitarias tradicionales, pervirtiendo saberes enteros (economía, antropología, psicología) para convertirlos en tecnologías de gobierno. El resultado es un sujeto para quien salir del sistema es más costoso que permanecer, y que colabora activamente en su propia sujeción porque la vive como autorrealización.
+
+El artículo se estructura en nueve secciones. Primero, se sitúa históricamente el momento en que el mercado comienza a operar "por libre", tomando como hito la Revolución Industrial inglesa. Luego, se analiza la perversión de la economía (producción del homo economicus), la antropología (cooptación de la tribu, el rito, el mito, el chamán y el tabú) y la psicología (ingeniería del deseo, desde Bernays hasta los algoritmos, con especial atención a la estética como tecnología de insatisfacción). A continuación, se examina la educación como institución de normalización disciplinaria y las redes sociales como laboratorio donde todos estos mecanismos convergen. Se dedica una nota a pensadores como Ayn Rand (legitimadora filosófica), Andy Warhol (cuya obra y figura encarnan, aunque con ambivalencia, la lógica mercantil) y Byung-Chul Han (crítico sintomático), para finalmente extraer conclusiones sobre la fragilidad del sistema y las grietas por donde podría emerger una resistencia organizada.
+
+2. La gran ruptura: cuando el mercado ocupó el vacío de la tribu
+Para comprender la magnitud de la producción de subjetividad, es necesario remontarse al momento en que las estructuras comunitarias tradicionales comenzaron a desintegrarse y el mercado emergió como la única fuerza disponible para ocupar ese vacío.
+
+2.1. La tribu y el meme como mecanismos naturales de cohesión
+En las sociedades premodernas, la tribu era el núcleo de pertenencia e identidad. No se trataba solo de un grupo de parentesco, sino de una estructura que proveía:
+
+Pertenencia: un lugar en el mundo, un "nosotros" frente a un "ellos".
+
+Ritos: ceremonias que marcaban las transiciones vitales (nacimiento, madurez, muerte) y reforzaban los vínculos colectivos.
+
+Mitos: narrativas que explicaban el origen del mundo, el lugar de la comunidad y los valores supremos.
+
+Chamanes o druidas: figuras que mediaban entre lo sagrado y lo profano, interpretaban los signos y guiaban a la comunidad.
+
+Tabúes: prohibiciones que protegían el equilibrio social y ecológico.
+
+Paralelamente, el meme (en el sentido amplio de unidad de imitación cultural) era el vehículo de transmisión de todo ese acervo: gestos, palabras, técnicas, valores, relatos. La cultura se perpetuaba porque los individuos copiaban a sus mayores, a los líderes, a los chamanes.
+
+Estas estructuras estaban acondicionadas por el medio material: la tribu necesitaba coordinación para la caza, roles diferenciados (cazadores, recolectores, chamanes), rituales que reforzaban cohesión porque el medio lo demandaba —escasez, depredadores, ciclos naturales—. La estructura tribal fue funcional mientras las condiciones que la hacían necesaria persistieron. Pero, crucialmente, estas estructuras también podían ser rígidas, jerárquicas, patriarcales y violentas. No eran paraísos; eran formas de sujeción adaptadas a su contexto material, donde el chamán extraía poder, los hombres extraían trabajo de mujeres, y los dioses extraían sangre.
+
+2.2. La Revolución Industrial y la desintegración de la comunidad
+La modernidad, y especialmente la Revolución Industrial en Inglaterra (finales del siglo XVIII y XIX), supuso una ruptura radical en las condiciones materiales que sostenían la tribu. Los enclosures (cercamiento de tierras comunales) expulsaron a los campesinos de sus lugares de origen, empujándolos a las ciudades industriales. Allí se encontraron:
+
+Aislados: la familia extensa, el clan, la aldea habían quedado atrás.
+
+Sometidos a ritmos mecánicos: el reloj de la fábrica sustituyó a los ciclos naturales.
+
+Desposeídos de sentido: los mitos tradicionales no explicaban la chimenea humeante ni la cadena de montaje.
+
+La comunidad se desintegró, pero no por "maldad capitalista" sino porque el medio había cambiado. El ritmo de trabajo, la localización geográfica, la densidad de población, la especialización laboral: nada de esto requería ni permitía la estructura tribal. La tribu era incompatible con el modo de producción industrial. El vacío que quedó no fue creado por intención, sino por transformación material: las condiciones que hacían la tribu funcional y necesaria habían desaparecido.
+
+Las necesidades humanas de pertenencia, identidad y sentido no desaparecieron, pero quedaron huérfanas, sin forma institucional que las canalice. Era un vacío de poder esperando ser ocupado.
+
+2.3. El mercado como nuevo ocupante
+El mercado, que hasta entonces había sido un espacio de intercambio subordinado a la comunidad, emergió como la única fuerza con la capacidad y la legitimidad para ofrecer a las masas urbanas lo que ya no tenían: pertenencia, identidad, sentido. No inventó esa necesidad; la descubrió operando en ese vacío. Comenzó a ofrecer sus propios sustitutos:
+
+Nuevas tribus: los gremios, las asociaciones de oficio, pero también, progresivamente, las marcas. La primera gran marca moderna (como la cerámica Wedgwood en el siglo XVIII) ya no vendía solo un producto, sino un estilo, una distinción social, una identidad.
+
+Nuevos ritos: ir de compras, poseer un objeto valioso, exhibirlo, cambiar de identidad comprando.
+
+Nuevos mitos: el "sueño americano", el "self-made man", la idea de que el éxito es fruto del esfuerzo individual.
+
+Nuevos chamanes: los primeros publicistas, los dueños de los grandes almacenes, y más tarde los gurús del marketing.
+
+Nuevos tabúes: lo que no se puede hacer, decir o pensar si se quiere pertenecer al grupo de los "exitosos", lo que te cancela de la tribu.
+
+Crucialmente, estas nuevas estructuras generaban status dentro de la jerarquía mercantil. En la tribu premoderna había status (basado en linaje, hazañas, edad), pero el status tribal era relativo a funciones comunitarias (cazador, chamán, guerrero). En la tribu de marca, el status es relativo a posesión, a distinción social, a lo que consumes. Y es más frágil porque cambia con cada nueva marca, cada nuevo modelo, cada nueva temporada. Todo consumo, incluso el "anticonsumismo", se vuelve un acto de status dentro del sistema: el minimalista que rechaza la moda, el anticonsumista que compra ropa vintage, el anarquista que vende libros sobre anarquismo —todas son posiciones dentro de la jerarquía mercantil, no fuera de ella.
+
+Este proceso no fue inmediato ni consciente, pero sentó las bases para lo que vendría después. El Estado, lejos de oponerse, actuó como garante: leyes de propiedad, policía para proteger las fábricas, ejército para reprimir revueltas. El mercado podía operar "por libre" porque el Estado le aseguraba el marco.
+
+Con el tiempo, estas sustituciones se perfeccionaron hasta convertirse en una máquina de producir subjetividad. Las siguientes secciones analizan cómo tres saberes clave fueron pervertidos para alimentar esa máquina.
+
+3. La economía pervertida: del análisis a la teología del mercado
+La economía clásica (Smith, Ricardo) intentaba explicar cómo se produce y distribuye la riqueza. Con el giro neoclásico y, sobre todo, con el neoliberalismo del siglo XX, la economía dejó de ser una ciencia descriptiva para convertirse en una tecnología de gobierno que produce la realidad que dice describir.
+
+3.1. El homo economicus como sujeto prescrito
+El concepto de homo economicus —el individuo racional que maximiza su utilidad— no es una descripción antropológica, sino una prescripción. El neoliberalismo necesita que los individuos se perciban a sí mismos como "empresarios de sí mismos", calculando constantemente costes y beneficios, invirtiendo en su propio capital humano, compitiendo en todos los ámbitos de la vida.
+
+Esta subjetividad no es natural; hay que producirla. Y se produce mediante:
+
+La educación, que enseña a los niños que su valor depende de sus notas (rendimiento).
+
+El mercado laboral, que evalúa constantemente el desempeño.
+
+La cultura del emprendimiento, que presenta al empresario como modelo de vida.
+
+La financiarización de la vida cotidiana: la hipoteca, el crédito, los planes de pensiones, que convierten al individuo en un gestor de su propio riesgo.
+
+Hay una circularidad entre teoría y práctica que es clave para entender cómo funciona esta perversión: la economía neoclásica produce el discurso que describe al homo economicus como si fuera una realidad objetiva, pero ese discurso es reinterpretado y materializado por las instituciones (escuela, empresa, publicidad) que lo encarnan en sujetos reales. El homo economicus no es un descubrimiento de la ciencia; es su invención institucionalizada, un profeta que crea la realidad que predice.
+
+3.2. El crecimiento como bien supremo
+Paralelamente, la economía impone el crecimiento del PIB como el bien supremo, el indicador de que las cosas van bien. Cualquier crítica ecológica o social se responde con el mantra: "sin crecimiento no hay empleo, no hay bienestar". Esta ecuación no es científica; es teológica. Equipara el aumento de la producción material con la mejora de la vida humana, ocultando sus costes. Es una religión disfrazada de ciencia.
+
+3.3. La legitimación filosófica: Ayn Rand
+Ningún pensador ha encarnado mejor esta teología que Ayn Rand. Su filosofía, el objetivismo, eleva el egoísmo a la categoría de virtud suprema. En novelas como El manantial o Atlas Shrugged, presenta al empresario innovador como un héroe que debe liberarse de las ataduras del Estado y de la moral colectivista. El éxito individual es la única medida del valor; la desigualdad es justa porque refleja el mérito.
+
+Rand no es una autora marginal; sus libros siguen siendo bestsellers y su influencia en círculos libertarios y en Silicon Valley es enorme. Ella proporciona la coartada moral que el sistema necesita: el egoísmo no solo es inevitable, es bueno. El homo economicus deja de ser una abstracción y se convierte en un ideal ético.
+
+3.4. Conexión con la extracción
+Este sujeto económico es el que necesita el sistema de extracción descrito en el análisis paralelo (deuda, deslocalización, dumping). Un individuo que se percibe como empresario de sí mismo aceptará la precariedad como un desafío, la deuda como una inversión y la competencia como algo natural. No protestará; se esforzará más. Y cuando falla, cuando no alcanza el éxito prometido, la culpa es suya, no del sistema. Esta culpabilización individual es el cierre perfecto del círculo: el sistema produce las condiciones para el fracaso, pero el sujeto se responsabiliza a sí mismo.
+
+4. La antropología pervertida: la tribu como mercancía
+Si la economía produce el sujeto calculador, la antropología (pervertida) le proporciona identidad, pertenencia y sentido. El mercado no inventa la necesidad de tribu; la descubre en el vacío dejado por la desintegración comunitaria, la coapta y la vacía de su contenido de reciprocidad real para llenarla de mercancía y status.
+
+4.1. La tribu de marca
+La estrategia es simple: un producto deja de ser un objeto para convertirse en un símbolo de identidad colectiva. Quienes lo poseen forman una comunidad imaginaria, una "tribu de marca", donde el status relativo se determina por la posición dentro de esa jerarquía de consumo.
+
+Apple es el ejemplo paradigmático. Sus usuarios no son meros consumidores de tecnología; se ven a sí mismos como creativos, innovadores, diferentes. La manzana mordida es un tótem. Las keynotes de Steve Jobs eran ritos tribales donde se revelaba el nuevo objeto sagrado. Los leales hacen cola durante horas, no por necesidad, sino por pertenencia, por ser parte de algo que se siente como comunidad genuina. Pero es una comunidad sin reciprocidad real: Apple no te cuidará cuando estés enfermo, no te prestará dinero si lo necesitas, no educará a tus hijos. Lo que ofrece es una etiqueta, un lugar en un censo imaginario y, sobre todo, un motor de consumo.
+
+Nike no vende zapatillas, vende superación, atletismo, "Just Do It". Llevar Nike es identificarse con esos valores y, implícitamente, con aquellos que también los llevan.
+
+Harley-Davidson convierte a sus clientes en una hermandad, con sus propios rituales (concentraciones), su estética (cuero, barba) y su mitología (la ruta, la libertad).
+
+Sin embargo, es importante notar que no todas las marcas pueden generar tribu con igual intensidad. La capacidad de construir una comunidad imaginaria requiere: (1) diferenciación estética o funcional que permita exclusividad; (2) capacidad financiera para marketing masivo; (3) inserción en narrativas de aspiración social (tecnología, estilo, emancipación, rebelión). Las marcas commodity —genéricas, sin diferenciación— no pueden hacerlo. Esto es importante porque señala que la tribalización es una táctica de acumulación capitalista: solo beneficia a quien ya tiene poder de mercado para construirla.
+
+4.2. Ritos de paso
+El mercado también ofrece sucedáneos de los ritos de paso tradicionales:
+
+El primer móvil, a menudo regalado en la comunión o el cumpleaños, marca la entrada al mundo digital y a la tribu conectada.
+
+La hipoteca es el rito de la vida adulta: el reconocimiento social de que "ya eres responsable", de que has entrado en la estructura de deuda que define a los adultos.
+
+El "unboxing" —abrir un producto nuevo frente a una cámara— se ha convertido en un ritual compartido en YouTube, con sus propias reglas y su audiencia. No es simplemente desempacar; es una ceremonia de bienvenida del nuevo objeto sagrado.
+
+4.3. Mitos
+Las grandes marcas construyen sus propios mitos fundacionales:
+
+Steve Jobs creando Apple en un garaje (aunque la historia real sea más prosaica). Es el mito del héroe que empieza desde abajo y cambia el mundo.
+
+El sueño americano: la idea de que cualquier persona, con esfuerzo, puede triunfar.
+
+El "self-made man": el empresario que debe todo a su propio talento y trabajo.
+
+Estos mitos no son inocentes; legitiman la desigualdad (si triunfas, es por mérito; si fracasas, es por tu culpa) y orientan el deseo (debes aspirar a ser como ellos).
+
+4.4. Chamanes
+En las sociedades tribales, el chamán mediaba entre lo sagrado y lo profano, interpretaba los signos, guiaba a la comunidad. Hoy, esa función la cumplen los influencers. No venden productos directamente; venden estilos de vida. Su autoridad se basa en la percepción de autenticidad (aunque sea fabricada). Son los nuevos druidas que dictan qué es deseable, qué es cool, qué es cancelable. Y cuando pierden credibilidad, son reemplazados por otros: el sistema de chamanes es rotativo, pero la función es permanente.
+
+4.5. Tabúes
+Toda tribu tiene sus prohibiciones. Las nuevas tribus de marca no son una excepción:
+
+La cultura de la cancelación actúa como un tabú: si dices o haces algo que la comunidad considera inaceptable, eres expulsado de la tribu.
+
+Lo "políticamente correcto" marca los límites de lo pensable y lo decible.
+
+Las propias marcas imponen tabúes: no se puede usar un iPhone y criticar públicamente a Apple; no se puede llevar Nike y ser abiertamente contrario al deporte; no se puede estar en una tribu de marca sin seguir sus códigos.
+
+4.6. La tribu abstracta y el status como motor perpetuo
+El resultado de todo esto es lo que podemos llamar tribu abstracta: una comunidad que ofrece identidad y pertenencia, pero sin reciprocidad real. No te cuidarán cuando estés enfermo; no te prestarán dinero si lo necesitas; no velarán por tus hijos. A cambio, te dan una etiqueta, un lugar en un censo imaginario y, sobre todo, un motor de consumo. La identidad se construye comprando, y la insatisfacción —siempre hay un nuevo producto, una nueva marca, un nuevo influencer, una nueva posición en la jerarquía de status— garantiza que la rueda siga girando. El status es relativo: si todos tienen iPhone, tener iPhone no te diferencia. Necesitas el iPhone del año nuevo, la versión premium, el color exclusivo. El mercado necesita insatisfacción perpetua.
+
+5. La psicología pervertida: del deseo al algoritmo
+Si la antropología pervertida proporciona identidad y status, la psicología pervertida proporciona el motor: el deseo. Este es quizás el terreno donde la ingeniería del mercado ha sido más sofisticada, porque opera en el nivel más íntimo de la subjetividad.
+
+5.1. Bernays y el descubrimiento del deseo como mercancía
+Edward Bernays, sobrino de Sigmund Freud, aplicó las teorías psicoanalíticas a la comunicación comercial. Su intuición fue revolucionaria: la gente no compra productos, compra significados. Detrás de cada objeto hay deseos inconscientes (estatus, seguridad, libertad, pertenencia) que pueden ser activados y dirigidos.
+
+Bernays lo demostró con campañas célebres:
+
+Las "antorchas de la libertad" (1929): asoció el tabaco femenino con la emancipación, rompiendo un tabú y duplicando el mercado de cigarrillos entre mujeres.
+
+El desayuno americano: convenció a los estadounidenses de que un desayuno completo debía incluir huevos con bacon, beneficiando masivamente a la industria cárnica.
+
+El reloj de pulsera: lo asoció a los soldados en las trincheras, desfeminizando el accesorio y popularizándolo entre los hombres.
+
+En todos estos casos, no había una necesidad previa. Había un producto que necesitaba mercado, y Bernays creó el deseo correspondiente apelando a pulsiones profundas: la libertad, la virilidad, la pertenencia social.
+
+5.2. De la necesidad al deseo: la cultura del consumo
+Como señaló Paul Mazur, de Lehman Brothers, en 1927: "Necesitamos cambiar a Estados Unidos de una cultura de necesidades a una cultura de deseos. Las personas deben ser instruidas a desear, a querer cosas nuevas, incluso antes de que las viejas hayan sido enteramente consumidas". El programa estaba explícito: la producción de deseo como condición de posibilidad del capitalismo de consumo. El trabajador que tiene satisfechas sus necesidades básicas deja de ser un motor de crecimiento. Necesita desear más, aspirar a algo que no tiene, perseguir un ideal imposible de alcanzar.
+
+5.3. Steve Jobs y el iPhone: la necesidad que no sabías que tenías
+Si Bernays es el arquitecto, Steve Jobs es el gran maestro de obra del siglo XXI. El iPhone no es solo un producto; es la materialización perfecta de la lógica del deseo programado. Jobs no preguntó qué necesitaba la gente; les dijo qué iban a querer. Su famosa frase —"la gente no sabe lo que quiere hasta que se lo enseñas"— no es una boutade, sino la quintaesencia de la ingeniería del deseo.
+
+El iPhone creó necesidades que antes no existían:
+
+Tener un ordenador en el bolsillo.
+
+Interactuar con una pantalla táctil.
+
+Estar permanentemente conectado.
+
+Poseer un objeto que es a la vez herramienta, símbolo de estatus y extensión de la identidad.
+
+Y, sobre todo, el iPhone programa su propia obsolescencia. No solo física (el teléfono envejece), sino también subjetiva: el deseo se desplaza constantemente hacia el nuevo modelo, hacia lo que aún no se tiene. La insatisfacción es el motor. Es imposible llegar a estar satisfecho porque siempre hay una nueva versión, y el sistema necesita que en el momento en que consigues lo que deseabas, ya desees algo más.
+
+5.4. La estética como tecnología de deseo: de Marilyn Monroe a los filtros de Instagram
+La producción de deseo no se limita a objetos tecnológicos; también abarca la imagen del cuerpo, la belleza y la estética cotidiana. Esta dimensión es central porque opera en el terreno más íntimo de la subjetividad: la autoestima, la identidad corporal, las relaciones afectivas, la posibilidad misma de amarse a uno mismo.
+
+El cine, la publicidad y la moda han construido durante décadas cánones estéticos que funcionan como ideales inalcanzables:
+
+Disney (y luego Pixar, DreamWorks) no solo cuenta historias; dibuja cuerpos, rostros, movimientos. Desde Blancanieves hasta Elsa, pasando por las princesas de los 90, hay una evolución en el canon estético: ojos grandes, cinturas diminutas, proporciones imposibles. Esa estética se graba en niños y niñas como ideal desde temprana edad, generando insatisfacción temprana con el propio cuerpo. Es una colonización estética que ocurre antes de que desarrollen pensamiento crítico.
+
+Marilyn Monroe marca un punto de inflexión en el paradigma de la belleza femenina del siglo XX. Su imagen, reproducida hasta la saciedad, se convierte en el arquetipo de la mujer deseable. Pero es un arquetipo industrial, fabricado por los estudios, retocado, imposible. Es una imagen desincorporada del cuerpo real de Norma Jeane Baker. Cuando Warhol la serializa en sus obras, no hace sino revelar esa condición: Marilyn ya no es una persona, es un icono, un producto, una imagen reproducible hasta el infinito.
+
+La moda y la anorexia: en las décadas de 1980 y 1990, la industria de la moda acelera el canon de la delgadez extrema (las "supermodelos" como Twiggy, luego Kate Moss). Las consecuencias son trágicas: bulimia, anorexia, vigorexia se convierten en epidemias silenciosas. El mercado de las dietas, los gimnasios, los productos adelgazantes y la cirugía estética florece sobre la insatisfacción corporal. La insatisfacción es garantizada: los cánones estéticos cambian constantemente, asegurando que ningún cuerpo pueda satisfacerlos de forma permanente.
+
+La ropa como extensión de la identidad: marcas como Zara o Shein llevan la lógica del deseo programado a la producción textil. La moda rápida permite cambiar de identidad estética a bajo coste, pero a costa de trabajo precario y contaminación masiva. Cada temporada, un nuevo canon, una nueva necesidad, una nueva insatisfacción.
+
+Los filtros de Instagram y TikTok: hoy, la tecnología permite retocar el cuerpo y el rostro en tiempo real. El canon ya no es solo una imagen lejana en una revista; es un filtro que puedes aplicarte a ti mismo. Pero la brecha entre la imagen filtrada y la realidad se ensancha, y con ella, la insatisfacción y la dismorfia corporal. El algoritmo te devuelve una versión "mejorada" de ti mismo, pero esa versión no eres tú. El deseo se desplaza hacia un ideal que ni siquiera existe, que es puro software.
+
+Esta estética programada no es superficial: determina desde la salud mental hasta las posibilidades de relación afectiva. La gente, en lugar de conocer y profundizar en la persona, se queda en lo superficial, en la imagen. El mercado lo sabe y lo explota: la insatisfacción con el propio cuerpo es un motor de consumo inagotable, una deuda con uno mismo que nunca se salda.
+
+5.5. Del deseo al algoritmo: la personalización como gobierno
+Hoy, las plataformas digitales han perfeccionado esta lógica. El algoritmo no espera a que desees; te conoce mejor que tú mismo y te ofrece lo que vas a querer antes de que lo sepas. La personalización es la zanahoria definitiva:
+
+En TikTok, el feed (scroll vertical infinito) te devuelve tu propia imagen, reforzando tus gustos y encerrándote en una burbuja de confirmación.
+
+En Instagram, los filtros te permiten acercarte al canon estético, pero también te recuerdan constantemente que es un artificio, que la brecha es inevitable.
+
+En Amazon, las recomendaciones anticipan tus compras.
+
+La evolución de las interfaces es clave para entender el refinamiento del control:
+
+Fase 1 (web 1.0, foros, blogs): el usuario buscaba, navegaba, elegía. La dirección del flujo era de ida y vuelta, más o menos controlada por el usuario.
+
+Fase 2 (Facebook, Twitter, feeds cronológicos): el scroll vertical lineal, pero aún con cierto control (elegías a quién seguir). La adicción se basaba en la incertidumbre: "¿qué viene después?".
+
+Fase 3 (algoritmos, TikTok, Reels): el scroll vertical infinito y personalizado. El algoritmo decide qué viene después basándose en patrones de comportamiento. El usuario ya no busca; es buscado. Ya no controla el flujo; el flujo lo controla a él.
+
+Fase 4 (inmersión total): la desaparición de la interfaz (realidad aumentada, IA conversacional). El scroll deja de ser necesario porque el contenido te envuelve, se convierte en el aire que respiras.
+
+La evolución del mecanismo es clara:
+
+Etapa	Lógica	Técnica
+Pre-Bernays	Satisfacer necesidades	Publicidad informativa
+Bernays	Crear deseos	Conexión emocional, símbolos
+Jobs	Materializar el deseo	Diseño, experiencia, tribu
+Algoritmo	Anticipar el deseo	Datos, personalización, scroll infinito
+5.6. Sobre la resistencia controlada
+Es necesario notar que existen resistencias a esta producción de subjetividad. Hay quienes rechazan las redes sociales, quienes renuncian al consumo conspicuo, quienes no se definen por su imagen digital. Pero —y este es el punto crucial— muchas de estas resistencias son ellas mismas capturadas y convertidas en posiciones dentro del sistema. El anticonsumismo se vuelve una estética (ropa vintage, botellas reutilizables, lo "eco"). El rechazo al algoritmo se vuelve una tribu (los que "no usan redes sociales", los tecnófobos críticos). El anarquismo se vuelve una posición de mercado (libros sobre anarquismo, talleres de anarquismo, una identidad comprable). Incluso el acto de resistir es capturado por el mismo sistema que intenta escapar. No se trata de que la resistencia sea imposible, sino de que el sistema es lo suficientemente sofisticado para absorber incluso los intentos de salida como nuevas formas de status y consumo. La "disidencia controlada" es una de las tácticas más sofisticadas del poder: permitir la crítica, incorporarla, convertirla en marca.
+
+5.7. Conexión con Foucault: el sujeto que desea su propia sujeción
+Lo que Foucault llamaría producción de subjetividad alcanza aquí su forma más sutil y eficaz. El poder ya no reprime; produce deseos que el sujeto vive como propios, como expresión de su libertad. Creer que "somos lo que compramos" o "somos nuestra imagen" no es una ideología impuesta desde fuera; es una verdad vivida, una identidad asumida, una descripción que uno hace de sí mismo. El sujeto resultante colabora activamente en su propia sujeción porque la vive como autorrealización. Y cuando algo falla —cuando no alcanza el cuerpo deseado, cuando no puede comprar el último iPhone—, la culpa es suya, no del sistema. Esta culpabilización individual es el cierre perfecto del círculo del poder.
+
+6. La educación como tecnología de normalización
+Antes de que la publicidad y las redes sociales moldeen al adulto, la escuela ya ha comenzado la tarea de producir cuerpos dóciles y mentes lineales. Es importante precisar: la crítica no es a la educación como idea —la transmisión de saberes es necesaria y valiosa—, sino a la institución escolar moderna como máquina de normalización disciplinaria.
+
+6.1. La escuela moderna: institución disciplinaria
+Foucault mostró en Vigilar y castigar cómo las instituciones modernas (escuela, hospital, prisión, cuartel) comparten técnicas comunes:
+
+Horarios: fragmentación del tiempo, ritmo impuesto.
+
+Jerarquías: profesor-alumno, inspector-docente, director.
+
+Exámenes: evaluación constante, clasificación, producción de un saber sobre el individuo que permite compararlo, clasificarlo, jerarquizarlo.
+
+Castigos y recompensas: para inducir la conducta deseada.
+
+Espacios: diseño arquitectónico que facilita la vigilancia y el control (aulas donde el profesor ve a todos los alumnos, pasillos, patio de recreo).
+
+La escuela no solo enseña contenidos; enseña, sobre todo, a aceptar que te evalúen, que te comparen, que te clasifiquen. Prepara para el mundo laboral, donde las evaluaciones de desempeño, los rankings y las comparaciones serán moneda corriente.
+
+6.2. El currículo oculto: lo que realmente se enseña
+El pedagogo Philip Jackson acuñó el término "currículo oculto" para referirse a lo que se aprende sin estar explicitado en los programas. En la escuela moderna se aprende:
+
+Puntualidad: llegar a tiempo, ajustarse al horario, la sincronización corporal al reloj.
+
+Obediencia: acatar las órdenes del profesor sin cuestionarlas.
+
+Competitividad: esforzarse por ser mejor que los compañeros, en notas, en comportamiento, en popularidad.
+
+Individualismo: el éxito o el fracaso son responsabilidad propia, no colectiva.
+
+Aceptación de la autoridad: el profesor sabe, el libro dice, tú obedeces y aprendes.
+
+Estos valores son exactamente los que el mercado necesita. No es casual que la escuela moderna surgiera al mismo tiempo que la fábrica: ambas necesitaban cuerpos dóciles, sincronizados, que aceptaran la autoridad sin cuestionamiento y que compitieran individualmente por posiciones en una jerarquía.
+
+6.3. La paradoja del castigo
+Un detalle revelador: en la escuela se castiga la indisciplina, no el fracaso académico. Llegar tarde, hablar en clase, no hacer los deberes (como acto de desafío a la autoridad) merecen sanción. Suspender, en cambio, se trata con clases de refuerzo, apoyo, comprensión. El mensaje es claro: lo importante no es que aprendas, sino que te sometas al orden. El orden importa más que el conocimiento porque el orden es lo que permite gobernar masas.
+
+6.4. La medicalización de la neurodivergencia
+Cuando un niño no se somete al orden —no puede estarse quieto, no sigue el ritmo, se distrae constantemente, cuestiona la autoridad— el sistema no se pregunta si el problema es suyo (de la escuela, del ritmo impuesto, de la supresión de la divergencia) o del entorno. Responde con un diagnóstico y, a menudo, con medicación. El TDAH se convierte en la etiqueta que explica por qué el niño no encaja, y el metilfenidato (Ritalin) en la herramienta que lo hace dócil, que lo sincroniza con el ritmo escolar.
+
+No se trata de negar la existencia de trastornos genuinos que requieran tratamiento, sino de señalar que la medicalización masiva de la infancia (especialmente en países como EE.UU.) responde a una necesidad del sistema: cuerpos quietos, atentos, que rindan según los estándares. El problema no está en el niño divergente; está en una institución que solo tolera una forma de funcionamiento neurológico. Pero se medica al niño para que soporte la escuela, en lugar de cuestionar una escuela que no puede tolerar la neurodivergencia.
+
+Así como el mercado solo adopta tecnologías que no amenazan su modelo de negocio, la escuela solo fomenta el tipo de inteligencia que le es útil: lineal, jerárquica, evaluable, reproductiva. La inteligencia divergente, la que ve conexiones donde no las hay, la que pregunta "¿y si...?" en lugar de "¿cuál es la respuesta?", es ignorada, cuando no castigada. Los casos de genios que fueron malos estudiantes (Einstein, Edison, Darwin, etc.) no demuestran que el sistema funcione; muestran excepciones que fueron lo suficientemente potentes para romper el molde. ¿Cuántos se quedaron por el camino, medicados, diagnosticados como "problemas"? Ese es el pasivo no contabilizado de la educación institucional.
+
+6.5. Educación vs. escolaridad
+Es crucial notar que la crítica es a la forma moderna de la escuela, no a la idea de educación. Podría haber educación obligatoria —para que todos aprendan a leer, escribir, calcular, pensar críticamente— sin la normalización disciplinaria, sin la evaluación constante, sin convertir al niño en una métrica de desempeño.
+
+Ivan Illich, en Deschooling Society (1971), argumentaba que la escuela convierte la vida en mercancía dividiendo el tiempo en "tiempo de aprendizaje" (escuela) y "tiempo libre" (ocio/consumo), con el resultado de que todo se vuelve evaluable y monetizable. Lo que antes era aprendizaje distribuido en la vida (aprender a trabajar viendo al padre, aprender a ser adulto en rituales comunitarios), ahora es concentrado en la escuela, dividido en bloques horarios, evaluado constantemente. El efecto es que la vida misma se divide entre "tiempo que cuenta" (escuela, trabajo) y "tiempo libre" (que luego se coloniza con consumo y redes sociales). La medicalización de la neurodivergencia es coherente con esto: el niño que no encaja en el horario tiene un "problema de salud" que debe corregirse, no una diferencia que la institución debería tolerar.
+
+7. Las redes sociales como laboratorio de convergencia
+Si la escuela es el taller donde se comienza a forjar el sujeto neoliberal, las redes sociales son el laboratorio donde todos los mecanismos anteriores convergen, se refinan y se aplican a escala individual y en tiempo real, con feedback instantáneo.
+
+7.1. La evolución técnica del scroll
+La interfaz de las redes sociales no es neutra; es una tecnología de gobierno de la atención y del deseo:
+
+El scroll vertical infinito (TikTok, Instagram Reels, Facebook) crea un flujo ininterrumpido donde el algoritmo decide qué viene después. El usuario ya no elige; es llevado por una corriente invisible. La adicción se basa en la imposibilidad de predecir el próximo estímulo (la misma lógica de las máquinas tragamonedas de Las Vegas: variable rewards, recompensas variables que mantienen al jugador enganchado).
+
+El scroll horizontal (Stories, carruseles) fragmenta aún más la experiencia: pasas de un vídeo de cocina a uno de política, de un baile a un tutorial, sin solución de continuidad. Esta fragmentación no solo dispersa la atención, sino que fragmenta la identidad: el usuario es muchos sujetos en poco tiempo, sin coherencia narrativa.
+
+7.2. La convergencia de los mecanismos
+En las redes sociales, todo confluye en una sola plataforma:
+
+La economía pervertida produce sujetos que se ven a sí mismos como marcas personales (personal branding). Cada perfil es un "emprendedor de sí mismo" que gestiona su imagen, sus seguidores, su valor de mercado. La vida se vuelve un contenido a ser optimizado.
+
+La antropología pervertida ofrece tribus digitales: comunidades sin reciprocidad real, pero con fuertes vínculos identitarios basados en status relativo. Los influencers son los nuevos chamanes; los memes, los nuevos mitos; la cancelación, el nuevo tabú.
+
+La psicología pervertida programa el deseo a través de algoritmos que anticipan lo que quieres antes de que lo sepas. La personalización es la zanahoria definitiva: el feed te devuelve tu propia imagen reflejada, reforzando tu identidad y encerrándote en una burbuja de confirmación. Ves más de lo que ya crees, consumes más de lo que ya deseas.
+
+La estética como tecnología alcanza su extremo con los filtros que retocan el cuerpo y el rostro en tiempo real. El canon estético ya no es una imagen lejana; es un filtro que puedes aplicarte a ti mismo, pero la brecha entre la imagen y la realidad se ensancha constantemente, garantizando insatisfacción perpetua.
+
+El meme (en su acepción contemporánea de unidad de cultura viral) es el vehículo de imitación perfecto: se replica sin control, lleva ideas, valores, deseos, pero también marca, ideología, sesgo. Un meme puede hacer más por una marca que mil anuncios, porque no se percibe como publicidad; es "cultura", es "humor", es "compartido libremente", es "auténtico". Las empresas lo saben y lo explotan: crean memes, los patrocinan, los viralizan, los cooptan.
+
+7.3. La convergencia total y la agencia residual
+Las redes sociales son el sumun actual de todos los mecanismos analizados. En ellas, la producción de subjetividad alcanza su máxima eficiencia operativa: el sujeto ya no es un producto terminado, sino un proceso continuo de retroalimentación entre deseo, identidad, status y consumo. El algoritmo no solo te conoce; te configura activamente.
+
+Sin embargo, es importante reconocer que los usuarios no son enteramente pasivos. Hay una constante negociación: usos inesperados del algoritmo, contenido que se resiste, comunidades que se forman fuera de la lógica comercial (aunque luego sean capturadas). Esta agencia no invalida el análisis de la producción de subjetividad, pero lo matiza: el algoritmo no es todopoderoso, aunque su poder sea inmenso. Su poder reside en la capacidad de canalizar la agencia humana hacia fines comerciales, pero la agencia existe, está ahí. Las grietas están ahí.
+
+8. Nota sobre los legitimadores internos y los críticos sintomáticos
+El sistema no solo produce subjetividad; también produce sus propias justificaciones y, lo que es más interesante, sus propias críticas inofensivas.
+
+8.1. Ayn Rand y la legitimación filosófica
+Ayn Rand ya ha sido mencionada como la filósofa que proporciona la coartada moral al egoísmo de mercado. Su influencia va más allá de la literatura: inspira a políticos, empresarios y a toda una corriente libertaria que ve en el Estado al enemigo y en el mercado sin restricciones al paraíso. Rand no describe cómo es el mundo; prescribe cómo debería ser, y en esa prescripción legitima la acumulación sin límites, la desigualdad como mérito y el individualismo como virtud suprema. Es la voz que dice: "lo que haces está bien, es ético, es lo correcto". El sistema necesita esas voces.
+
+8.2. Andy Warhol: la ambivalencia de la legitimación estética
+Si Rand legitima desde la ética, Andy Warhol legitima desde la estética, aunque su obra admita lecturas encontradas. Donde Duchamp aún conservaba un gesto crítico (sacar un objeto cotidiano de contexto para interrogarnos sobre qué es el arte), Warhol da un paso más: toma imágenes ya famosas, ya mercancías, y las reproduce en serie, sin distancia irónica explícita, celebrando la repetición y la serialización.
+
+Warhol entendió antes que nadie que en la era de la reproducción técnica, la marca es el nuevo aura. No importa lo que hagas, importa que se hable de ti. Su célebre frase —"en el futuro, todo el mundo será famoso durante 15 minutos"— no era una ocurrencia, sino una profecía cumplida por las redes sociales y los influencers. Otra frase suya condensa esta ética: "Ganar dinero es un arte, el trabajo es arte, y un buen negocio es el mejor arte".
+
+Pero lo más revelador es que Warhol vivía coherentemente con lo que su obra expresaba. Era hedonista, consumía, se vendía a sí mismo como marca. No había distancia entre su vida y su obra, entre lo que creaba y lo que hacía. Esa coherencia es lo que hace de Warhol un símbolo perfecto de la era: la coincidencia total entre el sujeto producido y la lógica que lo produce. Otras lecturas de Warhol son posibles —como crítica irónica del consumismo (Danto), como revelación de la mercantilización del arte (Brea)—, pero lo que es innegable es que su figura ha sido utilizada por el sistema para legitimar la fusión entre arte y mercancía. El mercado del arte lo canonizó, las marcas lo celebran, y los influencers son sus herederos directos. Independientemente de la intención de Warhol, su obra funciona como legitimación estética del capitalismo de consumo.
+
+8.3. Byung-Chul Han y la crítica sintomática
+El filósofo surcoreano-alemán Byung-Chul Han se ha convertido en un autor de culto por sus diagnósticos de la sociedad contemporánea: La sociedad del cansancio, La sociedad de la transparencia, La expulsión de lo distinto. Sus libros describen con lucidez los síntomas:
+
+El exceso de positividad que nos agota.
+
+La transparencia que elimina la intimidad y la confianza.
+
+La uniformidad que destruye la alteridad.
+
+Sin embargo, su crítica se queda en el plano fenomenológico. Describe cómo sufrimos, pero no analiza los mecanismos que producen ese sufrimiento ni las estructuras de poder que se benefician de él. No menciona la propiedad privada, la acumulación de capital, la explotación laboral, la deuda como herramienta de control, la producción de subjetividad como condición. Su filosofía puede leerse como una meditación existencial, no como una invitación a la acción política transformadora.
+
+Por eso el sistema la tolera, incluso la premia. Han es el crítico inofensivo: alguien a quien se puede citar en los suplementos culturales sin que peligre nada. Su obra no amenaza los fundamentos del orden establecido; más bien, ofrece un vocabulario para expresar el malestar sin señalar responsables, sin invitar a la ruptura. El contraste con el enfoque de este paper es claro: no basta con describir el malestar; hay que rastrear quién diseña las máquinas que lo producen y con qué fines. Han describe el humo; nosotros intentamos seguir el rastro del incendio.
+
+9. Conclusiones: la fragilidad del consentimiento
+Hemos recorrido un largo camino. Partimos de la idea de que el capitalismo tardío no se sostiene solo por represión o coerción, sino por producción de subjetividad. Analizamos cómo tres saberes —economía, antropología y psicología— han sido pervertidos para convertirse en tecnologías de gobierno que fabrican sujetos adecuados al mercado. Vimos cómo la educación institucional normaliza, las redes sociales refinan esos mecanismos a escala masiva, y la estética (desde Disney hasta los filtros de Instagram) programa la insatisfacción corporal como garantía de consumo perpetuo. Y señalamos la existencia de legitimadores internos (Rand, Warhol) y críticos sintomáticos (Han) que, de distinta manera, contribuyen a la estabilidad aparente del sistema.
+
+9.1. El sujeto neoliberal
+El resultado de todo este entramado es un sujeto con las siguientes características:
+
+Se percibe a sí mismo como un empresario de sí mismo (economía pervertida).
+
+Construye su identidad mediante el consumo, la posición en jerarquías de status y la pertenencia a tribus de marca (antropología pervertida).
+
+Desea lo que el sistema necesita que desee, y vive ese deseo como expresión de su libertad (psicología pervertida).
+
+Habita un cuerpo insatisfecho que debe ser constantemente corregido, vestido, filtrado, mejorado (estética como tecnología).
+
+Acepta la evaluación constante y la competencia como algo natural (educación normalizadora).
+
+Para él, salir del sistema es más costoso que permanecer: no tener presencia digital es no existir; no consumir es quedar fuera de la conversación; no competir es fracasar. Incluso la resistencia —el anticonsumismo, el minimalismo, el rechazo al algoritmo— es capturada y convertida en nuevas posiciones dentro del sistema.
+
+Es importante notar que este sujeto no es un único tipo, sino que existe en grados diferenciados por clase, geografía y acceso a recursos. Un precario en una favela sin acceso estable a internet experimenta menos de la tribalización de marca, pero más de la lógica de la competencia y la autoevaluación (conseguir trabajo, ser útil, competir por subsistencia). Un ingeniero en Silicon Valley con acceso a todas las capas de consumo experimenta todas las dimensiones de la producción de subjetividad. Pero todos comparten la lógica fundamental: son sujetos de mercado, evaluados constantemente, en competencia, buscando status dentro de jerarquías que el sistema impone. Los grados cambian; la estructura permanece.
+
+9.2. El papel de la confianza
+Todo este edificio descansa sobre un recurso frágil: la confianza. Confiamos en que la marca no nos engañará, en que el influencer es auténtico, en que el algoritmo nos conoce y nos beneficia, en que el sistema nos recompensará si jugamos según las reglas. Pero esa confianza es permanentemente traicionada (escándalos, crisis, exposiciones de manipulación) y debe ser reconstruida sin cesar. Ahí entra la propaganda, las relaciones públicas, la gestión de la percepción, la narrativa sobre "transparencia" y "autenticidad". El sistema necesita que creamos que funciona, que es justo, que nos tiene en cuenta.
+
+9.3. La manipulación como velo
+La función de la manipulación no es solo crear deseo, sino ocultar que hay alternativas. Si el mercado se presenta como el único escenario posible para la pertenencia, la identidad y la realización personal, entonces cualquier intento de organización al margen (cooperativas, comunidades reales, redes de apoyo mutuo, formas de tribu sin mediación mercantil) queda deslegitimado o invisibilizado. El "poder real de las tribus organizadas" —la capacidad de los seres humanos para cooperar, cuidarse, gobernarse sin mediación del mercado— es sistemáticamente negado.
+
+9.4. Las grietas: dónde se rompe el consentimiento
+El sistema es robusto, pero no invulnerable. Su talón de Aquiles es la confianza, y la confianza se quiebra cuando la manipulación deja de ser creíble.
+
+Las crisis económicas (como 2008, como 2020) pueden romper parcialmente la confianza en el sistema, pero con frecuencia no son suficientes para romper el consentimiento porque:
+
+Si hay una narrativa alternativa creíble que ofrece tribu, sentido y seguridad, el consentimiento puede romperse. Pero hoy no existe una narrativa así a escala global.
+
+Si la crisis se responsabiliza a factores exógenos (mala suerte, culpa del gobierno anterior, sabotaje de enemigos) en lugar de a la lógica del sistema, el consumo puede resurgir y el consentimiento puede reconstruirse.
+
+Una ruptura del consentimiento requeriría una crisis simultánea en varias dimensiones:
+
+Crisis económica real (deuda insostenible, colapso de mercados, desempleo masivo).
+
+Crisis ecológica visible (cambio climático severo, hambre, migraciones forzadas).
+
+Crisis de sentido: cuando la manipulación deja de funcionar porque la realidad es tan dolorosa que ninguna narrativa puede ocultarla.
+
+Y, crucialmente, la emergencia de una alternativa organizada que pueda competir en el plano de la subjetividad: una forma de pertenencia, identidad y realización que no sea mercantil, que ofrezca tribu sin deuda, sentido sin mercancía, status sin competencia.
+
+Pero incluso cuando estas condiciones se reúnen, no hay garantía de que emerja algo mejor. La historia está llena de crisis que acabaron en guerra, fascismo, colapso, o simplemente en la reproducción del mismo sistema bajo nuevas formas.
+
+Este análisis no puede predecir cuándo ni cómo se romperá el consentimiento. Solo puede señalar el punto de fractura: la confianza. Y puede ofrecer una herramienta para reconocer cuándo el velo comienza a rasgarse, cuando la manipulación se vuelve demasiado obvia, cuando la distancia entre la narrativa y la realidad es insostenible.
+
+9.5. Conexión con el análisis de la extracción
+Este artículo se ha centrado en la producción de subjetividad, pero es la otra cara de un análisis más amplio sobre los mecanismos estructurales de extracción (deuda, deslocalización, dumping, externalización ambiental) desarrollado en un paper paralelo. Allí se mostraba cómo el capitalismo tardío extrae valor del futuro, del espacio, de la competencia y de la naturaleza. Aquí hemos mostrado cómo se produce el sujeto que acepta esa extracción como algo natural, incluso deseable. Juntos, ambos análisis ofrecen un diagnóstico integral: el sistema tiene un pie en la economía (mecanismos de extracción) y otro en la subjetividad (producción de sujetos que desean lo que el sistema necesita). Cojeará si falla cualquiera de los dos. Se tambalea si la confianza se quiebra.
+
+9.6. Sobre la falsabilidad
+A diferencia del análisis económico, este marco sobre producción de subjetividad es más difícil de falsar cuantitativamente. Su valor no reside en la predictibilidad popperiana exacta, sino en su coherencia interna y su capacidad para explicar fenómenos que otros marcos no explican. Sin embargo, pueden formularse criterios tendenciales: sería cuestionable si se observara una sociedad de consumo avanzada donde la publicidad dejara de apelar al deseo inconsciente, o donde las marcas no generaran identidad colectiva, o donde la educación institucional no produjera individuos competitivos evaluados constantemente. La persistencia y profundización de estos fenómenos (lejos de desaparecer, la publicidad emocional se ha intensificado, las marcas generan identidades más fuertes, la educación competitiva se ha globalizado) no "prueban" el modelo, pero sí muestran que las condiciones que lo hacen posible siguen operando.
+
+9.7. Pregunta final: fuera del papel
+Este texto no ofrece un programa de acción porque diagnosticar no es recetar. Un diagnóstico es una descripción de la enfermedad, no una cura. Pero quien ha llegado hasta aquí sabe que la pregunta "¿qué hacer?" es la que late bajo cada página.
+
+La respuesta no puede ser única ni venir de un papel. Viene de la decisión, individual y colectiva, de dejar de ser fabricado. Requiere:
+
+Reconocer los mecanismos: saber cómo se produce la subjetividad es el primer paso para resistirla.
+
+Construir alternativas: no basta con rechazar el sistema; hace falta edificar formas de pertenencia, identidad y realización que no sean mercantiles. Existen ejemplos históricos y contemporáneos —cooperativas como Mondragón, comunidades zapatistas, redes de apoyo mutuo en crisis— que muestran que lo alternativo es posible, aunque esté acorralado.
+
+Encontrar grietas donde apalancarse: cada crisis, cada quiebra de confianza, cada momento donde la manipulación falla es una oportunidad.
+
+El territorio de la salida no puede ser mapeado desde adentro con certeza. Solo señalar que existe, que es posible, que ha existido antes en formas que hoy llamaríamos comunidad, cooperación, tribu sin mercancía. Ese es el trabajo que queda. Este análisis solo ilumina el problema.
+
+Referencias
+Bernays, E. (1928). Propaganda. (Hay múltiples ediciones en castellano).
+
+Bernays, E. (1929). Crystallizing Public Opinion.
+
+Brea, J. L. (2002). La era posmedia: acción comunicativa y prácticas (post)artísticas. (Citado en análisis sobre Warhol).
+
+Danto, A. (1981). La transfiguración del lugar común. Paidós.
+
+Deleuze, G. (1968). Diferencia y repetición. (Citado en análisis sobre reproducción artística).
+
+Ewen, S. (1976). Captains of Consciousness: Advertising and the Social Roots of the Consumer Culture. McGraw-Hill.
+
+Foucault, M. (1975). Vigilar y castigar: Nacimiento de la prisión. Siglo XXI.
+
+Foucault, M. (1978-1979). Nacimiento de la biopolítica: Curso en el Collège de France. Fondo de Cultura Económica.
+
+Foucault, M. (1997). Defender la sociedad: Curso en el Collège de France. Fondo de Cultura Económica.
+
+Han, B.-C. (2010). La sociedad del cansancio. Herder.
+
+Han, B.-C. (2012). La sociedad de la transparencia. Herder.
+
+Honnef, K. (2005). Warhol. Taschen.
+
+Illich, I. (1971). Deschooling Society. Harper & Row.
+
+Jackson, P. (1968). Life in Classrooms. Holt, Rinehart & Winston.
+
+Klein, N. (1999). No Logo: El poder de las marcas. Paidós.
+
+Mazur, P. (1927). Citado en Ewen (1976).
+
+Rand, A. (1957). Atlas Shrugged. (Edición en castellano: La rebelión de Atlas).
+
+Rand, A. (1964). The Virtue of Selfishness.
+
+Timimi, S. (2005). Naughty Boys: Anti-Social Behaviour, ADHD and the Role of Culture. Palgrave Macmillan.
+
+Warhol, A. (1975). The Philosophy of Andy Warhol: From A to B and Back Again. (Frases citadas en diversas fuentes).
+
+Nota final: Este texto es el resultado de un diálogo estructurado y sistemático. No es un borrador inconcluso, sino la captura de un proceso de pensamiento crítico puesto a prueba y matizado. Las ideas aquí expuestas son el resultado de una investigación que busca coherencia, no verdades dogmáticas. Se agradece toda crítica que ayude a precisar, corregir o ampliar el análisis.
