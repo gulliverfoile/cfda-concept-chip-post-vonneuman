@@ -208,5 +208,72 @@ ISOMORFISMOS DE FLUJO UN MARCO UNIF.txt (Marco teórico TUSE)
 cfda_gardener.py (Prototipo ejecutable con modelo térmico y visualización $\phi$)
 
 Noticia externa: "High-Accuracy Temporal Prediction via Experimental Quantum Reservoir Computing in Correlated Spins", Physical Review Letters, 15 Abril 2026.
+La Propuesta Original (Apilamiento 3D Separado)
+En la versión 1.1 del documento, teníamos:
 
+Capa Base: CMOS (CFDA Digital)
+
+Capa Intermedia: m-PPU (Memristores ReRAM)
+
+Capa Superior: q-PPU (Diamante NV)
+
+Membrana AIL: Entre CMOS y q-PPU
+
+Problema de esta configuración:
+El m-PPU está físicamente separado de la lógica CMOS que lo controla. Para realizar una operación matriz-vector, el core CMOS tendría que:
+
+Enviar datos a través de TSVs hasta la capa m-PPU.
+
+Esperar a que la matriz de ReRAM haga su magia analógica.
+
+Recibir los resultados de vuelta a través de TSVs.
+
+Esto introduce latencia de comunicación vertical y consume energía en los drivers de los TSVs. Va contra el principio fundamental de CFDA: "mover datos lo mínimo posible".
+
+La Propuesta Corregida: Integración Monolítica del m-PPU en la Capa Base
+Tu intuición es correctísima. El m-PPU debe estar integrado directamente en la capa CMOS, lo más cerca posible de los núcleos RISC-V.
+
+¿Cómo?
+No como una capa separada, sino como bloques de hardware especializados dentro del die de silicio de la capa base, junto a cada cluster de núcleos CFDA.
+
+Ventajas de esta Reorganización:
+
+Aspecto	Capa Separada (Original)	Integrado en CMOS (Corregido)
+Latencia	Alta (viaje vertical TSV)	Mínima (bus local en el mismo die)
+Energía/op	Mayor (carga/descarga TSVs)	Menor (señales de corto alcance)
+Cuello de Botella	El bus de TSVs se convierte en recurso compartido limitado.	Cada cluster tiene su propio m-PPU, paralelismo masivo sin contención.
+Térmico	Calor concentrado en capa intermedia.	Calor distribuido uniformemente en la capa base, gestionado por los canales $\phi$ del interposer.
+Fabricación	Muy compleja (apilar ReRAM sobre CMOS).	Más simple: ReRAM se fabrica en el backend-of-line (BEOL) del propio chip CMOS, como ya se hace experimentalmente.
+Implicación Arquitectónica:
+El m-PPU se convierte en una Unidad Funcional Analógica (AFU) dentro del pipeline del core CFDA, similar a cómo una CPU moderna tiene unidades SIMD (AVX) o unidades de multiplicación de matrices (AMX de Intel). La diferencia es que la AFU no es digital, sino analógica (ReRAM crossbar).
+
+Nueva Estructura de Capas (v1.2)
+Con esta corrección, la arquitectura se simplifica y se vuelve más eficiente:
+
+Capa Base (CMOS + m-PPU Integrado):
+
+Núcleos RISC-V con predictores.
+
+AFUs memristivas (m-PPU) distribuidas por el chip, cerca de los cores.
+
+Lógica de control para la Membrana AIL.
+
+Refrigeración microfluídica $\phi$ en el interposer (parte inferior).
+
+Membrana AIL (Capa Intermedia Activa):
+
+Única capa separadora entre el ruidoso CMOS y el sensible q-PPU.
+
+Contiene los traductores RF-CMOS, fotodetectores, y el bus de eventos.
+
+También incluye micro-canales $\phi$ para refrigerar la cara superior del CMOS.
+
+Capa Superior (q-PPU - Diamante NV):
+
+Reservorio cuántico aislado, comunicado solo con la Membrana AIL.
+
+¿Qué problema resolvemos y cuál mantenemos?
+Resolvemos: El cuello de botella y la latencia del m-PPU. Ahora es un recurso de "primer nivel", como la caché L1.
+
+Mantenemos: La separación física para el q-PPU. El q-PPU SÍ necesita estar aislado porque su sensibilidad al ruido electromagnético es extrema. La Membrana AIL es su barrera protectora y su traductor. No podemos integrarlo monolíticamente en CMOS sin destruir su coherencia cuántica.
 FIN DEL DOCUMENTO DE TRABAJO
