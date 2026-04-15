@@ -4,8 +4,7 @@ DOCUMENTO DE AUTORÍA INTELECTUAL - CFDA
 Fecha: [22 diciembre 2025]
 Autor: [robe]
 
-DECLARACIÓN:
-Este documento establece mi autoría sobre el concepto "Contextual Flow Distributed Architecture" (CFDA), desarrollado independientemente a partir de experimentación con arquitecturas de software de juguete.
+DECLARACIÓN:esto es un juguete, una idea q se me fue de las manos, nada de aqui esta probado, nada esta testeado, solo es ¿se podria hacer de otra manera?.
 
 ORIGEN NO CONVENCIONAL:
 - Idea surgida de modificar sistemas simples para videojuegos/programas educativos
