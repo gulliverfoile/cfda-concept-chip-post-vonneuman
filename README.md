@@ -4,7 +4,7 @@ DOCUMENTO DE AUTORÍA INTELECTUAL - CFDA
 Fecha: [22 diciembre 2025]
 Autor: [robe]
 
-DECLARACIÓN:esto es un juguete, una idea q se me fue de las manos, nada de aqui esta probado, nada esta testeado, solo es ¿se podria hacer de otra manera?.
+DECLARACIÓN:esto es un juguete, una idea q se me fue de las manos, nada de aqui esta probado, nada esta testeado, solo es ¿se podria hacer de otra manera?. este repo es un cajon desastre de ideas, conversaciones con ia destiladas o en bruto, nada, salvo el codigo q funciona, esta provado, testeado, si a alguien le sirve q lo use, si no, que lo descarte. 
 
 ORIGEN NO CONVENCIONAL:
 - Idea surgida de modificar sistemas simples para videojuegos/programas educativos
