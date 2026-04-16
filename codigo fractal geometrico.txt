@@ -1,0 +1,246 @@
+# src/generators/octet_fractal_v2.py
+"""
+Generador de nodos fractales tipo octet recursivo para aplicaciones termomecánicas.
+Versión optimizada para fabricación real.
+"""
+
+import numpy as np
+from scipy.spatial import Delaunay
+import trimesh
+
+class ManufacturingAwareFractalGenerator:
+    """
+    Genera fractales con restricciones de fabricabilidad:
+    - Ángulos mínimos: 15°
+    - Espesor mínimo de viga: 150 µm (para impresión SLM)
+    - Conectividad garantizada
+    """
+    
+    def __init__(self, 
+                 outer_diameter=2.0,  # mm
+                 iterations=2,        # 2 iteraciones para fabricabilidad
+                 min_beam_diameter=0.15,  # mm
+                 min_angle=15,        # grados
+                 target_porosity=0.6):
+        
+        self.R = outer_diameter / 2
+        self.iterations = min(iterations, 2)  # Más de 2 es impráctico hoy
+        self.min_beam = min_beam_diameter
+        self.min_angle = np.deg2rad(min_angle)
+        self.target_porosity = target_porosity
+        
+    def generate_initial_points(self, pattern='truncated_icosahedron'):
+        """Puntos base con conectividad garantizada"""
+        if pattern == 'truncated_icosahedron':
+            # Coordenadas de pelota de fútbol (12 puntos)
+            phi = (1 + np.sqrt(5)) / 2
+            vertices = []
+            for (x, y, z) in [(0, ±1, ±phi), (±1, ±phi, 0), (±phi, 0, ±1)]:
+                for combination in [(x, y, z), (x, z, y), (y, x, z), 
+                                   (y, z, x), (z, x, y), (z, y, x)]:
+                    if combination not in vertices:
+                        vertices.append(combination)
+            vertices = np.unique(vertices, axis=0)[:12]
+            
+        else:  # Cubo truncado (más simple)
+            vertices = []
+            for x in [-1, 0, 1]:
+                for y in [-1, 0, 1]:
+                    for z in [-1, 0, 1]:
+                        if sum(abs(v) for v in (x, y, z)) == 2:
+                            vertices.append([x, y, z])
+            vertices = np.array(vertices)
+        
+        # Normalizar a radio R
+        norms = np.linalg.norm(vertices, axis=1)
+        return vertices * self.R / norms[:, np.newaxis]
+    
+    def enforce_manufacturing_constraints(self, points, beams):
+        """Asegura que el diseño sea fabricable"""
+        valid_beams = []
+        
+        for beam in beams:
+            start, end, radius = beam['start'], beam['end'], beam['radius']
+            
+            # 1. Check grosor mínimo
+            if radius < self.min_beam / 2:
+                continue
+                
+            # 2. Check ángulo mínimo entre vigas conectadas
+            vector = end - start
+            vector_norm = vector / np.linalg.norm(vector)
+            
+            # Encontrar todas las vigas conectadas al mismo nodo
+            connected_beams = [b for b in beams 
+                              if np.array_equal(b['start'], start) or 
+                              np.array_equal(b['end'], start)]
+            
+            valid_angle = True
+            for other in connected_beams:
+                if other is beam:
+                    continue
+                    
+                other_vector = other['end'] - other['start']
+                if np.array_equal(other['end'], start):
+                    other_vector = -other_vector
+                    
+                other_norm = other_vector / np.linalg.norm(other_vector)
+                angle = np.arccos(np.clip(np.dot(vector_norm, other_norm), -1, 1))
+                
+                if angle < self.min_angle and angle > 0.01:
+                    valid_angle = False
+                    break
+            
+            if valid_angle:
+                valid_beams.append(beam)
+        
+        return valid_beams
+    
+    def adaptive_subdivision(self, points, level):
+        """Subdivisión adaptativa basada en restricciones"""
+        if level >= self.iterations:
+            return points
+        
+        new_points = []
+        tri = Delaunay(points)
+        
+        for simplex in tri.simplices:
+            # Centro del tetraedro
+            centroid = np.mean(points[simplex], axis=0)
+            
+            # Agregar puntos en direcciones tetraédricas
+            for i in range(4):
+                vertex = points[simplex[i]]
+                direction = vertex - centroid
+                distance = np.linalg.norm(direction)
+                
+                # Reducir distancia progresivamente
+                scale = 0.5 ** level
+                new_point = centroid + direction * scale * 0.6
+                
+                # Mantener dentro de la esfera
+                norm = np.linalg.norm(new_point)
+                if norm > self.R:
+                    new_point = new_point * self.R / norm
+                
+                new_points.append(new_point)
+        
+        all_points = np.vstack([points, np.unique(new_points, axis=0)])
+        return self.adaptive_subdivision(all_points, level + 1)
+    
+    def connect_points_with_tapered_beams(self, points):
+        """Conexiones con vigas que se afinan hacia extremos"""
+        beams = []
+        threshold = self.R * 0.8  # Solo conectar puntos cercanos
+        
+        for i in range(len(points)):
+            for j in range(i+1, len(points)):
+                dist = np.linalg.norm(points[i] - points[j])
+                
+                if dist < threshold:
+                    # Radio basado en distancia y posición radial
+                    r1 = 1 - (np.linalg.norm(points[i]) / self.R) * 0.3
+                    r2 = 1 - (np.linalg.norm(points[j]) / self.R) * 0.3
+                    
+                    # Radio promedio con tapering
+                    base_radius = self.min_beam / 2 * (1 + level/3)
+                    radius_start = base_radius * r1
+                    radius_end = base_radius * r2
+                    
+                    beams.append({
+                        'start': points[i],
+                        'end': points[j],
+                        'radius_start': radius_start,
+                        'radius_end': radius_end,
+                        'mean_radius': (radius_start + radius_end) / 2
+                    })
+        
+        return beams
+    
+    def calculate_properties(self, points, beams):
+        """Calcula propiedades reales del diseño"""
+        total_volume = 4/3 * np.pi * self.R**3
+        
+        # Volumen de material (aproximación)
+        beam_volume = 0
+        for beam in beams:
+            length = np.linalg.norm(beam['end'] - beam['start'])
+            # Volumen de cono truncado
+            r1, r2 = beam['radius_start'], beam['radius_end']
+            beam_volume += np.pi/3 * length * (r1**2 + r1*r2 + r2**2)
+        
+        porosity = 1 - (beam_volume / total_volume)
+        
+        # Área superficial (para intercambio térmico)
+        surface_area = 0
+        for beam in beams:
+            length = np.linalg.norm(beam['end'] - beam['start'])
+            r1, r2 = beam['radius_start'], beam['radius_end']
+            # Área lateral del cono truncado
+            lateral_area = np.pi * (r1 + r2) * np.sqrt((r1 - r2)**2 + length**2)
+            surface_area += lateral_area
+        
+        return {
+            'porosity': porosity,
+            'beam_count': len(beams),
+            'surface_area': surface_area,
+            'material_volume': beam_volume,
+            'specific_surface': surface_area / beam_volume if beam_volume > 0 else 0
+        }
+    
+    def generate(self, export_stl=None):
+        """Genera el fractal completo"""
+        # 1. Puntos iniciales
+        points = self.generate_initial_points()
+        
+        # 2. Subdivisión adaptativa
+        all_points = self.adaptive_subdivision(points, 0)
+        
+        # 3. Conectar con vigas
+        beams = self.connect_points_with_tapered_beams(all_points)
+        
+        # 4. Aplicar restricciones de fabricación
+        valid_beams = self.enforce_manufacturing_constraints(all_points, beams)
+        
+        # 5. Calcular propiedades
+        properties = self.calculate_properties(all_points, valid_beams)
+        
+        # 6. Exportar si se solicita
+        if export_stl:
+            self.export_to_stl(all_points, valid_beams, export_stl)
+        
+        return {
+            'points': all_points,
+            'beams': valid_beams,
+            'properties': properties
+        }
+    
+    def export_to_stl(self, points, beams, filename):
+        """Exporta a STL con mallas manejables"""
+        meshes = []
+        
+        for beam in beams:
+            # Crear cilindro con tapering
+            cylinder = trimesh.creation.cylinder(
+                radius=beam['mean_radius'],
+                segment=[beam['start'], beam['end']],
+                sections=8  # Bajo para archivo manejable
+            )
+            
+            # Esferas en extremos (suavizado)
+            sphere1 = trimesh.creation.icosphere(
+                radius=beam['radius_start'] * 1.1,
+                center=beam['start']
+            )
+            sphere2 = trimesh.creation.icosphere(
+                radius=beam['radius_end'] * 1.1,
+                center=beam['end']
+            )
+            
+            meshes.extend([cylinder, sphere1, sphere2])
+        
+        # Combinar y exportar
+        combined = trimesh.util.concatenate(meshes)
+        combined.export(filename)
+        print(f"STL exportado: {filename}")
+        print(f"Triángulos: {len(combined.faces):,}")

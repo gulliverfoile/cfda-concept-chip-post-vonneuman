@@ -1,0 +1,689 @@
+"""
+Algoritmo de Planificación por Cohesión Adaptativa (APCA)
+Basado en la ecuación: Y(t) = M(t) * [ΣΣ(2 * W_ij * C(N_i, N_j))]^(1 + ln(I))
+"""
+
+import math
+import numpy as np
+from typing import Dict, List, Tuple, Set, Optional
+from dataclasses import dataclass
+from enum import Enum
+import time
+
+@dataclass
+class ProcessMetrics:
+    pid: int
+    priority: int
+    memory_usage: int
+    io_intensity: float
+    execution_history: List[float]
+    communication_patterns: Dict[int, float]  # pid -> weight
+
+class SystemState(Enum):
+    LOW_LOAD = "low_load"
+    NORMAL = "normal"
+    HIGH_LOAD = "high_load"
+    CRITICAL = "critical"
+
+class CohesionAwareScheduler:
+    """
+    Implementación del algoritmo APCA para planificación de procesos
+    optimizando la cohesión del sistema Y(t)
+    """
+    
+    def __init__(self, total_memory: int = 4096, max_processes: int = 20):
+        # Parámetros del sistema
+        self.total_memory = total_memory
+        self.max_processes = max_processes
+        
+        # Matrices de interacción
+        self.W = np.zeros((max_processes, max_processes))  # W_ij
+        self.C = np.ones((max_processes, max_processes))    # C(N_i, N_j)
+        
+        # Estado del sistema
+        self.processes: Dict[int, ProcessMetrics] = {}
+        self.system_state = SystemState.NORMAL
+        self.cohesion_history: List[float] = []
+        self.intensity_history: List[float] = []
+        
+        # Parámetros adaptativos
+        self.alpha = 0.05  # Tasa de aprendizaje
+        self.beta = 0.3    # Factor de olvido
+        self.gamma = 0.7   # Peso de compatibilidad
+        
+        # Umbrales dinámicos
+        self.cohesion_threshold = 0.5
+        self.intensity_threshold = 0.6
+        
+        # Cache de cálculos
+        self.cohesion_cache = {}
+        self.last_computation_time = 0
+        
+    def update_system_state(self, current_load: float, memory_usage: float) -> None:
+        """Actualiza el estado del sistema basado en métricas actuales"""
+        if current_load < 0.3 and memory_usage < 0.4:
+            self.system_state = SystemState.LOW_LOAD
+        elif current_load < 0.7 and memory_usage < 0.8:
+            self.system_state = SystemState.NORMAL
+        elif current_load < 0.9 and memory_usage < 0.95:
+            self.system_state = SystemState.HIGH_LOAD
+        else:
+            self.system_state = SystemState.CRITICAL
+        
+        # Ajustar parámetros según estado
+        self._adjust_parameters_by_state()
+    
+    def _adjust_parameters_by_state(self):
+        """Ajusta parámetros del algoritmo según el estado del sistema"""
+        if self.system_state == SystemState.LOW_LOAD:
+            self.alpha = 0.1   # Aprende más rápido
+            self.beta = 0.1    # Olvida más lento
+            self.gamma = 0.9   # Alta importancia a compatibilidad
+        elif self.system_state == SystemState.NORMAL:
+            self.alpha = 0.05
+            self.beta = 0.3
+            self.gamma = 0.7
+        elif self.system_state == SystemState.HIGH_LOAD:
+            self.alpha = 0.02  # Aprende más lento
+            self.beta = 0.5    # Olvida más rápido
+            self.gamma = 0.5   # Menor importancia a compatibilidad
+        else:  # CRITICAL
+            self.alpha = 0.01
+            self.beta = 0.7
+            self.gamma = 0.3
+    
+    def compute_interaction_weight(self, pid_i: int, pid_j: int, 
+                                  context: Dict) -> float:
+        """
+        Calcula W_ij basado en múltiples factores:
+        W_ij = λ1*Comm + λ2*Sync + λ3*Resource + λ4*Temporal
+        """
+        if pid_i not in self.processes or pid_j not in self.processes:
+            return 0.0
+        
+        metrics_i = self.processes[pid_i]
+        metrics_j = self.processes[pid_j]
+        
+        # 1. Comunicación histórica
+        comm_weight = metrics_i.communication_patterns.get(pid_j, 0.0)
+        
+        # 2. Sincronización (ejecuciones simultáneas exitosas)
+        sync_weight = self._compute_synchronization_weight(pid_i, pid_j)
+        
+        # 3. Compartición de recursos
+        resource_weight = self._compute_resource_sharing_weight(pid_i, pid_j, context)
+        
+        # 4. Correlación temporal
+        temporal_weight = self._compute_temporal_correlation(pid_i, pid_j)
+        
+        # Combinación ponderada
+        W_ij = (0.3 * comm_weight + 
+                0.25 * sync_weight + 
+                0.25 * resource_weight + 
+                0.2 * temporal_weight)
+        
+        # Actualizar matriz con aprendizaje
+        current_W = self.W[pid_i % self.max_processes, pid_j % self.max_processes]
+        new_W = (1 - self.alpha) * current_W + self.alpha * W_ij
+        self.W[pid_i % self.max_processes, pid_j % self.max_processes] = new_W
+        self.W[pid_j % self.max_processes, pid_i % self.max_processes] = new_W
+        
+        return new_W
+    
+    def compute_compatibility(self, pid_i: int, pid_j: int) -> float:
+        """
+        Calcula C(N_i, N_j) - Compatibilidad entre procesos
+        C = Π(1 - |f_i - f_j|) * similarity_factor
+        """
+        if pid_i not in self.processes or pid_j not in self.processes:
+            return 0.5  # Valor neutral
+        
+        metrics_i = self.processes[pid_i]
+        metrics_j = self.processes[pid_j]
+        
+        # Factores de diferencia normalizados
+        priority_diff = abs(metrics_i.priority - metrics_j.priority) / 10.0
+        memory_ratio = min(metrics_i.memory_usage, metrics_j.memory_usage) / \
+                      max(metrics_i.memory_usage, metrics_j.memory_usage)
+        io_diff = abs(metrics_i.io_intensity - metrics_j.io_intensity)
+        
+        # Producto de compatibilidades (1 - diferencia)
+        compatibility = ((1 - priority_diff) * 
+                        memory_ratio * 
+                        (1 - io_diff))
+        
+        # Factor de similitud de patrones
+        similarity = self._compute_pattern_similarity(pid_i, pid_j)
+        
+        # Combinación final
+        C_ij = self.gamma * compatibility + (1 - self.gamma) * similarity
+        
+        # Actualizar matriz
+        self.C[pid_i % self.max_processes, pid_j % self.max_processes] = C_ij
+        self.C[pid_j % self.max_processes, pid_i % self.max_processes] = C_ij
+        
+        return C_ij
+    
+    def compute_intensity_I(self, active_pids: List[int]) -> float:
+        """
+        Calcula la intensidad global de interacción I
+        I = (Σ W_ij) / (N choose 2) * entropy_factor * diversity_factor
+        """
+        N = len(active_pids)
+        if N < 2:
+            return 0.0
+        
+        total_interaction = 0.0
+        for i in range(N):
+            for j in range(i + 1, N):
+                pid_i = active_pids[i]
+                pid_j = active_pids[j]
+                idx_i = pid_i % self.max_processes
+                idx_j = pid_j % self.max_processes
+                total_interaction += self.W[idx_i, idx_j]
+        
+        avg_interaction = total_interaction / (N * (N - 1) / 2) if N > 1 else 0
+        
+        # Factor de entropía (diversidad de interacciones)
+        entropy_factor = self._compute_entropy_factor(active_pids)
+        
+        # Factor de diversidad (variedad de tipos de proceso)
+        diversity_factor = self._compute_diversity_factor(active_pids)
+        
+        I = avg_interaction * entropy_factor * diversity_factor
+        self.intensity_history.append(I)
+        
+        return I
+    
+    def compute_modulation_M(self, context: Dict) -> float:
+        """
+        Calcula M(t) - Factor de modulación del sistema
+        M(t) = resource_availability * load_balance * efficiency_factor
+        """
+        # 1. Disponibilidad de recursos
+        memory_available = context.get('memory_available', 1.0)
+        io_available = context.get('io_available', 1.0)
+        cpu_available = context.get('cpu_available', 1.0)
+        
+        resource_factor = (memory_available * 0.4 + 
+                          io_available * 0.3 + 
+                          cpu_available * 0.3)
+        
+        # 2. Balance de carga
+        load_balance = self._compute_load_balance(context)
+        
+        # 3. Factor de eficiencia del sistema
+        efficiency = self._compute_system_efficiency()
+        
+        # M(t) = producto ponderado
+        M = (resource_factor * 0.5 + 
+             load_balance * 0.3 + 
+             efficiency * 0.2)
+        
+        # Ajuste por estado del sistema
+        state_multiplier = {
+            SystemState.LOW_LOAD: 1.2,
+            SystemState.NORMAL: 1.0,
+            SystemState.HIGH_LOAD: 0.8,
+            SystemState.CRITICAL: 0.6
+        }
+        
+        return M * state_multiplier.get(self.system_state, 1.0)
+    
+    def compute_cohesion_Y(self, process_set: Set[int], context: Dict) -> float:
+        """
+        Calcula Y(t) para un conjunto de procesos
+        Y(t) = M(t) * [ΣΣ(2 * W_ij * C_ij)]^(1 + ln(I))
+        """
+        if len(process_set) < 2:
+            return 0.0
+        
+        # Cache para optimización
+        cache_key = tuple(sorted(process_set))
+        current_time = time.time()
+        
+        if (cache_key in self.cohesion_cache and 
+            current_time - self.last_computation_time < 0.1):
+            return self.cohesion_cache[cache_key]
+        
+        # Calcular suma doble
+        total_sum = 0.0
+        process_list = list(process_set)
+        
+        for i in range(len(process_list)):
+            for j in range(i + 1, len(process_list)):
+                pid_i = process_list[i]
+                pid_j = process_list[j]
+                
+                # Obtener W_ij y C_ij
+                idx_i = pid_i % self.max_processes
+                idx_j = pid_j % self.max_processes
+                
+                W_ij = self.W[idx_i, idx_j]
+                C_ij = self.C[idx_i, idx_j]
+                
+                total_sum += 2 * W_ij * C_ij
+        
+        if total_sum <= 0:
+            return 0.0
+        
+        # Calcular I para este conjunto
+        I = self.compute_intensity_I(process_list)
+        
+        # Calcular M(t)
+        M = self.compute_modulation_M(context)
+        
+        # Calcular Y(t) con límites numéricos
+        try:
+            exponent = 1.0 + math.log(I + 1e-10)  # Evitar log(0)
+            Y = M * (total_sum ** exponent)
+        except (ValueError, OverflowError):
+            Y = M * total_sum  # Fallback a comportamiento lineal
+        
+        # Actualizar cache
+        self.cohesion_cache[cache_key] = Y
+        self.last_computation_time = current_time
+        self.cohesion_history.append(Y)
+        
+        return Y
+    
+    def select_optimal_process_set(self, 
+                                 ready_processes: List[int], 
+                                 context: Dict,
+                                 max_size: int = 4) -> List[int]:
+        """
+        Selecciona el conjunto óptimo de procesos que maximiza ΔY/ΔResources
+        Usa búsqueda beam search con poda heurística
+        """
+        if not ready_processes:
+            return []
+        
+        if len(ready_processes) <= max_size:
+            return ready_processes
+        
+        # Orden inicial por prioridad y recursos
+        sorted_processes = self._presort_processes(ready_processes, context)
+        
+        # Beam search para encontrar conjunto óptimo
+        beam_width = 3
+        beams = [set()]  # Conjuntos candidatos
+        
+        for process in sorted_processes:
+            new_beams = []
+            
+            for beam in beams:
+                # Considerar añadir proceso al beam
+                if len(beam) < max_size:
+                    candidate = beam | {process}
+                    
+                    # Verificar viabilidad de recursos
+                    if self._check_resource_feasibility(candidate, context):
+                        new_beams.append(candidate)
+                
+                # También mantener el beam sin añadir
+                new_beams.append(beam)
+            
+            # Evaluar beams y mantener los mejores
+            scored_beams = []
+            for beam in new_beams:
+                if beam:  # Ignorar conjuntos vacíos
+                    cohesion = self.compute_cohesion_Y(beam, context)
+                    efficiency = self._compute_set_efficiency(beam, context)
+                    score = cohesion * efficiency
+                    scored_beams.append((score, beam))
+            
+            # Seleccionar top beams
+            scored_beams.sort(reverse=True, key=lambda x: x[0])
+            beams = [beam for _, beam in scored_beams[:beam_width]]
+        
+        # Seleccionar mejor beam
+        if not beams:
+            return sorted_processes[:max_size]
+        
+        best_beam = max(beams, key=lambda b: self.compute_cohesion_Y(b, context))
+        return list(best_beam)
+    
+    def update_after_execution(self, 
+                              executed_set: Set[int], 
+                              context: Dict,
+                              success_metrics: Dict[int, float]) -> None:
+        """
+        Actualiza matrices después de la ejecución
+        """
+        # Aumentar pesos de interacción para procesos exitosos juntos
+        executed_list = list(executed_set)
+        for i in range(len(executed_list)):
+            for j in range(i + 1, len(executed_list)):
+                pid_i = executed_list[i]
+                pid_j = executed_list[j]
+                
+                success_factor = (success_metrics.get(pid_i, 0.5) + 
+                                success_metrics.get(pid_j, 0.5)) / 2
+                
+                idx_i = pid_i % self.max_processes
+                idx_j = pid_j % self.max_processes
+                
+                current_W = self.W[idx_i, idx_j]
+                increment = self.alpha * success_factor * (1 - current_W)
+                new_W = current_W + increment
+                
+                self.W[idx_i, idx_j] = min(1.0, new_W)
+                self.W[idx_j, idx_i] = min(1.0, new_W)
+        
+        # Disminuir pesos para procesos no relacionados (olvido)
+        self._apply_forgetting(executed_set)
+        
+        # Actualizar umbrales dinámicamente
+        self._update_dynamic_thresholds()
+    
+    def _compute_synchronization_weight(self, pid_i: int, pid_j: int) -> float:
+        """Calcula peso basado en ejecuciones simultáneas exitosas"""
+        if pid_i not in self.processes or pid_j not in self.processes:
+            return 0.0
+        
+        hist_i = self.processes[pid_i].execution_history
+        hist_j = self.processes[pid_j].execution_history
+        
+        if len(hist_i) < 2 or len(hist_j) < 2:
+            return 0.0
+        
+        # Calcular correlación de ejecuciones
+        min_len = min(len(hist_i), len(hist_j))
+        corr = np.corrcoef(hist_i[:min_len], hist_j[:min_len])[0, 1]
+        
+        return max(0.0, corr)  # Solo correlaciones positivas
+    
+    def _compute_resource_sharing_weight(self, pid_i: int, pid_j: int, 
+                                        context: Dict) -> float:
+        """Calcula peso basado en compartición de recursos"""
+        resources_i = context.get('process_resources', {}).get(pid_i, set())
+        resources_j = context.get('process_resources', {}).get(pid_j, set())
+        
+        if not resources_i or not resources_j:
+            return 0.0
+        
+        shared = resources_i.intersection(resources_j)
+        total = resources_i.union(resources_j)
+        
+        if not total:
+            return 0.0
+        
+        jaccard_index = len(shared) / len(total)
+        
+        # Penalizar si causa contention
+        contention = context.get('resource_contention', {}).get(
+            tuple(sorted([pid_i, pid_j])), 0.0)
+        
+        return jaccard_index * (1 - contention)
+    
+    def _compute_temporal_correlation(self, pid_i: int, pid_j: int) -> float:
+        """Calcula correlación temporal entre procesos"""
+        if pid_i not in self.processes or pid_j not in self.processes:
+            return 0.0
+        
+        metrics_i = self.processes[pid_i]
+        metrics_j = self.processes[pid_j]
+        
+        # Usar patrones de comunicación como proxy temporal
+        comm_i = list(metrics_i.communication_patterns.values())
+        comm_j = list(metrics_j.communication_patterns.values())
+        
+        if len(comm_i) < 2 or len(comm_j) < 2:
+            return 0.0
+        
+        # Calcular similitud de distribución
+        from scipy import stats
+        try:
+            ks_stat, _ = stats.ks_2samp(comm_i, comm_j)
+            return 1 - ks_stat  # Menor distancia = mayor similitud
+        except:
+            return 0.0
+    
+    def _compute_pattern_similarity(self, pid_i: int, pid_j: int) -> float:
+        """Calcula similitud de patrones de ejecución"""
+        if pid_i not in self.processes or pid_j not in self.processes:
+            return 0.5
+        
+        metrics_i = self.processes[pid_i]
+        metrics_j = self.processes[pid_j]
+        
+        # Comparar múltiples métricas
+        similarities = []
+        
+        # Prioridad (inversa de diferencia)
+        priority_diff = abs(metrics_i.priority - metrics_j.priority)
+        similarities.append(1 - (priority_diff / 10.0))
+        
+        # Intensidad de I/O
+        io_diff = abs(metrics_i.io_intensity - metrics_j.io_intensity)
+        similarities.append(1 - io_diff)
+        
+        # Uso de memoria (ratio)
+        mem_ratio = min(metrics_i.memory_usage, metrics_j.memory_usage) / \
+                   max(metrics_i.memory_usage, metrics_j.memory_usage)
+        similarities.append(mem_ratio)
+        
+        return np.mean(similarities)
+    
+    def _compute_entropy_factor(self, pids: List[int]) -> float:
+        """Calcula factor de entropía de interacciones"""
+        if len(pids) < 2:
+            return 1.0
+        
+        interactions = []
+        for i in range(len(pids)):
+            for j in range(i + 1, len(pids)):
+                idx_i = pids[i] % self.max_processes
+                idx_j = pids[j] % self.max_processes
+                interactions.append(self.W[idx_i, idx_j])
+        
+        if not interactions:
+            return 1.0
+        
+        # Normalizar
+        interactions = np.array(interactions)
+        if interactions.sum() == 0:
+            return 0.0
+        
+        probs = interactions / interactions.sum()
+        
+        # Calcular entropía de Shannon
+        entropy = -np.sum(probs * np.log2(probs + 1e-10))
+        max_entropy = np.log2(len(probs))
+        
+        return entropy / max_entropy if max_entropy > 0 else 1.0
+    
+    def _compute_diversity_factor(self, pids: List[int]) -> float:
+        """Calcula diversidad de tipos de proceso"""
+        if len(pids) < 2:
+            return 1.0
+        
+        types = []
+        for pid in pids:
+            if pid in self.processes:
+                metrics = self.processes[pid]
+                # Clasificar por tipo basado en métricas
+                if metrics.io_intensity > 0.7:
+                    types.append('io_bound')
+                elif metrics.memory_usage > self.total_memory * 0.3:
+                    types.append('memory_intensive')
+                elif metrics.priority < 5:
+                    types.append('high_priority')
+                else:
+                    types.append('normal')
+        
+        unique_types = len(set(types))
+        return unique_types / len(types) if types else 1.0
+    
+    def _compute_load_balance(self, context: Dict) -> float:
+        """Calcula balance de carga del sistema"""
+        cpu_loads = context.get('cpu_loads', [])
+        memory_loads = context.get('memory_loads', [])
+        
+        if not cpu_loads or not memory_loads:
+            return 0.8  # Valor por defecto
+        
+        # Desbalance = desviación estándar normalizada
+        cpu_std = np.std(cpu_loads) / (np.mean(cpu_loads) + 1e-10)
+        mem_std = np.std(memory_loads) / (np.mean(memory_loads) + 1e-10)
+        
+        # Balance = 1 - desbalance promedio
+        balance = 1 - (cpu_std + mem_std) / 2
+        return max(0.0, min(1.0, balance))
+    
+    def _compute_system_efficiency(self) -> float:
+        """Calcula eficiencia histórica del sistema"""
+        if len(self.cohesion_history) < 10:
+            return 0.7
+        
+        # Eficiencia basada en tendencia de cohesión
+        recent = self.cohesion_history[-10:]
+        
+        # Calcular estabilidad (inversa de varianza)
+        stability = 1 / (np.std(recent) + 1e-10)
+        stability = min(1.0, stability * 0.1)  # Escalar
+        
+        # Calcular tendencia
+        x = np.arange(len(recent))
+        slope, _ = np.polyfit(x, recent, 1)
+        
+        trend_factor = 0.5 + (slope * 10)  # Mapear pendiente a [0,1]
+        trend_factor = max(0.0, min(1.0, trend_factor))
+        
+        return (stability * 0.4 + trend_factor * 0.6)
+    
+    def _presort_processes(self, pids: List[int], context: Dict) -> List[int]:
+        """Ordena procesos para búsqueda eficiente"""
+        scored = []
+        for pid in pids:
+            if pid in self.processes:
+                metrics = self.processes[pid]
+                
+                # Score basado en múltiples factores
+                priority_score = (10 - metrics.priority) / 10.0
+                memory_efficiency = 1 - (metrics.memory_usage / self.total_memory)
+                historical_success = np.mean(metrics.execution_history[-5:]) \
+                    if metrics.execution_history else 0.5
+                
+                score = (priority_score * 0.4 + 
+                        memory_efficiency * 0.3 + 
+                        historical_success * 0.3)
+                
+                scored.append((score, pid))
+        
+        # Ordenar por score descendente
+        scored.sort(reverse=True, key=lambda x: x[0])
+        return [pid for _, pid in scored]
+    
+    def _check_resource_feasibility(self, 
+                                   process_set: Set[int], 
+                                   context: Dict) -> bool:
+        """Verifica si el conjunto es factible resource-wise"""
+        total_memory = 0
+        total_io = 0
+        
+        for pid in process_set:
+            if pid in self.processes:
+                metrics = self.processes[pid]
+                total_memory += metrics.memory_usage
+                total_io += metrics.io_intensity
+        
+        memory_limit = context.get('available_memory', self.total_memory)
+        io_limit = context.get('io_bandwidth', 1.0)
+        
+        return (total_memory <= memory_limit * 0.9 and 
+                total_io <= io_limit * 0.8)
+    
+    def _compute_set_efficiency(self, process_set: Set[int], context: Dict) -> float:
+        """Calcula eficiencia estimada del conjunto"""
+        if not process_set:
+            return 0.0
+        
+        # Diversidad de tipos
+        diversity = self._compute_diversity_factor(list(process_set))
+        
+        # Balance de recursos
+        memory_usage = sum(self.processes[pid].memory_usage 
+                          for pid in process_set if pid in self.processes)
+        memory_balance = 1 - (memory_usage / (self.total_memory * 0.8))
+        
+        # Complementariedad
+        complementarity = self._compute_complementarity(process_set)
+        
+        return (diversity * 0.3 + 
+                memory_balance * 0.4 + 
+                complementarity * 0.3)
+    
+    def _compute_complementarity(self, process_set: Set[int]) -> float:
+        """Calcula complementariedad entre procesos"""
+        if len(process_set) < 2:
+            return 0.5
+        
+        io_bound = 0
+        cpu_bound = 0
+        
+        for pid in process_set:
+            if pid in self.processes:
+                if self.processes[pid].io_intensity > 0.6:
+                    io_bound += 1
+                else:
+                    cpu_bound += 1
+        
+        total = len(process_set)
+        ideal_ratio = 0.5  # Idealmente mitad CPU, mitad I/O
+        
+        actual_ratio = io_bound / total if total > 0 else 0
+        complementarity = 1 - abs(actual_ratio - ideal_ratio)
+        
+        return complementarity
+    
+    def _apply_forgetting(self, executed_set: Set[int]) -> None:
+        """Aplica olvido a pesos no utilizados recientemente"""
+        all_pids = set(self.processes.keys())
+        unused_pids = all_pids - executed_set
+        
+        for pid_i in unused_pids:
+            for pid_j in unused_pids:
+                if pid_i < pid_j:
+                    idx_i = pid_i % self.max_processes
+                    idx_j = pid_j % self.max_processes
+                    
+                    current_W = self.W[idx_i, idx_j]
+                    new_W = current_W * (1 - self.beta)
+                    
+                    self.W[idx_i, idx_j] = max(0.0, new_W)
+                    self.W[idx_j, idx_i] = max(0.0, new_W)
+    
+    def _update_dynamic_thresholds(self) -> None:
+        """Actualiza umbrales basado en historia reciente"""
+        if len(self.cohesion_history) < 20:
+            return
+        
+        recent_cohesion = self.cohesion_history[-20:]
+        recent_intensity = self.intensity_history[-20:] \
+            if len(self.intensity_history) >= 20 else [0.5]
+        
+        # Actualizar umbrales como percentil 70
+        self.cohesion_threshold = np.percentile(recent_cohesion, 70)
+        self.intensity_threshold = np.percentile(recent_intensity, 70)
+        
+        # Limitar valores extremos
+        self.cohesion_threshold = max(0.1, min(0.9, self.cohesion_threshold))
+        self.intensity_threshold = max(0.2, min(0.8, self.intensity_threshold))
+    
+    def get_diagnostic_info(self) -> Dict:
+        """Retorna información diagnóstica del algoritmo"""
+        return {
+            'system_state': self.system_state.value,
+            'current_cohesion': self.cohesion_history[-1] if self.cohesion_history else 0.0,
+            'current_intensity': self.intensity_history[-1] if self.intensity_history else 0.0,
+            'cohesion_threshold': self.cohesion_threshold,
+            'intensity_threshold': self.intensity_threshold,
+            'interaction_matrix_density': np.mean(self.W > 0.1),
+            'compatibility_matrix_mean': np.mean(self.C),
+            'adaptive_parameters': {
+                'alpha': self.alpha,
+                'beta': self.beta,
+                'gamma': self.gamma
+            }
+        }

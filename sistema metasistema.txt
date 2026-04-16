@@ -1,0 +1,37 @@
+import numpy as np
+
+class MetaSystem:
+    def __init__(self, M, S, I, subsystems=None):
+        self.M = M
+        self.S = S
+        self.I = I
+        self.subsystems = subsystems if subsystems else []
+
+    def f_entropy(self, I):
+        """
+        Función de entropía: aumenta rendimiento hasta un punto óptimo, luego decrece
+        """
+        I_opt = 1.0  # entropía óptima
+        # campana asimétrica: crecimiento lineal hasta I_opt, decrecimiento decreciente después
+        return I/I_opt if I <= I_opt else np.exp(-0.5*(I-I_opt)**2)
+
+    def compute(self, beta=1.0, gamma=1.0, delta=1.0):
+        # Rendimiento base del sistema
+        base = (self.M ** beta) * (self.S ** gamma) * (self.f_entropy(self.I) ** delta)
+        
+        # Rendimiento multiplicativo de subsistemas
+        subsys_perf = np.prod([s.compute(beta, gamma, delta) for s in self.subsystems]) if self.subsystems else 1.0
+        
+        return base * subsys_perf
+
+# EJEMPLO DE USO
+if __name__ == "__main__":
+    # subsistemas
+    s1 = MetaSystem(M=0.8, S=0.9, I=0.5)
+    s2 = MetaSystem(M=0.7, S=0.85, I=1.2)
+    
+    # sistema principal
+    system = MetaSystem(M=1.0, S=0.95, I=0.8, subsystems=[s1, s2])
+    
+    o = system.compute(beta=1.0, gamma=1.0, delta=1.0)
+    print(f"Rendimiento global del sistema: o = {o:.4f}")

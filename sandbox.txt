@@ -1,0 +1,69 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+class WiseMetaSystem:
+    def __init__(self, name, M, S, I, subsystems=None, redundancy=0.5):
+        self.name = name
+        self.M = M
+        self.S = S
+        self.I = I
+        self.subsystems = subsystems if subsystems else []
+        self.r = redundancy
+
+    def f_entropy(self, I):
+        I_opt = 1.0
+        return I/I_opt if I <= I_opt else np.exp(-0.5*(I-I_opt)**2)
+
+    def adaptive_exponents(self):
+        o_sub = np.mean([s.compute() for s in self.subsystems]) if self.subsystems else 1.0
+        beta = 1.0 * (1 - 0.3*(1 - o_sub))
+        gamma = 1.0 * (1 + 0.2*(1 - o_sub))
+        delta = 1.0 * (1 - 0.5*self.I)
+        beta = np.clip(beta, 0.5, 1.5)
+        gamma = np.clip(gamma, 0.5, 1.5)
+        delta = np.clip(delta, 0.2, 1.0)
+        return beta, gamma, delta
+
+    def compute(self):
+        beta, gamma, delta = self.adaptive_exponents()
+        local_perf = (self.M ** beta) * (self.S ** gamma) * (self.f_entropy(self.I) ** delta)
+        if self.subsystems:
+            subs_perf = np.prod([s.compute() for s in self.subsystems])
+            effective_perf = self.r + (1 - self.r) * subs_perf
+            return local_perf * effective_perf
+        else:
+            return local_perf
+
+    def compute_hierarchy(self):
+        """Devuelve dict con rendimiento de cada nodo para graficar"""
+        perf = {self.name: self.compute()}
+        for s in self.subsystems:
+            perf.update(s.compute_hierarchy())
+        return perf
+
+# =====================
+# EJEMPLO Y VISUALIZACIÓN
+# =====================
+if __name__ == "__main__":
+    # Crear subsistemas
+    s1 = WiseMetaSystem("S1", M=0.8, S=0.9, I=0.5)
+    s2 = WiseMetaSystem("S2", M=0.7, S=0.85, I=1.2)
+    s3 = WiseMetaSystem("S3", M=0.9, S=0.95, I=0.3)
+    s4 = WiseMetaSystem("S4", M=0.6, S=0.8, I=0.9)
+
+    # Sistema principal con subsistemas
+    system = WiseMetaSystem("Global", M=1.0, S=0.95, I=0.8, subsystems=[s1, s2, s3, s4], redundancy=0.6)
+
+    # Calcular jerarquía de rendimiento
+    perf_dict = system.compute_hierarchy()
+    
+    # Graficar
+    plt.figure(figsize=(10,6))
+    names = list(perf_dict.keys())
+    values = [perf_dict[n] for n in names]
+    plt.bar(names, values, color='skyblue')
+    plt.ylabel("Rendimiento emergente o(t)")
+    plt.title("Rendimiento global y de subsistemas (sabiduría práctica emergente)")
+    plt.ylim(0, max(values)*1.2)
+    plt.grid(axis='y', alpha=0.3)
+    plt.show()
