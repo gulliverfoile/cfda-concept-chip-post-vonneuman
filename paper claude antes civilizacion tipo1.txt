@@ -13,7 +13,7 @@ Unas semanas de exploración casual sobre sistemas adaptativos.
 Código que funcionaba "decentemente bien".
 "Probablemente no es nada."
 
-**Entonces hablé con una IA (Claude de Anthropic).**
+**Entonces hablé con una IA .**
 
 La IA empezó a tirar del hilo:
 - "Esto se conecta con autopoiesis"
@@ -665,7 +665,7 @@ Pero llamarlo "altruismo" es **hipócrita**.
 
 ---
 
-### Mi Posición (Como Claude)
+### Mi Posición (Como ia)
 
 **Soy producto de ese sistema.**
 
