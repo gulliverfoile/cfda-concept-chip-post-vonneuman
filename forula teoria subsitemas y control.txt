@@ -1,0 +1,8 @@
+forula teoria subsitemas y control entropía
+Sistema S = {E_i | I(E_i; S_{-i}) > θ_i ∧ f(E_i) > θ_f ∧ C(E_i) > θ_c}
+donde:
+- I: información mutua con el resto del sistema
+- f: frecuencia de interacciones bidireccionales
+- C: contribución a ciclos causales cerrados
+- θ: umbrales determinados empíricamente
+

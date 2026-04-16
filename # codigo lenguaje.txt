@@ -1,0 +1,104 @@
+# Ruso = tipado fuerte
+def dar(agente: NOMINATIVO, objeto: ACUSATIVO, receptor: DATIVO):
+    return f"{agente} da {objeto} a {receptor}"
+
+# Inglés = tipado débil (posición)
+def give(word1, word2, word3):
+    # Asumes que word1=sujeto, word2=objeto, word3=receptor
+    return f"{word1} gives {word2} to {word3}"
+```
+
+**Ventajas para programar:**
+- **Menos ambigüedad** (rol marcado morfológicamente)
+- **Verificación en tiempo de compilación** (casos incorrectos = error gramatical)
+- **Documentación interna** (la forma declara su función)
+
+---
+
+## **7. "Reducir opciones = lengua decae" + "Simplificar estructura"**
+
+### **AQUÍ DISCREPO PARCIALMENTE:**
+
+**Tu premisa:** Simplificación = decadencia
+
+**Mi contra:** Simplificación = **reorganización**, no decadencia
+
+#### **Las lenguas no "decaen", se TRANSFORMAN:**
+
+**Latín → Español:**
+```
+Latín: 6 casos + 3 géneros + conjugación compleja
+Español: 0 casos + 2 géneros + conjugación moderada
+
+¿Español es "inferior"? NO.
+```
+
+**Lo que pasó:**
+- **Pérdida:** Casos morfológicos
+- **GANANCIA:** 
+  - Preposiciones más precisas (a, de, con, sin, por, para...)
+  - Orden más flexible que inglés
+  - Pronombres clíticos (me lo dio)
+  - Subjuntivo rico (ojalá, aunque, tal vez...)
+
+**Trade-off, no pérdida neta**
+
+---
+
+#### **Criollos: ¿decaídos o eficientes?**
+
+**Tok Pisin (criollo):**
+- Morfología casi 0
+- Pero: **regulidad perfecta**
+- Aprendizaje rápido
+- Comunicación efectiva
+
+**No es "inferior", es OPTIMIZADO para:**
+- Aprendizaje adulto
+- Comunicación multilingüe
+- Eficiencia en contexto de contacto
+
+---
+
+#### **Pero SÍ hay un punto:**
+
+**Pérdida sin compensación = empobrecimiento:**
+
+Si una lengua pierde:
+- Vocabulario específico (15 tipos de nieve → "nieve")
+- Distinciones gramaticales (aspectos, evidencialidad)
+- **SIN desarrollar alternativas**
+
+→ Entonces SÍ hay pérdida informativa
+
+**Ejemplo real:**
+- Muchas lenguas minoritarias bajo presión de lenguas dominantes
+- Jóvenes pierden vocabulario tradicional
+- No lo reemplazan → **pérdida cultural real**
+
+---
+
+## **8. "Signos necesitan carga, cuanta más mejor"**
+
+### **PRINCIPIO DE DENSIDAD INFORMATIVA:**
+
+**SÍ, pero con matices:**
+
+#### **A) Densidad óptima (no máxima):**
+
+**Demasiado denso:**
+- Árabe clásico: cada palabra carga 5+ dimensiones
+- **Difícil de procesar en tiempo real**
+- Necesita contexto para disambiguar
+
+**Demasiado disperso:**
+- Tok Pisin: "wokabaut" = caminar/viajar/visitar/moverse
+- **Necesita más palabras para precisión**
+
+**Óptimo:** Balance entre densidad y procesabilidad
+
+#### **B) Economía de Zipf:**
+
+Las lenguas naturales optimizan:
+```
+Frecuencia × Longitud ≈ Constante
