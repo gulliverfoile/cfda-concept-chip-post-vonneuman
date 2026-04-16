@@ -1,0 +1,69 @@
+Hacia un Lenguaje Natural para CFDA: Un Enfoque Relacional
+La arquitectura CFDA, con sus núcleos contextuales, memoria distribuida y capacidad de aprendizaje en chip, exige un paradigma de programación radicalmente diferente. Los lenguajes imperativos tradicionales (C, Python) están diseñados para el modelo von Neumann: secuencias de instrucciones que mueven datos entre memoria y procesador. CFDA, por el contrario, opera sobre la base de relaciones contextuales, flujos predictivos y procesamiento paralelo gobernado por eventos.
+
+Proponemos aquí un esbozo de lenguaje de programación nativo para CFDA, inspirado en la estructura de las lenguas romances, particularmente el gallego y el portugués, cuya riqueza en partículas relacionales (preposiciones, adverbios y conjunciones) ofrece un paralelismo natural con las operaciones fundamentales de la arquitectura.
+
+6.1. Partículas Relacionales como Instrucciones de Máquina
+En lugar de instrucciones del tipo "suma A, B" o "move A, B", el lenguaje propuesto utiliza partículas que expresan relaciones entre entidades (datos, núcleos, flujos). Estas partículas se traducen directamente en configuraciones del hardware: asignación de tareas a núcleos, establecimiento de rutas en la memoria distribuida, o definición de umbrales para los predictores.
+
+La Tabla 6 muestra una correspondencia preliminar entre partículas del gallego y operaciones en CFDA:
+
+Partícula	Significado en lenguaje natural	Operación en CFDA
+EN	Localización, inclusión	Asignación de una tarea a un núcleo contextual específico
+CON	Compañía, simultaneidad	Fusión de flujos de datos en paralelo, combinación de resultados
+LOGO	Inmediatez causal y temporal	Encadenamiento predictivo: el núcleo B se activa inmediatamente tras A, con transferencia directa de datos
+DESDE / HACIA	Origen y destino	Rutas en la memoria distribuida, movimientos de datos anticipados por el Predictive Routing Engine
+ENTRE	Intermediación, rango	Definición de umbrales para la activación de núcleos o para la toma de decisiones basada en confianza
+SEGÚN	Dependencia contextual	Selección dinámica de modo de procesamiento en función del contexto detectado
+CANDO	Condición temporal	Sincronización basada en eventos, activación cuando se cumplen ciertas condiciones
+6.2. Ejemplo de Programación Relacional
+El siguiente fragmento ilustra cómo podría programarse un pipeline de visión por computador en este lenguaje:
+
+text
+// Definir núcleos y sus contextos
+nucleo_camara EN modo_adquisicion
+nucleo_vision EN modo_procesamiento_imagen
+nucleo_analisis EN modo_reconocimiento
+
+// Establecer flujo predictivo
+flux_video DESDE camara HACIA nucleo_camara
+      CON frecuencia 60Hz
+
+// Captura y procesamiento en cadena inmediata
+nucleo_camara CAPTURA quadro
+      LOGO nucleo_vision PROCESA quadro
+      LOGO nucleo_analisis ANALIZA resultado
+
+// Procesamiento paralelo condicional
+SE nucleo_analisis DETECTA multi_obxecto
+      ENTONCES obxecto1 Y obxect2 PROCESAN EN paralelo
+      CON fusion_final
+
+// Aprendizaje de patrones
+APRENDER padrón_de_movemento DE secuencia_quadros
+      PARA predecir seguinte_posición
+
+// Umbral de activación
+SE confianza_detección ENTRE 0.8 E 0.95
+      ENTONCES activar alarma CON prioridade alta
+Nótese cómo cada línea expresa una relación: "EN" asigna, "LOGO" encadena, "CON" fusiona, "DESDE/HACIA" dirigen el flujo, "ENTRE" acota. No hay variables explícitas ni asignaciones; todo son conexiones entre entidades.
+
+6.3. Ventajas de este Enfoque
+Naturalidad para el programador humano: Las partículas relacionales son intuitivas para hablantes de lenguas romances, reduciendo la curva de aprendizaje.
+
+Correspondencia directa con el hardware: Cada partícula se traduce en una configuración de los elementos de CFDA (núcleos, rutas, predictores), minimizando la necesidad de un compilador complejo.
+
+Expresividad: El lenguaje permite describir tanto paralelismo masivo como secuencias temporales estrictas, así como condiciones difusas (umbrales) y aprendizaje en línea.
+
+Extensibilidad: Nuevas partículas pueden añadirse para cubrir operaciones específicas sin romper la coherencia del lenguaje.
+
+6.4. Desafíos y Trabajo Futuro
+La propuesta es aún conceptual. Los principales retos incluyen:
+
+Definir una gramática formal completa.
+
+Implementar un compilador que traduzca estas relaciones a microinstrucciones CFDA.
+
+Evaluar la expresividad y eficiencia del lenguaje con benchmarks reales.
+
+Sin embargo, la existencia de trabajos previos en semántica natural (NSM) y en lenguajes visuales/relacionales sugiere que esta línea es prometedora. Futuras versiones podrían incorporar partículas de otros idiomas (como el griego "kairos" para instantes críticos, o el vasco para relaciones ergativas) y explorar la posibilidad de un metalenguaje universal para arquitecturas post-von Neumann.
