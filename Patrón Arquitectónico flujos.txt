@@ -1,0 +1,119 @@
+Patrón Arquitectónico: "El Río y las Esclusas" (River & Locks)
+Principio Fundacional: El sistema es un flujo de datos que viaja desde el mundo exterior (entradas inmutables) hacia un núcleo de lógica pura (funciones), y luego devuelve un resultado al mundo exterior (salidas). El control no lo dicta una pila de llamadas, sino eventos que señalan que el flujo debe avanzar.
+
+Capa 1: El Mundo Exterior (Lo que no controlamos)
+Un clic en un botón.
+
+Una petición HTTP.
+
+Un archivo YAML que cambia.
+
+Un tick del reloj.
+
+Capa 2: Las Esclusas (Los Adaptadores de Infraestructura)
+Responsabilidad Única: Traducir el caos del mundo exterior al lenguaje puro del sistema.
+
+Implementación: Son objetos con estado (conexiones, sockets, manejadores de archivos).
+
+Comportamiento: Son reactivos. Escuchan pasivamente un evento del mundo exterior.
+
+Acción:
+
+Capturan el evento.
+Leen los datos crudos (JSON, YAML, binario).
+Los validan y transforman en una estructura de datos inmutable (un dataclass, un NamedTuple, un simple dict).
+Disparan el flujo interno, pasándole esa estructura de datos como argumento.
+Nota crucial: Aquí no hay lógica de negocio. Solo traducción. Son los porteros.
+
+Capa 3: El Río (El Flujo de la Aplicación / Casos de Uso)
+Responsabilidad Única: Orquestar el qué del sistema.
+
+Implementación: Un módulo de funciones puras o una simple función handle_evento_x(datos_inmutables).
+
+Comportamiento: Es un script. Una secuencia de pasos que no sabe nada del mundo exterior.
+
+Acción:
+
+Recibe los datos inmutables de la esclusa.
+Llama a las funciones del dominio en el orden correcto para cumplir el caso de uso (validar_stock(), calcular_precio(), crear_pedido()).
+Obtiene un resultado (otra estructura de datos inmutable).
+Devuelve el resultado a la esclusa que lo llamó.
+Nota crucial: Aquí no hay I/O, no hay estado mutable, no hay excepciones de red. Es el corazón determinista del sistema.
+
+Capa 4: El Dominio (Las Leyes de la Física del Negocio)
+Responsabilidad Única: Definir cómo se hacen las cosas.
+
+Implementación: Una colección de funciones puras y tipos de datos algebraicos (en esencia, estructuras de datos inmutables).
+
+Comportamiento: Matemáticas. f(x) = y.
+
+Acción: calcular_tasa(deuda, riesgo) -> float. Siempre la misma salida para la misma entrada.
+
+Ejemplo Concreto: "Procesar Pago" (La Vista del Jardinero)
+Imaginemos un sistema de e-commerce. Queremos procesar un pago.
+
+1. El Evento (Mundo Exterior): Llega una petición HTTP POST /pagos con un JSON.
+
+2. La Esclusa (Objeto Adaptador):
+
+python
+# infrastructure/web/payment_controller.py
+class PaymentController:
+    # ... (configuración del framework web)
+
+    async def handle(self, request):
+        # 1. Traduce: Lee el JSON "sucio"
+        raw_data = await request.json()
+        
+        # 2. Valida/Transforma a una estructura inmutable
+        try:
+            payment_intent = PaymentIntent(
+                user_id=raw_data["userId"],
+                amount=Decimal(raw_data["amount"]),
+                currency=raw_data["currency"]
+            )
+        except KeyError:
+            return HTTPResponse(400, "Datos inválidos")
+
+        # 3. Dispara el flujo interno (El Río)
+        result = await process_payment_usecase(payment_intent)
+
+        # 4. Traduce la respuesta inmutable a una respuesta HTTP
+        return HTTPResponse(200, {"payment_id": result.payment_id})
+3. El Río (Caso de Uso):
+
+python
+# application/payment_usecase.py
+async def process_payment_usecase(intent: PaymentIntent) -> PaymentResult:
+    # 1. Validar reglas de negocio (llamadas al Dominio)
+    if not user_domain.has_sufficient_funds(intent.user_id, intent.amount):
+        return PaymentResult.failed("Fondos insuficientes")
+
+    # 2. Ejecutar la acción (llamada al Dominio)
+    payment_id = payment_domain.create_payment(intent)
+
+    # 3. Emitir un evento interno para otros flujos (opcional)
+    # event_bus.emit(PaymentProcessed(payment_id))
+
+    return PaymentResult.success(payment_id)
+4. El Dominio (Funciones Puras):
+
+python
+# domain/payment.py
+def has_sufficient_funds(user_id: str, amount: Decimal) -> bool:
+    # NOTA: Aquí no se consulta la base de datos.
+    # Esta función opera sobre datos que ya han sido traídos al río.
+    # Por ejemplo, un objeto 'User' pasado como argumento.
+    pass
+
+def create_payment(intent: PaymentIntent) -> str:
+    # Lógica de negocio pura, por ejemplo, generar un ID con un prefijo.
+    return f"pay_{uuid.uuid4()}"
+¿Por qué Esto es Diferente?
+El Flujo es Explícito: No hay que seguir un rastro de herencia (AbstractPaymentProcessor -> StripePaymentProcessor). Es una función que llama a otra función. El camino es visible.
+
+Testabilidad Extrema: Probar process_payment_usecase es trivial. Le paso un PaymentIntent de mentira, verifico que devuelve el PaymentResult esperado. Cero mocks de base de datos. Cero frameworks.
+
+Resiliencia: Si cambia la API de Stripe, solo toco la "esclusa" (el adaptador). El "río" y el "dominio" ni se enteran. Su Identidad Funcional permanece intacta.
+
+IA-Friendly: Una IA puede generar este código. Las funciones son pequeñas, con tipos claros. La IA puede inferir el flujo de datos (PaymentIntent -> PaymentResult) y proponer nuevos casos de uso que encajen en el mismo molde
