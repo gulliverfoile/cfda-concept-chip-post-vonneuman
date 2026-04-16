@@ -117,3 +117,40 @@ Testabilidad Extrema: Probar process_payment_usecase es trivial. Le paso un Paym
 Resiliencia: Si cambia la API de Stripe, solo toco la "esclusa" (el adaptador). El "río" y el "dominio" ni se enteran. Su Identidad Funcional permanece intacta.
 
 IA-Friendly: Una IA puede generar este código. Las funciones son pequeñas, con tipos claros. La IA puede inferir el flujo de datos (PaymentIntent -> PaymentResult) y proponer nuevos casos de uso que encajen en el mismo molde
+
+Advertencia: Este no es un documento de teoría de la arquitectura. Es una guía de navegación para que no te pierdas en este repositorio.
+
+1. La Regla de Oro (El Mapa Mental)
+Antes de abrir una carpeta, recuerda esta frase:
+
+"Los datos fluyen desde el exterior, se transforman en el interior, y vuelven a salir. Los objetos viven en la frontera. Las funciones viven en el centro."
+
+Si entiendes eso, ya sabes dónde está todo.
+
+2. Cómo Identificar Cada Capa sin Leer el Código
+Carpeta	¿Qué hay dentro?	¿Cómo lo sé sin abrirlo?
+/adapters o /infrastructure	Objetos con estado.	Es el único sitio donde verás class, constructor, this., y llamadas a APIs externas (fetch, sql).
+/usecases o /application	Funciones orquestadoras.	Solo verás import ... from '../domain' y llamadas a funciones. Nunca verás import ... from '../infrastructure'.
+/domain o /core	Funciones puras.	Verás function, const, y return. Nunca verás await, try...catch, o import de nada externo.
+/ports o /interfaces	Contratos.	Archivos que solo contienen type o interface (TypeScript) o Protocol (Python). Son los diccionarios del sistema.
+3. El Truco para Seguir un Caso de Uso
+Quieres saber cómo se procesa un pago. No empieces por el principio. Empieza por el final.
+
+Encuentra la función que lo resuelve: Ve a /usecases/payment.ts (o .py). Busca async function processPayment. Esa función es el caso de uso. Léela. Te dirá, en lenguaje humano, los pasos: validar fondos, crear pago, emitir evento. Es tu mapa del tesoro.
+
+Mira sus dependencias: La función processPayment recibe argumentos. ¿De qué tipo son? PaymentIntent. Ve a /domain y mira la definición de PaymentIntent. Es tu contrato de entrada.
+
+Encuentra al mensajero: Ahora que sabes qué necesita el caso de uso (PaymentIntent), busca quién se lo da. Ve a /adapters/web/payment_controller.ts. Ahí verás un objeto PaymentController con un método handle(request). Ese método es el mensajero. Su trabajo es leer la petición HTTP, fabricar un PaymentIntent, y llamar a processPayment. Es el punto donde el mundo exterior toca al sistema.
+
+Siguiendo este flujo inverso (Caso de Uso -> Dominio -> Adaptador), entiendes la lógica en 2 minutos sin tener que leer ni una sola línea de implementación de infraestructura.
+
+4. ¿Por Qué Esto No es un Manifiesto?
+Porque esto ya lo sabe cualquier arquitecto decente. La diferencia es que ellos lo aplican en su cabeza y generan un caos de carpetas que solo ellos entienden. Este documento es para explicitar las reglas del jardín para que otro jardinero pueda entrar y saber dónde pisar y dónde no.
+
+Es la diferencia entre tener un jardín hermoso y tener un jardín hermoso con cartelitos en las plantas. Los cartelitos no hacen el jardín más bello, pero evitan que el nuevo jardinero arranque las rosas pensando que son malas hierbas.
+
+5. El Único Principio Innegociable
+"El flujo de datos va del Adaptador al Caso de Uso al Dominio, y vuelve. Nunca al revés. El Dominio no conoce al Caso de Uso. El Caso de Uso no conoce al Adaptador."
+
+Si ves una línea de código que viola esto, es un error. No es una cuestión de estilo. Es una fuga de entropía. Es como si el agua del río decidiera fluir montaña arriba. No pasa. Y si pasa, el sistema se pudre.
+
