@@ -457,3 +457,186 @@ ENTRADA → HECHOS → CREATIVIDAD → LÓGICA → ÉTICA → NEGOCIACIÓN → C
       Longitud    (OK/Partial/  correcta?   Core?     Flags       y elegir
       Fragmento   Infer/Reject)                                  
 
+================================================================================
+ACTUALIZACIÓN TÉCNICA: PREDICTOR CON MEMORIA DE FRAGMENTOS (V2)
+(Mayo 2026 - Del HashMap Simple al Aprendizaje por Similitud Estructural)
+================================================================================
+
+1. PROBLEMA DE LA VERSIÓN ANTERIOR (V1 - HashMap Simple)
+---------------------------------------------------------
+La versión inicial del predictor usaba un HashMap que emparejaba:
+  Clave: Identificador del cliente + nombre del campo.
+  Valor: Último valor visto.
+
+Limitaciones:
+- No maneja patrones parciales. Si el JSON está truncado a la mitad, no sabe
+  qué hacer.
+- No infiere relaciones. Si "nombre" es "Pepe", no predice "email" a menos que
+  haya visto exactamente esa tupla antes.
+- Memoria frágil. Si el cliente cambia su email una vez, el predictor se
+  vuelve obsoleto hasta que vuelve a fallar.
+
+2. MEJORA: PREDICTOR POR SIMILITUD ESTRUCTURAL (V2)
+----------------------------------------------------
+En lugar de un HashMap exacto, el predictor mantiene un **Historial de
+Fragmentos Exitosos** y aplica **Matching Parcial**.
+
+Estructura de Datos:
+  BufferDeFragmentos: Array<{
+    clienteId: string,
+    patron: Partial<Esquema>,      // Los campos que SÍ llegaron
+    valores: Record<string, any>,  // Sus valores
+    timestamp: number,
+    frecuencia: number             // Cuántas veces se ha visto este patrón
+  }>
+
+Algoritmo de Inferencia V2:
+  FUNCION InferirCampo(campoFaltante, datosParciales, clienteId):
+      // 1. Buscar fragmentos del mismo cliente con ese campo
+      CANDIDATOS = BufferDeFragmentos.filter(f =>
+          f.clienteId == clienteId AND
+          campoFaltante IN f.valores
+      )
+      
+      // 2. Si no hay del mismo cliente, buscar en todos (sabiduría de la tribu)
+      SI CANDIDATOS.estaVacio():
+          CANDIDATOS = BufferDeFragmentos.filter(f =>
+              campoFaltante IN f.valores
+          )
+      
+      // 3. PUNTUAR POR SIMILITUD ESTRUCTURAL
+      PARA CADA candidato EN CANDIDATOS:
+          puntuacion = 0
+          PARA CADA campo IN datosParciales:
+              SI campo IN candidato.patron AND
+                 candidato.valores[campo] == datosParciales[campo]:
+                  puntuacion += 1
+          // Bonus por frecuencia (experiencia repetida)
+          puntuacion += candidato.frecuencia * 0.1
+          candidato.puntuacion = puntuacion
+      
+      // 4. ELEGIR EL MEJOR Y DEVOLVER
+      MEJOR = CANDIDATOS.ordenarPor('puntuacion').primero()
+      SI MEJOR.puntuacion > UMBRAL_SIMILITUD:
+          RETORNAR MEJOR.valores[campoFaltante]
+      SINO:
+          RETORNAR undefined  // No nos la jugamos
+
+3. EJEMPLO PRÁCTICO DE APRENDIZAJE
+----------------------------------
+Día 1: Llega JSON completo de ClienteX:
+  {"nombre": "Pepe", "email": "pepe@x.com", "telefono": "123"}
+  
+  BufferDeFragmentos guarda:
+    { clienteId: "ClienteX", patron: ["nombre","email","telefono"],
+      valores: {...}, frecuencia: 1 }
+
+Día 2: Llega JSON roto: {"nombre": "Pepe"} (falta email y teléfono)
+
+  El predictor busca CANDIDATOS para campo "email":
+    - Encuentra el fragmento del Día 1.
+    - Puntuación: "nombre" coincide ("Pepe" == "Pepe") -> +1
+    - Frecuencia 1 -> +0.1
+    - Total: 1.1
+
+  UMBRAL_SIMILITUD = 1.0 -> PASA.
+  INFIERE: email = "pepe@x.com"
+
+Día 3: Pepe cambia su email. Llega JSON completo con email nuevo.
+  El predictor AÑADE un nuevo fragmento con frecuencia 1.
+  El fragmento antiguo queda con frecuencia 1 (obsoleto).
+
+Día 4: Llega JSON roto otra vez.
+  El predictor evalúa AMBOS fragmentos.
+  El nuevo tiene puntuación 1.1. El viejo también 1.1.
+  CRITERIO DE DESEMPATE: timestamp más reciente.
+  INFIERE: email NUEVO.
+
+4. MECANISMO DE OLVIDO (PREVENCIÓN DE SOBREAJUSTE)
+--------------------------------------------------
+Para evitar que el buffer crezca indefinidamente y se llene de ruido:
+  - Los fragmentos con frecuencia < 2 y antigüedad > 7 días se eliminan.
+  - Los fragmentos no usados en 30 días se degradan (frecuencia = frecuencia * 0.5).
+
+Esto implementa una **Curva de Olvido** similar a la memoria humana:
+lo que no se usa, se olvida; lo que se usa mucho, se refuerza.
+
+5. COMUNICACIÓN CON EL DISEÑO ORIGINAL DEL ADAPTADOR
+----------------------------------------------------
+Esta actualización NO modifica la interfaz del Adaptador. Solo reemplaza
+el método interno `inferirCampo()`.
+
+El Adaptador sigue devolviendo los mismos tipos de resultado:
+  - OK
+  - PARCIAL
+  - INFERIDO
+  - RECHAZADO
+
+La diferencia es que ahora la tasa de acierto en modo INFERIDO es
+significativamente mayor, y el sistema aprende patrones complejos
+(como "si viene Pepe y falta email, usa el de ayer") sin necesidad de
+reglas explícitas.
+
+6. PSEUDO-CÓDIGO DE LA ACTUALIZACIÓN (Para el archivo del Adaptador)
+--------------------------------------------------------------------
+class PredictorEstructural {
+  private buffer: Fragmento[] = [];
+
+  inferirCampo(campo: string, datosParciales: any, clienteId: string): any {
+    let candidatos = this.buffer.filter(f => 
+      f.clienteId === clienteId && campo in f.valores
+    );
+    
+    if (candidatos.length === 0) {
+      candidatos = this.buffer.filter(f => campo in f.valores);
+    }
+
+    const puntuados = candidatos.map(c => ({
+      fragmento: c,
+      score: this.calcularSimilitud(datosParciales, c) + (c.frecuencia * 0.1)
+    }));
+
+    const mejor = puntuados.sort((a,b) => b.score - a.score)[0];
+    
+    if (mejor && mejor.score > this.UMBRAL) {
+      mejor.fragmento.frecuencia += 1; // Refuerzo
+      return mejor.fragmento.valores[campo];
+    }
+    
+    return undefined;
+  }
+
+  private calcularSimilitud(datos: any, fragmento: Fragmento): number {
+    let score = 0;
+    for (const key in datos) {
+      if (key in fragmento.valores && fragmento.valores[key] === datos[key]) {
+        score += 1;
+      }
+    }
+    return score;
+  }
+
+  guardarExito(datosCompletos: any, clienteId: string): void {
+    const patron = Object.keys(datosCompletos);
+    const existente = this.buffer.find(f => 
+      f.clienteId === clienteId && this.mismoPatron(f.patron, patron)
+    );
+    
+    if (existente) {
+      existente.frecuencia += 1;
+      existente.timestamp = Date.now();
+    } else {
+      this.buffer.push({
+        clienteId,
+        patron,
+        valores: datosCompletos,
+        timestamp: Date.now(),
+        frecuencia: 1
+      });
+    }
+  }
+}
+
+================================================================================
+FIN DE LA ACTUALIZACIÓN DEL PREDICTOR (V2)
+================================================================================
