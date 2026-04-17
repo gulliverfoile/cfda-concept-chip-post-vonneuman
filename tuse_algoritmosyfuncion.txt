@@ -404,3 +404,209 @@ Ejemplos de intervenciones arquitectónicas:
 ================================================================================
 Fin del Anexo A
 ================================================================================
+
+================================================================================
+ANEXO B: EL PATRÓN DEL ADAPTADOR ENACTIVO - ACTUALIZACIÓN TÉCNICA V1.1
+(Válvulas Inteligentes en la Frontera del Sistema - Mayo 2026)
+================================================================================
+Documento de Trabajo Interno - Autor: [Tu Nombre o Pseudónimo]
+Licencia: AGPLv3 
+Relación con documento principal: Complementa Secciones 6, 8 y 9.
+
+1. INTRODUCCIÓN A LA ACTUALIZACIÓN
+-----------------------------------
+El presente anexo operativiza los principios de TUSE en un patrón de diseño
+concreto para sistemas software que interactúan con entornos hostiles
+(APIs externas, datos corruptos, sensores ruidosos). No modifica el núcleo
+filosófico del documento original, sino que proporciona una **instanciación
+práctica** del marco en el dominio de la ingeniería de software.
+
+Este anexo responde a la pregunta: 
+"¿Cómo construyo la Circularidad Abierta en código?"
+
+2. EL ADAPTADOR COMO SISTEMA RECURSIVO INVERSO
+----------------------------------------------
+En la Sección 2.3 del documento principal se distingue entre Intención Fuerte
+(algoritmo) e Intención Débil (arquitectura). El Adaptador Enactivo es la
+**encarnación de la Intención Débil en la frontera del sistema**.
+
++-------------------------+---------------------------------------------------+
+| Propiedad               | Manifestación en el Adaptador                      |
++-------------------------+---------------------------------------------------+
+| Recursión Dinámica      | El Adaptador replica la estructura del Core pero  |
+|                         | con lógica INVERSA.                               |
+| Lógica del Core         | Centrípeta: Preserva Coherencia. Rechaza lo que   |
+|                         | no encaja. (Modo: Validación Dura).               |
+| Lógica del Adaptador    | Centrífuga: Preserva Flujo. Degrada, infiere o    |
+|                         | cierra antes de romper el Core. (Modo: Super-     |
+|                         | vivencia Blanda).                                 |
+| Circularidad Abierta    | Cierre (rechazo de conexión) + Apertura (lectura  |
+|                         | parcial de datos válidos).                        |
++-------------------------+---------------------------------------------------+
+
+El Adaptador NO es un traductor pasivo. Es un **Sistema 1 recursivo completo**
+con su propio ciclo T-A-S-D-C (ver Sección 3.2) operando en tiempo real.
+
+3. EL ALGORITMO DEL EXAMINADOR (OPERACIONALIZACIÓN DE SABIDURÍA PRÁCTICA)
+-------------------------------------------------------------------------
+La Sección 3.1 presenta el Algoritmo de Sabiduría Práctica como herramienta del
+observador. A continuación se muestra su **instanciación como lógica de
+validación de flujos externos** (JSON, XML, payloads HTTP).
+
+Pseudo-código del Examinador (Ejecutado por el Adaptador en cada entrada):
+
+FUNCION ExaminarEntrada(DatosCrudos, PerfilAdaptador, MemoriaLocal):
+    // PASO 1: HECHOS (Analizar lo que realmente llegó)
+    fragmento_valido = ExtraerParteParseable(DatosCrudos)
+    SI fragmento_valido ES NULO:
+        RETORNAR RECHAZAR("Formato ilegible")
+    
+    // PASO 2: CREATIVIDAD (Generar opciones de acción)
+    OPCIONES = [
+        IntentarParseoCompleto(DatosCrudos),           // Opción Ideal
+        IntentarParseoParcial(fragmento_valido),       // Opción Degradada
+        IntentarInferencia(fragmento_valido, MemoriaLocal), // Opción Predictiva
+        IntentarRechazoDefinitivo(DatosCrudos)         // Opción de Defensa
+    ]
+    
+    // PASO 3: LÓGICA (Coherencia estructural)
+    PARA CADA Opcion EN OPCIONES:
+        SI NO EsEstructuralmenteValida(Opcion):
+            DESCARTAR Opcion
+    
+    // PASO 4: ÉTICA (Nota: En arquitecturas maduras, este paso EMERGE del diseño.
+    // Se explicita aquí como muleta para entornos degradados. Ver Sección 5 de este anexo).
+    PARA CADA Opcion EN OPCIONES:
+        SI Opcion IMPLICA RiesgoInaceptableParaElCore(PerfilAdaptador):
+            DESCARTAR Opcion
+    
+    // PASO 5: NEGOCIACIÓN (Ajuste fino)
+    OPCIONES_AJUSTADAS = AñadirFlagsDeAdvertencia(OPCIONES) // Ej: "campo_inferido"
+    
+    // PASO 6: COHERENCIA (Ponderación según perfil)
+    MEJOR_OPCION = ElegirPorPesos(OPCIONES_AJUSTADAS, PerfilAdaptador.Pesos)
+    
+    // APRENDIZAJE (Bucle Doble - Sección 4 de este anexo)
+    ActualizarMemoriaLocal(MEJOR_OPCION, DatosCrudos)
+    
+    RETORNAR MEJOR_OPCION
+
+4. MEMORIA Y APRENDIZAJE DE BUCLE DOBLE
+---------------------------------------
+A diferencia de un validador estático, el Adaptador acumula **Experiencia
+Local** (ver Sección 9.3 sobre Madurez Sistémica).
+
+- **Bucle Simple:** Procesar entrada -> Pasar al Core.
+- **Bucle Doble:** Medir fallos -> Ajustar Predictor -> Mejorar tolerancia.
+
+Implementación mínima (sin infraestructura externa):
+  - HashMap<PatrónDeFallo, ValorInferido> en memoria local.
+  - Si un cliente X falla 10 veces en el campo "email", el Adaptador aprende
+    a usar el email de caché sin pasar por el paso de Creatividad.
+
+5. LA ÉTICA COMO PROPIEDAD EMERGENTE (REFINAMIENTO DE LA SECCIÓN 8)
+-------------------------------------------------------------------
+En el documento original, el Paso 4 del algoritmo (EvaluarMarcoEtico) se
+presenta como una etapa explícita. La experiencia práctica demuestra que:
+
+    "En un sistema con Intención Débil bien diseñada, la ética no se evalúa.
+    Emerge de la restricción estructural del canal."
+
+- **Ejemplo:** El Adaptador está diseñado para que los datos inferidos NUNCA
+  puedan ser pasados al Core sin un flag `"inferido": true`. La ética no es
+  una pregunta, es una **restricción física del acoplamiento**.
+- **Implicación para el Diseño:** El objetivo no es añadir un "Guardia Ético",
+  sino rediseñar los Puertos (Sección 2.1 del Hexagonal) para que solo admitan
+  objetos con trazabilidad de confianza.
+
+6. COPY-PASTE COMO ESTRATEGIA DE RECURSIÓN OPERATIVA
+----------------------------------------------------
+La academia tiende a penalizar la duplicación de código. Sin embargo, desde la
+óptica de TUSE, el Copy-Paste de una **Plantilla Estable de Examinador** es una
+manifestación del principio de **Recursión Dinámica**.
+
++-------------------------+---------------------------------------------------+
+| Enfoque Tradicional     | Enfoque TUSE (Patrón Adaptador Enactivo)          |
++-------------------------+---------------------------------------------------+
+| Una clase base abstracta| Una plantilla de archivo autocontenida.           |
+| y 15 herencias.         |                                                   |
+| Un bug en la base       | Un bug en un Adaptador (Cliente X) no afecta al   |
+| afecta a todos.         | Adaptador del Proveedor Y. (Aislamiento de Fallos)|
+| Cambiar un caso concreto| Se modifica SOLO el archivo del cliente concreto. |
+| requiere romper la      | El resto permanece inalterado.                    |
+| abstracción.            |                                                   |
++-------------------------+---------------------------------------------------+
+
+**Mitigación de Divergencia:** Se recomienda el uso de **Tests de Contrato**
+en el pipeline de CI/CD que validen que TODOS los adaptadores responden de
+manera consistente ante un conjunto de entradas malformadas conocidas.
+
+7. PUNTOS DE PALANCA DINÁMICOS: EL PERFIL DEL OBSERVADOR
+--------------------------------------------------------
+La Sección 8.1 define los Puntos de Palanca como intersecciones de máxima
+fricción. En el patrón del Adaptador, el punto de palanca más accesible es el
+**Perfil de Configuración** (los pesos W_ij del algoritmo).
+
+Modificar un archivo de variables de entorno:
+  TOLERANCIA_FALTANTES=0.2  -> Cambia la Intención Débil del sistema
+  PERMITIR_INFERENCIA=false -> EN TIEMPO REAL, sin recompilar.
+
+Esto permite **Gobernanza Sistémica sin rediseño de código**, cumpliendo el
+principio de "Intervención Mínima" de la Sección 8.3.
+
+8. EJEMPLO MÍNIMO DE IMPLEMENTACIÓN (TYPESCRIPT CONCEPTUAL)
+-----------------------------------------------------------
+class ExaminadorJSON<T> {
+  private memoria: Map<string, Partial<T>> = new Map();
+
+  constructor(private perfil: { tolerancia: number, pesos: any }) {}
+
+  examinar(raw: string, clienteId: string): Resultado<T> {
+    // Paso 1: Hechos
+    const fragmento = this.extraerFragmentoValido(raw);
+    if (!fragmento) return { tipo: 'RECHAZADO' };
+
+    // Paso 2: Creatividad
+    const opciones = [
+      this.parseoCompleto(raw),
+      this.parseoParcial(fragmento),
+      this.inferir(fragmento, clienteId),
+    ].filter(o => o !== null);
+
+    // Paso 3/4: Lógica y Ética (Filtros)
+    const validas = opciones.filter(o => 
+      this.esEstructuralmenteValido(o) && 
+      this.riesgoAceptable(o)
+    );
+
+    // Paso 5/6: Negociación y Coherencia
+    const ajustadas = validas.map(o => this.añadirFlags(o));
+    const mejor = this.elegirPorPesos(ajustadas);
+
+    // Aprendizaje
+    if (mejor.tipo === 'INFERIDO') {
+      this.memoria.set(clienteId, mejor.datos);
+    }
+
+    return mejor;
+  }
+  // ... implementaciones específicas ...
+}
+// Uso: Adaptador para Cliente X
+const adaptadorClienteX = new ExaminadorJSON({ tolerancia: 0.3, pesos: {...} });
+
+9. COMUNICACIÓN CON EL DOCUMENTO ORIGINAL
+-----------------------------------------
+Este anexo **no modifica ni invalida** el contenido de TUSE v1.0 (Abril 2026).
+Actúa como una **Capa de Implementación** que conecta:
+
+  - La Sección 2 (Principios Fundamentales) -> Con la estructura recursiva del Adaptador.
+  - La Sección 3 (Algoritmos Dialécticos) -> Con la lógica del Examinador.
+  - La Sección 8 (Puntos de Palanca) -> Con la configuración dinámica de perfiles.
+
+Se recomienda leer este anexo como **"TUSE en el Taller"**: la traducción de la
+filosofía a herramientas de trinchera para ingenieros de software.
+
+================================================================================
+FIN DEL ANEXO B - ACTUALIZACIÓN TÉCNICA V1.1 (MAYO 2026)
+================================================================================
