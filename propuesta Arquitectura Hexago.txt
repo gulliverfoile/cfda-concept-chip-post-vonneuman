@@ -640,3 +640,51 @@ class PredictorEstructural {
 ================================================================================
 FIN DE LA ACTUALIZACIÓN DEL PREDICTOR (V2)
 ================================================================================
+
+10. DEFENSA EN PROFUNDIDAD: EL PATRÓN DOBLE CIEGO INMUNOLÓGICO
+--------------------------------------------------------------
+La implementación del Adaptador Enactivo revela un patrón emergente de **doble
+validación** que incrementa la resiliencia del sistema sin acoplar sus partes.
+
+10.1 Analogía Inmunológica
+El sistema se comporta como un organismo con dos líneas de defensa:
+
+- **Barrera Física (Adaptador):** Filtra, degrada y etiqueta. No rechaza
+  definitivamente a menos que el daño sea inminente (conexión corrupta).
+  Añade **tinta roja** (flags `inferido`, `parcial`) a los datos sospechosos.
+- **Sistema Inmune (Core):** Recibe los datos ya etiquetados. Decide, según
+  su propio criterio de negocio, si acepta datos degradados o exige integridad
+  total para operaciones críticas.
+
+10.2 Ventajas del Acoplamiento Explícito (Tinta Roja)
+- **Trazabilidad:** El Core nunca recibe datos inventados sin saberlo.
+- **Responsabilidad Separada:** El Adaptador no conoce el negocio (no sabe
+  si un email inferido es aceptable). El Core no conoce el mundo exterior
+  (no sabe si el JSON venía roto). La decisión se toma en el punto exacto
+  donde reside el conocimiento necesario.
+- **Degradación Elegante:** El Core puede operar en "Modo Marketing" (acepta
+  inferencias) o "Modo Facturación" (rechaza inferencias) sin modificar el
+  Adaptador.
+
+10.3 Implicaciones de Diseño
+Este patrón exige que los Puertos (interfaces entre Adaptador y Core) estén
+diseñados para transportar **metadatos de confianza** junto a los datos de
+negocio.
+
+Ejemplo de tipo de retorno del Adaptador:
+  type ResultadoExamen<T> = 
+    | { tipo: 'OK', datos: T }
+    | { tipo: 'DEGRADADO', datos: T, flags: string[], severidad: 'BAJA'|'ALTA' }
+    | { tipo: 'RECHAZADO', motivo: string }
+
+El Core evalúa `severidad` y `flags` antes de procesar `datos`.
+
+10.4 Relación con el Predictor Estructural (Sección 6 del Anexo)
+El predictor es el mecanismo que **genera** los datos inferidos dentro del
+Adaptador. La Defensa en Profundidad es el **protocolo de comunicación** que
+permite al Core usar esos datos de forma segura. Ambos son complementarios
+y necesarios para un sistema verdaderamente resiliente.
+
+================================================================================
+FIN DE LA REVISIÓN 1.2 (JUNIO 2026)
+================================================================================
