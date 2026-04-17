@@ -1,0 +1,459 @@
+Resumen Técnico: Arquitectura Hexagonal con Adaptadores Inteligentes
+1. Código Hexagonal (Lo Esencial)
+Dominio Puro (Core): Contiene la lógica de negocio. No sabe nada del exterior (JSON, HTTP, DOM, SQL). Recibe objetos limpios y emite eventos o resultados.
+
+Puertos: Interfaces que definen cómo se comunica el Core con el exterior (ParaGuardarPedido, ParaEnviarFactura).
+
+Adaptadores: Implementaciones concretas de los Puertos. Traducen el mundo exterior al lenguaje del Core y viceversa.
+
+Problema del Hexagonal Clásico: El Adaptador se trata como un traductor tonto. En producción, el mundo manda datos corruptos, incompletos o ruidosos. Si el Adaptador falla, el Core colapsa.
+
+2. El Adaptador como Subsistema Autónomo (El Espejo Recursivo)
+Propuesta: El Adaptador no es una simple función. Es un subsistema recursivo que replica la estructura del Core pero orientado a la supervivencia en el mundo exterior.
+
+Su "Core" interno: Gestiona fragmentos de JSON, buffers, y estado de conexión.
+
+Su "Mundo": El flujo externo (bytes de red, respuesta HTTP, DOM del navegador).
+
+Su Memoria: Acumula experiencia sobre patrones de fallo del cliente/servicio concreto.
+
+Reglas de Supervivencia del Adaptador:
+
+Leer lo que se pueda: Si el JSON está parcialmente roto, extraer la parte válida.
+
+Guardar lo leído: Persistir el fragmento válido para futuras reconstrucciones.
+
+Predecir por historial: Si faltan campos pero hay patrones previos, inferir valores con marcado de confianza.
+
+Cerrar la acción: Si el ruido es excesivo, cortar conexión limpiamente sin propagar errores al Core.
+
+3. El Algoritmo de Examen (Modelo TUSE Aplicado)
+El Adaptador evalúa cada entrada externa mediante un bucle de filtros secuenciales:
+
+Paso	Acción	Pregunta Clave
+1. Hechos	Analizar la entrada cruda	¿Qué datos hay realmente? ¿Qué longitud? ¿Dónde falla el parser?
+2. Creatividad	Generar opciones de acción	¿Parseo completo? ¿Parcial? ¿Inferir campos? ¿Rechazar todo?
+3. Lógica	Validar coherencia técnica	¿La opción elegida es sintácticamente viable?
+4. Ética	Evaluar riesgo para el Core	¿Esta acción puede corromper el Dominio o generar datos falsos peligrosos?
+5. Negociación	Ajustar la opción	Añadir flags ("inferido": true), logs de advertencia, o degradar funcionalidad.
+6. Coherencia	Ponderar según perfil	Según pesos (Seguridad vs Disponibilidad), elegir la mejor opción.
+Salida: El Adaptador devuelve al Core:
+
+Ok(ObjetoCoherente)
+
+Ok(ObjetoParcial { datos, faltan: [...] })
+
+Ok(ObjetoInferido { datos, flags: [...] })
+
+Err(ErrorControlado) (sin stack trace ni detalles internos)
+
+4. Resumen de Arquitectura (La Estructura Final)
+text
+src/
+├── core/               # Dominio puro. Lógica de negocio.
+│   ├── pedido.rs
+│   └── cliente.rs
+│
+├── puertos/            # Traits/Interfaces (opcional pero recomendado)
+│   └── repositorio.rs
+│
+├── adapters/           # Espejos recursivos. Uno por contacto externo.
+│   ├── json_cliente.rs # Copia de la plantilla base
+│   ├── json_proveedor.rs
+│   ├── xml_legacy.rs
+│   └── db_postgres.rs
+│
+├── examinador/         # Plantilla base del algoritmo de examen
+│   └── mod.rs          # (Hechos -> Creatividad -> Lógica -> Ética -> Negociación -> Coherencia)
+│
+└── main.rs             # Levanta adaptadores e inyecta en el Core
+Principio de Mantenimiento:
+
+Copy-Paste Controlado: La plantilla del Examinador se copia para cada nuevo Adaptador.
+
+Personalización Mínima: Solo se ajustan el esquema esperado y los pesos del perfil (tolerancia a fallos).
+
+Aislamiento de Fallos: Si un Adaptador colapsa, el resto y el Core siguen funcionando.
+
+prueba de código examinador:
+
+// =============================================
+// PLANTILLA BASE DEL EXAMINADOR (Copy-Paste)
+// =============================================
+
+type ResultadoExamen<T> = 
+  | { tipo: 'OK'; datos: T }
+  | { tipo: 'PARCIAL'; datos: Partial<T>; faltan: string[] }
+  | { tipo: 'INFERIDO'; datos: T; flags: string[] }
+  | { tipo: 'RECHAZADO'; motivo: string };
+
+interface PerfilAdaptador {
+  toleranciaFaltantes: number;  // 0-1, cuántos campos pueden faltar
+  permitirInferencia: boolean;
+  maxReintentos: number;
+}
+
+/**
+ * EXAMINADOR - Plantilla Base
+ * 
+ * USO: Copiar este archivo para cada nuevo Adaptador.
+ * MODIFICAR SÓLO:
+ *   - El tipo T (esquema esperado)
+ *   - La función analizarHechos() con el parseo específico
+ *   - El perfil según criticidad del cliente/proveedor
+ */
+class ExaminadorJSON<T> {
+  private historialFallos: Map<string, number> = new Map();
+  private bufferFragmentos: Map<string, Partial<T>> = new Map();
+
+  constructor(private perfil: PerfilAdaptador) {}
+
+  examinar(raw: string, clienteId: string): ResultadoExamen<T> {
+    // 1. HECHOS
+    const hechos = this.analizarHechos(raw);
+    if (!hechos) {
+      return { tipo: 'RECHAZADO', motivo: 'Formato ilegible' };
+    }
+
+    // 2. CREATIVIDAD (Opciones)
+    const opciones: ResultadoExamen<T>[] = [
+      this.intentarParseoCompleto(raw, hechos),
+      this.intentarParseoParcial(raw, hechos),
+      this.perfil.permitirInferencia 
+        ? this.intentarInferencia(raw, hechos, clienteId) 
+        : null,
+      this.intentarRechazo(raw, hechos)
+    ].filter(o => o !== null) as ResultadoExamen<T>[];
+
+    // 3 y 4. LÓGICA + ÉTICA (Filtrado)
+    const opcionesValidas = opciones.filter(op => {
+      // Lógica: ¿La estructura tiene sentido?
+      if (!this.esEstructuralmenteCoherente(op)) return false;
+      // Ética: ¿Puede dañar al Core?
+      if (!this.esEticamenteAceptable(op)) return false;
+      return true;
+    });
+
+    if (opcionesValidas.length === 0) {
+      return { tipo: 'RECHAZADO', motivo: 'Ninguna opción viable' };
+    }
+
+    // 5. NEGOCIACIÓN (Ajuste fino)
+    const opcionesAjustadas = opcionesValidas.map(op => this.negociarAjustes(op, hechos));
+
+    // 6. COHERENCIA (Ponderación)
+    return this.elegirMasCoherente(opcionesAjustadas);
+  }
+
+  // ============== MÉTODOS A MODIFICAR POR CADA ADAPTADOR ==============
+
+  private analizarHechos(raw: string): any | null {
+    // AQUÍ VA EL PARSEO ESPECÍFICO DEL FORMATO
+    // Para JSON:
+    try {
+      // Intentar parseo parcial hasta el último byte válido
+      let ultimoByteValido = raw.length;
+      while (ultimoByteValido > 0) {
+        try {
+          JSON.parse(raw.slice(0, ultimoByteValido));
+          break;
+        } catch {
+          ultimoByteValido--;
+        }
+      }
+      return {
+        raw,
+        longitudTotal: raw.length,
+        ultimoByteValido,
+        fragmentoValido: ultimoByteValido > 0 ? raw.slice(0, ultimoByteValido) : null
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private intentarParseoCompleto(raw: string, hechos: any): ResultadoExamen<T> | null {
+    try {
+      const datos = JSON.parse(raw) as T;
+      return { tipo: 'OK', datos };
+    } catch {
+      return null;
+    }
+  }
+
+  private intentarParseoParcial(raw: string, hechos: any): ResultadoExamen<T> | null {
+    if (!hechos.fragmentoValido) return null;
+    
+    const datosParciales = JSON.parse(hechos.fragmentoValido) as Partial<T>;
+    const camposEsperados = this.obtenerCamposEsperados();
+    const camposRecibidos = Object.keys(datosParciales);
+    const faltan = camposEsperados.filter(c => !camposRecibidos.includes(c));
+    
+    // Guardar fragmento para futuras reconstrucciones
+    this.guardarFragmento(hechos.fragmentoValido);
+    
+    if (faltan.length / camposEsperados.length > this.perfil.toleranciaFaltantes) {
+      return null;  // Demasiados campos faltantes
+    }
+    
+    return { tipo: 'PARCIAL', datos: datosParciales, faltan };
+  }
+
+  private intentarInferencia(raw: string, hechos: any, clienteId: string): ResultadoExamen<T> | null {
+    const parcial = this.intentarParseoParcial(raw, hechos);
+    if (!parcial || parcial.tipo !== 'PARCIAL') return null;
+
+    const datosInferidos = { ...parcial.datos } as T;
+    const flags: string[] = [];
+
+    // Aplicar reglas aprendidas del historial
+    for (const campo of parcial.faltan) {
+      const valorInferido = this.inferirCampo(campo, parcial.datos, clienteId);
+      if (valorInferido !== undefined) {
+        (datosInferidos as any)[campo] = valorInferido;
+        flags.push(`${campo}:inferido`);
+      }
+    }
+
+    // Si no pudimos inferir todos los que faltaban, descartar
+    const faltanTrasInferir = this.obtenerCamposEsperados().filter(c => !(c in datosInferidos));
+    if (faltanTrasInferir.length > 0) return null;
+
+    return { tipo: 'INFERIDO', datos: datosInferidos, flags };
+  }
+
+  private intentarRechazo(raw: string, hechos: any): ResultadoExamen<T> {
+    const tasaFallo = this.historialFallos.get(this.clienteActual) || 0;
+    const esSospechoso = hechos.longitudTotal > 0 && hechos.ultimoByteValido === 0;
+    
+    if (esSospechoso && tasaFallo > 5) {
+      return { tipo: 'RECHAZADO', motivo: 'Cliente con historial de fallos y datos corruptos' };
+    }
+    
+    return { tipo: 'RECHAZADO', motivo: 'Datos inválidos' };
+  }
+
+  // ============== MÉTODOS AUXILIARES (COMUNES A TODOS LOS ADAPTADORES) ==============
+
+  private esEstructuralmenteCoherente(op: ResultadoExamen<T>): boolean {
+    if (op.tipo === 'RECHAZADO') return true;  // Rechazar es siempre coherente
+    if (op.tipo === 'PARCIAL') return true;    // Ya validamos tolerancia
+    
+    const datos = op.tipo === 'OK' ? op.datos : (op as any).datos;
+    // Validaciones específicas del dominio (ej: email con formato correcto)
+    return this.validarReglasDominio(datos);
+  }
+
+  private esEticamenteAceptable(op: ResultadoExamen<T>): boolean {
+    // No pasar al Core datos inferidos sin flag de advertencia
+    if (op.tipo === 'INFERIDO') {
+      return op.flags.length > 0;  // Debe llevar flags explícitos
+    }
+    // No pasar datos críticos inferidos (ej: DNI, cuenta bancaria)
+    if (op.tipo === 'INFERIDO' && this.contieneCamposCriticos(op.datos)) {
+      return false;
+    }
+    return true;
+  }
+
+  private negociarAjustes(op: ResultadoExamen<T>, hechos: any): ResultadoExamen<T> {
+    if (op.tipo === 'INFERIDO') {
+      // Añadir metadata para que el Core sepa qué se infirió
+      return {
+        ...op,
+        flags: [...op.flags, `fuente:${hechos.ultimoByteValido}/${hechos.longitudTotal} bytes`]
+      };
+    }
+    return op;
+  }
+
+  private elegirMasCoherente(opciones: ResultadoExamen<T>[]): ResultadoExamen<T> {
+    // Pesos por tipo (configurables por perfil)
+    const pesos: Record<string, number> = {
+      'OK': 10,
+      'INFERIDO': 7,
+      'PARCIAL': 5,
+      'RECHAZADO': 0
+    };
+    
+    return opciones.reduce((mejor, actual) => 
+      pesos[actual.tipo] > pesos[mejor.tipo] ? actual : mejor
+    );
+  }
+
+  // ============== MÉTODOS DE MEMORIA (EXPERIENCIA) ==============
+
+  private guardarFragmento(fragmento: string): void {
+    const clave = this.generarClaveFragmento(fragmento);
+    const existente = this.bufferFragmentos.get(clave) || {};
+    this.bufferFragmentos.set(clave, { ...existente, ...JSON.parse(fragmento) });
+  }
+
+  private inferirCampo(campo: string, datosParciales: Partial<T>, clienteId: string): any {
+    // Buscar en fragmentos previos del mismo cliente
+    for (const [clave, fragmento] of this.bufferFragmentos) {
+      if (clave.includes(clienteId) && campo in fragmento) {
+        return (fragmento as any)[campo];
+      }
+    }
+    return undefined;
+  }
+
+  // ============== MÉTODOS ABSTRACTOS (IMPLEMENTAR POR CADA ADAPTADOR) ==============
+  
+  private obtenerCamposEsperados(): string[] {
+    // AQUÍ: Devolver lista de campos obligatorios según esquema T
+    // Ejemplo: return ['id', 'nombre', 'email'];
+    return [];
+  }
+
+  private validarReglasDominio(datos: T): boolean {
+    // AQUÍ: Validaciones específicas del negocio
+    return true;
+  }
+
+  private contieneCamposCriticos(datos: T): boolean {
+    // AQUÍ: Definir campos que NUNCA deben inferirse
+    return false;
+  }
+
+  private generarClaveFragmento(fragmento: string): string {
+    // Simple hash para indexar
+    return fragmento.slice(0, 50);
+  }
+
+  private clienteActual: string = '';
+}
+
+// =============================================
+// EJEMPLO DE USO PARA UN ADAPTADOR CONCRETO
+// =============================================
+
+interface PedidoJSON {
+  id: string;
+  cliente: string;
+  total: number;
+  email?: string;
+}
+
+class AdaptadorPedidos extends ExaminadorJSON<PedidoJSON> {
+  constructor() {
+    super({
+      toleranciaFaltantes: 0.3,  // Permite hasta 30% campos faltantes
+      permitirInferencia: true,
+      maxReintentos: 3
+    });
+  }
+
+  // Implementar métodos específicos
+  protected override obtenerCamposEsperados(): string[] {
+    return ['id', 'cliente', 'total'];
+  }
+
+  protected override validarReglasDominio(datos: PedidoJSON): boolean {
+    return datos.total > 0 && datos.cliente.length > 0;
+  }
+
+  protected override contieneCamposCriticos(datos: PedidoJSON): boolean {
+    return false;  // Email no es crítico, total e id sí pero no se infieren
+  }
+}
+
+// Uso
+const adaptador = new AdaptadorPedidos();
+const resultado = adaptador.examinar('{"id": "123", "cliente": "Pepe"}', 'clienteX');
+console.log(resultado);
+// Salida esperada: { tipo: 'PARCIAL', datos: {...}, faltan: ['total'] }
+
+
+
+diagramas:
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    EXAMINADOR - FLUJO PRINCIPAL                  │
+└─────────────────────────────────────────────────────────────────┘
+
+                              INICIO
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  RECIBIR DATOS CRUDOS │
+                    │  (JSON, XML, bytes)   │
+                    └───────────────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  PASO 1: HECHOS       │
+                    │  Analizar estructura  │
+                    │  ¿Fragmento válido?   │
+                    └───────────────────────┘
+                                │
+              ┌─────────────────┴─────────────────┐
+              │ NO                                │ SÍ
+              ▼                                   ▼
+    ┌─────────────────┐                 ┌─────────────────┐
+    │  RECHAZAR       │                 │  PASO 2: CREAR  │
+    │  "Formato       │                 │  OPCIONES       │
+    │   ilegible"     │                 │  - Completo     │
+    └─────────────────┘                 │  - Parcial      │
+                                        │  - Inferir      │
+                                        │  - Rechazar     │
+                                        └─────────────────┘
+                                                  │
+                                                  ▼
+                                        ┌─────────────────┐
+                                        │  PASO 3: LÓGICA │
+                                        │  ¿Coherencia    │
+                                        │  estructural?   │
+                                        └─────────────────┘
+                                                  │
+                                    ┌─────────────┴─────────────┐
+                                    │ NO                        │ SÍ
+                                    ▼                           ▼
+                          ┌─────────────────┐         ┌─────────────────┐
+                          │  DESCARTAR      │         │  PASO 4: ÉTICA  │
+                          │  OPCIÓN         │         │  ¿Daña al Core? │
+                          └─────────────────┘         │  ¿Datos falsos? │
+                                                      └─────────────────┘
+                                                                │
+                                                  ┌─────────────┴─────────────┐
+                                                  │ NO                        │ SÍ
+                                                  ▼                           ▼
+                                        ┌─────────────────┐         ┌─────────────────┐
+                                        │  DESCARTAR      │         │  PASO 5:        │
+                                        │  OPCIÓN         │         │  NEGOCIACIÓN    │
+                                        └─────────────────┘         │  Añadir flags   │
+                                                                    │  Degradar       │
+                                                                    └─────────────────┘
+                                                                              │
+                                                                              ▼
+                                                                    ┌─────────────────┐
+                                                                    │  PASO 6:        │
+                                                                    │  COHERENCIA     │
+                                                                    │  Ponderar       │
+                                                                    │  Elegir mejor   │
+                                                                    └─────────────────┘
+                                                                              │
+                                                                              ▼
+                                                                    ┌─────────────────┐
+                                                                    │  DEVOLVER AL    │
+                                                                    │  CORE           │
+                                                                    │  - OK           │
+                                                                    │  - PARCIAL      │
+                                                                    │  - INFERIDO     │
+                                                                    │  - RECHAZADO    │
+                                                                    └─────────────────┘
+                                                                              │
+                                                                              ▼
+                                                                            FIN
+
+
+
+
+ENTRADA → HECHOS → CREATIVIDAD → LÓGICA → ÉTICA → NEGOCIACIÓN → COHERENCIA → SALIDA
+          │            │            │        │         │            │
+          ▼            ▼            ▼        ▼         ▼            ▼
+      ¿Válido?    Opciones     ¿Estructura  ¿Riesgo   Ajustes     Ponderar
+      Longitud    (OK/Partial/  correcta?   Core?     Flags       y elegir
+      Fragmento   Infer/Reject)                                  
+
