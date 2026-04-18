@@ -4,7 +4,7 @@ DOCUMENTO DE AUTORÍA INTELECTUAL - CFDA
 Fecha: [22 diciembre 2025]
 Autor: [robe]
 
-DECLARACIÓN:esto es un juguete, una idea q se me fue de las manos, nada de aqui esta probado, nada esta testeado, solo es ¿se podria hacer de otra manera?. este repo es un cajon desastre de ideas, conversaciones con ia destiladas o en bruto, nada, salvo el codigo q funciona, esta provado, testeado, si a alguien le sirve q lo use, si no, que lo descarte. se aconseja empezar por el pdf analisis viabilidad arquitectura, pero la agencia es libre, hay codigo, ideas de hardware, criticas al capitalismo tardio, critica historica y de produccion de la subjetividad en el capitalismo tardio, narrativa historica..... 
+DECLARACIÓN:esto es un juguete, una idea q se me fue de las manos, nada de aqui esta probado, nada esta testeado, solo es ¿se podria hacer de otra manera?. este repo es un cajon desastre de ideas, conversaciones con ia destiladas o en bruto, nada, salvo el codigo q funciona, esta probado, testeado, si a alguien le sirve q lo use, si no, que lo descarte. se aconseja empezar por el pdf analisis viabilidad arquitectura, pero la agencia es libre, hay codigo, ideas de hardware, critica historica y de produccion de la subjetividad en el capitalismo tardio, narrativa historica..... 
 
 ORIGEN NO CONVENCIONAL:
 - Idea surgida de modificar sistemas simples para videojuegos/programas educativos
