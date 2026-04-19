@@ -1,0 +1,72 @@
+Una excavación en las bajas laborales de Galicia (o por qué el absentismo es un síntoma, no una enfermedad)
+1. El punto de partida: 78,8 días
+
+En España, la duración media de una baja laboral por incapacidad temporal se sitúa en 42,5 días. En Galicia, esa misma variable alcanza los 78,8 días. La diferencia es de tal magnitud que obliga a preguntarse qué factores específicos operan en el territorio gallego para que sus procesos de baja casi dupliquen la media nacional.
+
+Una primera hipótesis, recurrente en el debate público, atribuye este diferencial a actitudes individuales: una supuesta "cultura del subsidio" o un uso fraudulento de las prestaciones. Sin embargo, este argumento encuentra dificultades para explicar por qué dicha actitud se manifestaría con tanta intensidad precisamente en Galicia y no en otras comunidades con marcos normativos y prestaciones similares.
+
+La exploración de los datos disponibles sugiere que la respuesta podría encontrarse en la intersección de tres factores estructurales: el estado del sistema sanitario público, la composición del tejido productivo y la demografía de la población activa.
+
+2. El factor sanitario: la espera como fábrica de bajas largas
+
+El sistema público de salud en Galicia presenta indicadores de saturación que lo distinguen del promedio estatal. La lista de espera quirúrgica alcanza una media de 72,8 días, y la espera para consultas externas con especialistas supera los 62 días. Estas demoras implican que un trabajador que requiere una intervención o un diagnóstico especializado permanece de baja durante todo el período de espera.
+
+La relación es directa: la incapacidad temporal no se extiende por decisión del paciente o del médico de cabecera, sino por la imposibilidad de acceder al tratamiento necesario en un plazo razonable. La saturación del Sergas actúa, de hecho, como un multiplicador de la duración de las bajas.
+
+Paralelamente, el gasto sanitario público en conciertos con entidades privadas ha alcanzado los 261,8 millones de euros anuales. En 2023, el número de gallegos con seguro médico privado ascendía a 460.086, lo que representa cerca del 20% de la población. Estos datos reflejan un desplazamiento de la demanda desde el sistema público hacia el privado, sin que ello haya logrado reducir de forma apreciable los tiempos de espera en la sanidad pública.
+
+3. El mapa sectorial y demográfico del absentismo
+
+Los datos desagregados por sectores muestran una concentración significativa del absentismo en determinadas ramas de actividad. En Galicia, las tasas más elevadas se registran en:
+
+Servicios sociales y actividades postales: 11%
+
+Industria: 9%
+
+Construcción: 7,5%
+
+En el extremo opuesto, actividades como las jurídicas y de contabilidad presentan tasas del 3,1% al 3,5%. El patrón es consistente: los trabajos con mayor exigencia física, menor capacidad de teletrabajo y, en general, menor remuneración, concentran los índices más altos de incapacidad temporal.
+
+A este factor sectorial se suma el demográfico. La duración media de las bajas varía significativamente con la edad. Los trabajadores menores de 35 años registran procesos de unos 20,9 días, mientras que en los mayores de 55 años la media asciende a 59,7 días. El progresivo envejecimiento de la población activa contribuye, por tanto, al aumento agregado de las tasas de absentismo. No se trata de un cambio en el comportamiento individual, sino de una transformación en la composición de la fuerza laboral.
+
+4. El Plan de Altas Forzosas: una política de reducción estadística
+
+En el período comprendido entre mediados de 2024 y finales de 2025, la administración sanitaria gallega revisó 107.500 procesos de incapacidad temporal. Como resultado de estas revisiones, se emitieron 25.684 altas médicas forzosas. En términos porcentuales, aproximadamente uno de cada cuatro pacientes citados recibió el alta tras la revisión.
+
+La medida, denominada "Plan de Altas Innecesarias" por sus impulsores, consiste en el despliegue de unidades de apoyo que revisan los procesos abiertos en los centros de salud. El criterio aplicado determina si la baja se considera o no justificada. La consecuencia inmediata es una reducción en el número de procesos activos y, por tanto, en las estadísticas de absentismo.
+
+Desde la perspectiva de la gestión sanitaria, la medida puede interpretarse como un ejercicio de eficiencia en el uso de recursos. Desde la perspectiva del paciente, implica la finalización de una prestación sin que necesariamente se haya producido una recuperación completa. La literatura médica señala que las altas prematuras pueden cronificar patologías y generar costes asistenciales mayores a medio y largo plazo. No obstante, no existen datos públicos que permitan evaluar el impacto clínico de estas altas en la salud de los trabajadores afectados.
+
+5. El INSS y la vía judicial: un filtro con alta tasa de revocación
+
+El Instituto Nacional de la Seguridad Social es el organismo encargado de gestionar las prestaciones económicas por incapacidad temporal y de resolver las solicitudes de incapacidad permanente. Los datos disponibles sobre su actividad muestran algunos patrones relevantes.
+
+En 2024, se registraron en España 671.618 bajas laborales por motivos de salud mental. De ellas, solo 708 fueron calificadas como enfermedad profesional. Esto significa que en el 99,9% de los casos, la administración no reconoció un vínculo causal entre las condiciones de trabajo y el trastorno mental diagnosticado. Este dato contrasta con el creciente volumen de literatura científica que asocia factores laborales (precariedad, intensificación, falta de control sobre la tarea) con el aumento de problemas de salud mental.
+
+En el ámbito judicial, aunque no existe una estadística oficial centralizada, los datos fragmentarios indican un volumen considerable de litigios contra el INSS. Solo en los juzgados de lo social de Vigo se tramitaron 706 demandas de este tipo en un año. Las sentencias del Tribunal Superior de Xustiza de Galicia recogen numerosos casos en los que se revoca la decisión administrativa y se reconoce al trabajador el derecho a la prestación previamente denegada.
+
+Este desfase entre las resoluciones administrativas y las judiciales sugiere que el criterio aplicado por el INSS es, en una proporción significativa de casos, más restrictivo que el que finalmente establecen los tribunales. Para el trabajador, esto implica que obtener el reconocimiento de sus derechos requiere, con frecuencia, atravesar un proceso judicial que puede prolongarse durante años.
+
+6. El absentismo que no figura en las estadísticas
+
+El debate sobre el absentismo suele centrarse en quienes están de baja. Pero existe otro fenómeno, menos visible, que también afecta al sistema: el presentismo forzoso.
+
+Un trabajador que inicia una baja por enfermedad común percibe, en el mejor de los casos, el 75% de su base reguladora a partir del día 21. Para quienes tienen salarios bajos, esta reducción de ingresos puede resultar incompatible con sus obligaciones económicas. La consecuencia es que muchos trabajadores acuden a su puesto a pesar de padecer dolencias que justificarían una baja médica.
+
+Este fenómeno no se refleja en las estadísticas de absentismo. Sin embargo, tiene implicaciones relevantes: las patologías no tratadas tienden a agravarse, el rendimiento laboral disminuye y el riesgo de accidente aumenta. A largo plazo, el presentismo puede traducirse en bajas más prolongadas y en un mayor consumo de recursos sanitarios.
+
+7. Una comparación ilustrativa: el caso del País Vasco
+
+La comparación con otras comunidades autónomas permite contextualizar los datos gallegos. El País Vasco, con una estructura productiva y demográfica no radicalmente distinta, presenta una tasa de absentismo del 6,9% y una duración media de baja en torno a los 38 días. Ambos indicadores son sensiblemente inferiores a los gallegos y se sitúan entre los mejores del Estado.
+
+El País Vasco cuenta con una renta per cápita más elevada, menores tasas de temporalidad y una sanidad pública que, según los análisis comparativos disponibles, ha resistido mejor las políticas de contención del gasto. Dispone también de una tradición de organización sindical y social que actúa como contrapeso en los procesos de reforma del sector público.
+
+La divergencia entre ambos casos sugiere que el absentismo no es una variable independiente que dependa exclusivamente de actitudes individuales, sino que está modulado por la calidad de las instituciones públicas y por la capacidad de negociación de los trabajadores.
+
+8. A modo de conclusión
+
+Los datos examinados dibujan un panorama complejo en el que el absentismo laboral aparece como la manifestación visible de tensiones estructurales más profundas. La duración de las bajas en Galicia no puede explicarse satisfactoriamente apelando a comportamientos individuales diferenciales. Resulta más plausible interpretarla como el resultado de la interacción entre un sistema sanitario tensionado, una estructura productiva con alta demanda física y una población activa envejecida.
+
+Las políticas de altas forzosas y el sesgo restrictivo del INSS operan como mecanismos de contención estadística y presupuestaria. Su eficacia para mejorar la salud de la población trabajadora no ha sido evaluada con datos públicos. La evidencia judicial indica que una parte significativa de las denegaciones administrativas es corregida posteriormente en sede judicial, lo que plantea interrogantes sobre la adecuación de los criterios aplicados en la fase administrativa.
+
+El presente análisis no pretende ofrecer soluciones, sino ordenar la información disponible de manera que el debate pueda desplazarse desde el terreno de la anécdota individual hacia el de las condiciones estructurales que producen los resultados observados. La pregunta relevante no es si hay o no trabajadores que hacen un uso indebido de las bajas —los hay, como en cualquier ámbito—, sino si ese fenómeno marginal tiene capacidad explicativa suficiente para dar cuenta de una realidad estadística tan marcada como la gallega. Los datos sugieren que no.
