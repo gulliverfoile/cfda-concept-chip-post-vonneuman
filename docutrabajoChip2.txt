@@ -277,3 +277,7 @@ Resolvemos: El cuello de botella y la latencia del m-PPU. Ahora es un recurso de
 
 Mantenemos: La separación física para el q-PPU. El q-PPU SÍ necesita estar aislado porque su sensibilidad al ruido electromagnético es extrema. La Membrana AIL es su barrera protectora y su traductor. No podemos integrarlo monolíticamente en CMOS sin destruir su coherencia cuántica.
 FIN DEL DOCUMENTO DE TRABAJO
+anexo
+
+8.4 El Problema del Epoch en Arquitecturas Post-Von Neumann
+*"La dependencia del Unix Epoch (32/64 bits) es un remanente de la necesidad de optimización de memoria en la era de los mainframes. En CFDA-F, donde el costo energético de mover un dato supera al de procesarlo, la compactación del tiempo en un solo registro es contraproducente. El tiempo se modela como una Relación Temporal dentro del bus de eventos de la Membrana AIL, permitiendo escalas de tiempo heterogéneas (nanosegundos para espines, siglos para logs del sistema) sin riesgo de desbordamiento."*
