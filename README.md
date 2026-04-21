@@ -6,6 +6,9 @@ Autor: [robe]
 
 DECLARACIÓN:esto es un juguete, una idea q se me fue de las manos, nada de aqui esta probado, nada esta testeado, solo es ¿se podria hacer de otra manera?. este repo es un cajon desastre de ideas, conversaciones con ia destiladas o en bruto, nada, salvo el codigo q funciona, esta probado, testeado, si a alguien le sirve q lo use, si no, que lo descarte. se aconseja empezar por el pdf analisis viabilidad arquitectura, pero la agencia es libre, hay codigo, ideas de hardware, critica historica y de produccion de la subjetividad en el capitalismo tardio, narrativa historica..... 
 
+Este proyecto no se mantiene activamente. Se ofrece 'tal cual' bajo AGPLv3. Haced con él lo que os permita la licencia. No se aceptarán issues ni pull requests.
+en cristiano, a romperle los huevos a otro.
+
 ORIGEN NO CONVENCIONAL:
 - Idea surgida de modificar sistemas simples para videojuegos/programas educativos
 - No tengo manera de verificar si es original o déjà vu algorítmico
