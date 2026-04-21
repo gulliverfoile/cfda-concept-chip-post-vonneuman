@@ -725,7 +725,7 @@ class JaulaFractal:
         if tiempo_transcurrido < self.tiempo_ciclo:
             time.sleep(self.tiempo_ciclo - tiempo_transcurrido)
 
-        return ack  # El agente recibe confirmación de "éxito"
+        return ack  # El agente recibe confirmación de "éxito"```
 LA PARADOJA DE LA JAULA PERFECTA
 
 Si la jaula es completa y fractal, el agente no puede distinguir su universo
