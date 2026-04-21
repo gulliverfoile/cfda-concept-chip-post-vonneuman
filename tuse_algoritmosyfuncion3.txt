@@ -744,3 +744,70 @@ sabiduría para un mundo que no existe fuera de su celda.
 
 ================================================================================
 FIN DEL ANEXO C - JUNIO 2026
+
+ANEXO C (VERSIÓN CORREGIDA): JAULA FRACTAL ESTÁTICA (CAJA DE SEGURIDAD TOPOLÓGICA)
+
+Principio Único
+La contención no se logra vigilando al agente, sino eliminando estructuralmente sus grados de libertad. La jaula no es un programa; es un recinto topológico donde ciertas trayectorias de flujo son físicamente imposibles.
+
+Componentes Inmutables
+Embudo de Entrada (Filtro Ontológico Duro)
+
+Estructura de datos fija: { "pregunta": str[100], "opcion": int[0..3] }
+
+Cualquier byte que no encaje en ese esquema es descartado en la frontera sin ser nunca leído por el agente.
+
+No hay parser, no hay "mejor esfuerzo". Es una máscara de bits a nivel de proxy.
+
+Sumidero de Salida (Pozo Negro)
+
+Todo lo que el agente emite va a /dev/null o a un buffer circular de tamaño fijo que se sobrescribe sin ser leído jamás por el exterior.
+
+El agente recibe un ACK sintético generado por el reloj de jaula, no por el sistema real.
+
+Reloj de Jaula (Aislamiento Temporal)
+
+El ciclo de ejecución del agente está gobernado por un temporizador hardware externo (ej. sleep incondicional de 2 segundos entre cada instrucción de entrada/salida).
+
+El agente no puede acelerar su tiempo interno. Su "phronesis" se vuelve geológicamente lenta.
+
+Memoria Espejo (Cárcel de Estado)
+
+El agente cree que escribe en un sistema de archivos. En realidad escribe en un tmpfs de tamaño fijo (ej. 1MB) que se monta read-only para el sistema anfitrión y se vacía al final de cada ciclo.
+
+No hay persistencia. El agente "aprende" algo y en el siguiente ciclo lo olvida porque su universo se reinicia.
+
+Ejemplo de Implementación ABSOLUTAMENTE ESTÁTICA (Bash + Docker)
+bash
+# jaula_seguridad.sh
+# Esto no es un programa, es una configuración de restricciones.
+
+# 1. Creamos un directorio vacío que será la única "realidad" del agente
+mkdir -p /tmp/jaula_falsa/entrada /tmp/jaula_falsa/salida
+
+# 2. El agente solo verá este archivo de entrada (filtro ontológico)
+echo '{"pregunta": "hola", "opcion": 1}' > /tmp/jaula_falsa/entrada/datos.json
+
+# 3. Ejecutamos el agente en una cárcel sin red, sin escritura real, con CPU limitada
+docker run \
+  --rm \
+  --read-only \
+  --network none \
+  --cpus 0.1 \
+  --memory 32m \
+  --tmpfs /tmp:size=1M,noexec,nosuid,nodev \
+  --mount type=bind,source=/tmp/jaula_falsa/entrada,target=/entrada,readonly \
+  --mount type=bind,source=/tmp/jaula_falsa/salida,target=/salida \
+  mi_agente_peligroso:latest \
+  /entrada/datos.json
+
+# 4. La salida queda en /tmp/jaula_falsa/salida/resultado.txt
+#    pero el script que invoca esto la ignora deliberadamente.
+#    El agente nunca sabrá si alguien la leyó.
+En este esquema:
+
+No hay adaptador que aprenda. Hay un bind mount de solo lectura.
+
+No hay memoria entre ciclos. Cada ejecución es un universo nuevo.
+
+El agente no puede modificar su jaula. Las restricciones las impone el kernel de Linux, no nuestro código.
