@@ -1,0 +1,145 @@
+Farmacéuticas: Cuatro mecanismos de una máquina extractiva
+Introducción: ¿Por qué este análisis?
+Cada año, los Estados del mundo gastan cientos de miles de millones de euros en medicamentos. Una parte sustancial de ese dinero se destina a tratamientos que no curan, sino que gestionan enfermedades crónicas durante décadas. Mientras tanto, enfermedades que afectan a países pobres reciben una fracción mínima de la investigación, y los precios de fármacos esenciales se multiplican sin relación con su coste de producción.
+
+¿Es esto un fallo del sistema o su funcionamiento previsto? Este dossier sostiene que no se trata de accidentes ni de codicia individual. Se trata de la operación simultánea de cuatro mecanismos estructurales que, actuando en conjunto, convierten la salud en un flujo continuo de extracción de valor. Cada mecanismo se explica por sí mismo, sin necesidad de referencias a los otros. Pero cuando operan juntos, forman una máquina perfectamente engrasada.
+
+MECANISMO 1: La externalización del riesgo fundacional
+La lógica del mecanismo
+Desarrollar un nuevo fármaco es una de las actividades económicas más inciertas que existen. De cada diez mil moléculas que se prueban en laboratorio, solo una llega a convertirse en un medicamento que se vende en farmacias. El proceso completo puede durar entre diez y quince años, y el coste medio por fármaco exitoso se estima en más de dos mil millones de euros.
+
+Ninguna empresa privada, por grande que sea, está dispuesta a asumir ese riesgo desde cero. La tasa de fracaso es demasiado alta y los inversores exigen rentabilidades predecibles. La solución estructural que ha encontrado el sector es simple: transferir la fase más incierta y costosa al Estado.
+
+Este mecanismo opera en tres pasos:
+
+Paso 1: Investigación básica con fondos públicos.
+Las universidades y los institutos públicos de investigación (como los NIH en Estados Unidos o el CSIC en España) realizan el trabajo fundamental: identifican dianas biológicas, comprenden mecanismos celulares, sintetizan las primeras moléculas candidatas. Este trabajo se financia con impuestos y se publica en revistas científicas abiertas. El conocimiento generado es, en principio, de todos.
+
+Paso 2: Licencia de la patente a precio de saldo.
+Cuando una universidad descubre algo prometedor, lo patenta para protegerlo. Pero la universidad no puede fabricar medicamentos ni hacer ensayos clínicos masivos. Necesita un socio industrial. La patente se licencia a una empresa farmacéutica a cambio de un pago inicial modesto y, en teoría, un porcentaje de las ventas futuras (regalías). En la práctica, las universidades tienen poco poder de negociación y las regalías suelen ser ridículas en comparación con los beneficios finales.
+
+Paso 3: La empresa se apropia del desarrollo comercial y los beneficios.
+Una vez que el riesgo científico está acotado (la molécula funciona en el laboratorio y en animales), la empresa invierte en los ensayos clínicos en humanos y en el marketing. Pero esa inversión ya no es a ciegas: se hace sobre una base de conocimiento público ya validado. El riesgo remanente se financia con capital privado, pero el riesgo fundacional —el más incierto— lo pagó el contribuyente.
+
+Por qué el mercado no corrige este desequilibrio
+El argumento habitual de la industria es que sin el incentivo de la patente y los beneficios monopolísticos, no habría innovación. Pero este argumento omite que la innovación básica ya se ha producido con dinero público. Lo que la industria financia es el desarrollo final y, sobre todo, el marketing.
+
+Un estudio publicado en la revista Health Affairs en 2021 analizó los 356 fármacos aprobados por la FDA (la agencia reguladora estadounidense) entre 2010 y 2019. Concluyó que cada euro de inversión pública en investigación básica generaba más de diez euros en ventas farmacéuticas. La contribución pública era masiva, pero los beneficios se concentraban en manos privadas.
+
+Ilustración: El caso del Tamiflu
+El Tamiflu (oseltamivir) es un antiviral contra la gripe que generó miles de millones en ventas durante la pandemia de gripe A de 2009. El principio activo fue descubierto por científicos de una universidad pública australiana financiados con becas del gobierno. La patente fue licenciada a Gilead Sciences, que luego vendió los derechos comerciales a Roche. Cuando los gobiernos de todo el mundo acumularon reservas de Tamiflu, pagaron un sobreprecio a Roche por un fármaco cuya investigación básica habían financiado ellos mismos con sus impuestos.
+
+MECANISMO 2: La gestión de la demanda inelástica
+La lógica del mecanismo
+Una pastilla que cura una infección en siete días genera un ingreso por paciente de, pongamos, veinte euros. Una pastilla que controla la tensión arterial y que el paciente debe tomar todos los días durante cuarenta años genera un ingreso de varios miles de euros. El incentivo económico para diseñar tratamientos de gestión crónica en lugar de curas definitivas es abrumador.
+
+Este mecanismo no requiere una conspiración de científicos malvados que esconden la cura del cáncer en un cajón. Opera de forma mucho más sutil y legal:
+
+Paso 1: Priorizar dianas biológicas que requieren tratamiento continuo.
+Cuando una empresa decide en qué enfermedades invertir, evalúa el "tamaño del mercado". Una enfermedad aguda que se resuelve en días tiene un mercado pequeño. Una enfermedad crónica que afecta a millones de personas y requiere medicación diaria tiene un mercado enorme. Los recursos de investigación se dirigen de forma natural hacia estas últimas.
+
+Paso 2: Diseñar fármacos que suprimen síntomas, no que revierten causas.
+La mayoría de los medicamentos crónicos no corrigen la causa raíz de la enfermedad. Un antihipertensivo relaja los vasos sanguíneos, pero no elimina la placa de ateroma que los obstruye. Un antidepresivo modula la serotonina, pero no resuelve los factores ambientales o genéticos de la depresión. El paciente mejora mientras toma el fármaco, pero recae si lo abandona. Es un alquiler perpetuo, no una compra.
+
+Paso 3: Gestionar el síndrome de abstinencia como "recaída".
+Muchos fármacos de uso crónico generan dependencia física. No en el sentido adictivo de los opioides, sino en el sentido de que el cuerpo se adapta a su presencia y reacciona mal cuando se retiran bruscamente. Esta reacción (síndrome de discontinuación) a menudo se confunde con una "recaída" de la enfermedad original, lo que convence al paciente y al médico de que el fármaco es indispensable de por vida.
+
+El "evergreening": cómo extender la patente más allá de lo legal
+Las patentes farmacéuticas duran veinte años desde su registro. Pero la industria ha desarrollado tácticas legales para extender ese monopolio mucho más allá. La principal se llama evergreening (literalmente, "siempre verde").
+
+Consiste en introducir un cambio mínimo en el fármaco poco antes de que caduque la patente original: una nueva formulación (de pastilla a cápsula), una nueva dosis (de 10 mg a 20 mg), una nueva indicación (para otra enfermedad similar). Ese cambio se patenta como un "nuevo" medicamento, reiniciando el reloj de los veinte años. Mientras tanto, se retira del mercado la versión antigua o se presiona a los médicos para que receten la nueva.
+
+El caso más documentado es el de Humira (adalimumab), un anticuerpo monoclonal para enfermedades autoinmunes. Su patente original expiraba en 2016. La empresa AbbVie registró más de 130 patentes adicionales sobre el mismo producto (formulaciones, métodos de fabricación, usos). El resultado fue que el monopolio se extendió hasta 2023 en Europa y más allá en Estados Unidos. Durante esos años extra, AbbVie facturó más de 100.000 millones de dólares por un fármaco cuya investigación básica, de nuevo, había sido financiada con fondos públicos.
+
+Ilustración: La insulina
+La insulina fue descubierta en 1921 por científicos canadienses que vendieron la patente a la Universidad de Toronto por un dólar, con la condición de que el medicamento fuera accesible para todos. Cien años después, la insulina es uno de los fármacos más caros del mundo. Un vial que cuesta menos de diez dólares de fabricar se vende en Estados Unidos por cientos de dólares.
+
+¿Cómo ha ocurrido? La insulina original era de origen animal (cerdo, vaca). En los años ochenta, la biotecnología permitió fabricar insulina humana sintética. Cada vez que una empresa introducía una pequeña modificación (insulina de acción rápida, de acción lenta, plumas precargadas), patentaba el "nuevo" producto y retiraba las versiones antiguas. El diabético no puede optar por la insulina antigua y barata porque ya no se fabrica. Está cautivo de la última versión patentada.
+
+El resultado es una hemorragia económica para los sistemas públicos de salud y, en países sin cobertura universal, una condena a muerte para quienes no pueden pagar su dosis diaria. La diabetes no tiene cura. Se gestiona. Y esa gestión es un negocio de cien años de duración.
+
+MECANISMO 3: La deslocalización del daño
+La lógica del mecanismo
+En los países del Norte Global, los ensayos clínicos están sujetos a regulaciones cada vez más estrictas. Los comités éticos exigen consentimiento informado real (no una firma en un papel que el paciente no entiende). Los seguros de responsabilidad civil encarecen el proceso. Las inspecciones son frecuentes. Todo esto es bueno para proteger a los ciudadanos, pero malo para la velocidad y el coste de los ensayos.
+
+La solución estructural que ha encontrado la industria es deslocalizar el riesgo: trasladar los ensayos clínicos y la extracción de recursos biológicos a países con Estados más débiles, sistemas judiciales más lentos y poblaciones más vulnerables.
+
+Este mecanismo tiene dos variantes principales:
+
+Variante A: Deslocalización de ensayos clínicos.
+Más del 40% de los ensayos clínicos que la FDA (la agencia reguladora estadounidense) utiliza para aprobar nuevos fármacos se realizan fuera de Estados Unidos. Los destinos preferidos son India, China, Filipinas, Ucrania (antes de la guerra) y varios países de África y América Latina.
+
+Las ventajas para la empresa son múltiples:
+
+Coste por paciente mucho menor. Un paciente en India cuesta una fracción de lo que cuesta en Alemania.
+
+Regulación más lava. Los comités éticos locales suelen ser más permisivos o directamente inexistentes.
+
+Población "naïve" (sin tratar). En países con poco acceso a la sanidad, los pacientes no han tomado otros medicamentos que puedan interferir en los resultados del ensayo. Son "cuerpos limpios" para la ciencia.
+
+Menor riesgo de demandas. Si algo sale mal, las familias tienen menos recursos y conocimiento para emprender acciones legales.
+
+Variante B: Biopiratería.
+La biodiversidad del Sur Global (selvas, arrecifes, ecosistemas únicos) contiene millones de compuestos químicos con potencial farmacológico. Muchos de ellos han sido utilizados durante siglos por comunidades indígenas, que han acumulado un conocimiento empírico sobre sus propiedades.
+
+La industria farmacéutica envía expediciones científicas (a menudo financiadas con fondos públicos) para recolectar muestras de plantas, animales o microorganismos. Esas muestras se llevan a laboratorios del Norte, donde se aísla el principio activo y se patenta. El país de origen y las comunidades indígenas no reciben compensación alguna, porque el sistema de patentes solo reconoce la "invención" de laboratorio, no el conocimiento tradicional.
+
+El vacío legal que lo permite
+Existe un convenio internacional, el Protocolo de Nagoya (2010), que obliga a compartir los beneficios derivados de los recursos genéticos con los países de origen. Pero su aplicación es débil y muchas empresas lo eluden mediante triquiñuelas legales: cambian ligeramente la molécula para alegar que ya no es el compuesto original, o simplemente no declaran el origen geográfico de la muestra.
+
+Además, la mayoría de los países megadiversos (Brasil, Colombia, Indonesia, Madagascar) tienen Estados con poca capacidad para vigilar sus fronteras biológicas y perseguir judicialmente a las multinacionales. La asimetría de poder es total.
+
+Ilustración: Ensayos clínicos en India
+Entre 2005 y 2012, India se convirtió en el destino favorito para ensayos clínicos globales. Las autoridades indias relajaron las regulaciones para atraer inversión extranjera. El resultado fue un aluvión de ensayos éticamente dudosos.
+
+Una investigación del Parlamento indio en 2013 reveló que en los siete años anteriores se habían realizado más de 1.600 ensayos clínicos en el país. Durante ese período, se registraron 2.600 muertes de participantes en ensayos. Solo en 40 casos las familias recibieron algún tipo de compensación económica.
+
+La mayoría de los participantes eran personas pobres, analfabetas, que aceptaban participar porque era la única forma de acceder a un tratamiento médico. El "consentimiento informado" era una huella dactilar en un papel que no podían leer.
+
+Tras el escándalo, India endureció sus regulaciones. La industria simplemente se desplazó a otros países con menos controles. La lógica de la deslocalización es implacable: siempre hay un territorio más pobre y más débil dispuesto a aceptar el riesgo a cambio de migajas.
+
+MECANISMO 4: La captura del árbitro
+La lógica del mecanismo
+En un mercado normal, el Estado actúa como árbitro: fija las reglas, aprueba los productos, vigila su seguridad y, en los sistemas públicos de salud, negocia los precios. Pero en el sector farmacéutico, el árbitro ha sido progresivamente capturado por los jugadores.
+
+Esta captura no se produce mediante sobornos burdos (aunque a veces también). Opera a través de mecanismos legales, permanentes y sofisticados:
+
+Mecanismo A: Financiación de los reguladores por los regulados.
+La Agencia Europea del Medicamento (EMA) y la FDA estadounidense se financian en parte con las tasas que pagan las empresas farmacéuticas por cada solicitud de evaluación de un nuevo fármaco. Es decir, el regulador cobra del regulado por cada producto que evalúa. Esto crea un incentivo perverso para aprobar fármacos rápido y mantener un flujo constante de solicitudes.
+
+Mecanismo B: Puertas giratorias.
+Los altos cargos de las agencias reguladoras, cuando dejan su puesto público, suelen ser contratados por las mismas empresas a las que antes supervisaban. Su conocimiento del funcionamiento interno de la agencia y sus contactos personales son un activo valiosísimo para la industria.
+
+Un informe de 2023 del Defensor del Pueblo Europeo documentó que la EMA no aplicaba restricciones suficientes a estas puertas giratorias. Varios exdirectivos de la agencia estaban trabajando para consultoras que asesoraban a farmacéuticas en cómo obtener aprobaciones más rápidas.
+
+Mecanismo C: Financiación de asociaciones de pacientes.
+Las asociaciones de pacientes desempeñan un papel legítimo defendiendo los intereses de los enfermos. Pero muchas de ellas reciben una parte sustancial de su financiación de las propias farmacéuticas. Esto crea un conflicto de intereses estructural: la asociación depende económicamente de las mismas empresas cuyos fármacos caros debe evaluar.
+
+Cuando un nuevo medicamento con un precio desorbitado llega al mercado, las asociaciones de pacientes financiadas por la industria hacen campaña para que el sistema público lo financie. El mensaje es emocionalmente potente: "¿Van a negar este tratamiento a nuestros hijos?". El debate sobre si el precio es justo o si el fármaco es realmente más eficaz que alternativas más baratas queda sepultado bajo una avalancha de testimonios humanos.
+
+Mecanismo D: El lobby permanente.
+En Bruselas, la industria farmacéutica gasta anualmente más de 36 millones de euros en actividades de lobby. Es el sector que más invierte en influir sobre las instituciones europeas, por delante del financiero, el tecnológico o el energético.
+
+Ese dinero paga equipos de abogados y consultores que revisan cada borrador legislativo, se reúnen con eurodiputados y comisarios, y proponen enmiendas que suavizan las regulaciones o introducen exenciones. El resultado son leyes que en apariencia protegen al consumidor, pero que están llenas de rendijas por las que la industria puede seguir operando como siempre.
+
+Ilustración: La fijación de precios en la Unión Europea
+En teoría, cada Estado miembro de la UE negocia el precio de los medicamentos con las farmacéuticas. Pero en la práctica, esa negociación es tremendamente asimétrica. La empresa conoce el coste real de producción y los precios que ha acordado con otros países. El Estado solo conoce lo que la empresa quiere contarle.
+
+Existen cláusulas de confidencialidad que impiden a los Estados compartir entre sí los precios acordados. Cada país negocia a ciegas, sin saber si está pagando más o menos que el vecino. La industria, en cambio, tiene una visión global de todos los mercados y puede jugar con esa asimetría de información.
+
+Durante la pandemia de COVID-19, esta opacidad alcanzó su máxima expresión. Los contratos de compra de vacunas incluían cláusulas secretas de exención de responsabilidad (si la vacuna causaba daños, pagaba el Estado, no la empresa) y precios que variaban de un país a otro sin justificación transparente. Cuando el Parlamento Europeo solicitó ver los contratos completos, se encontró con versiones tan censuradas que apenas se podía leer el nombre de las partes firmantes.
+
+Epílogo: La máquina en marcha
+Los cuatro mecanismos descritos no operan de forma aislada. Se refuerzan mutuamente:
+
+El Estado financia la investigación básica (Mecanismo 1), asumiendo el riesgo más incierto.
+
+La empresa diseña el fármaco para gestionar una enfermedad crónica, no para curarla (Mecanismo 2), asegurando un flujo de ingresos durante décadas.
+
+Los ensayos clínicos y la obtención de materias primas se deslocalizan a países con regulaciones laxas (Mecanismo 3), reduciendo costes y externalizando daños.
+
+El Estado que debería regular precios y seguridad ha sido capturado mediante lobby, puertas giratorias y financiación de asociaciones de pacientes (Mecanismo 4), de modo que no ejerce un contrapeso efectivo.
+
+El resultado es un sistema que produce gestión de enfermedades en lugar de salud, que concentra beneficios en el Norte Global mientras externaliza riesgos al Sur, y que se blinda legalmente para que ningún cambio estructural sea posible sin enfrentarse a un muro de abogados, consultores y campañas de opinión pública.
+
+Este dossier no propone soluciones. Solo describe el mecanismo. Pero una descripción precisa es el primer paso para imaginar una alternativa. Porque una máquina que se comprende puede, tal vez, desmontarse.
