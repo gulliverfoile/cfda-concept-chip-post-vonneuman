@@ -1,5 +1,9 @@
 Documento de Trabajo: Mecanismos y Viabilidad de un Sistema Termo-Aerodinámico Integrado para la Recuperación de Calor por Fricción en Conductos de Aire
 
+idea general:
+
+Sistema termo-eólico poroso con tornillo integrado, operando deliberadamente en el régimen de transición laminar-turbulenta, donde un calentamiento estratégico de las paredes de los microconductos estabiliza el flujo laminar, reduce la resistencia y permite una extracción de potencia del viento superior a la que se gastaría sin el acoplamiento térmico.
+
 1. Resumen Ejecutivo
 
 Este documento explora el concepto de un sistema termo-aerodinámico integrado diseñado para recuperar y reutilizar el calor generado por la fricción en conductos de aire. El objetivo es transformar esta pérdida energética inherente en una ventaja, mejorando el rendimiento general del sistema. El análisis se basa en la integración de varias disciplinas y tecnologías existentes: el control de la capa límite mediante calentamiento, los sistemas de recuperación de calor con bombas de calor y la recolección de energía a partir de fluidos.
