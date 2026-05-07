@@ -1,218 +1,263 @@
-===============================================================================
-HIPÓTESIS SOBRE ATRACTORES MATEMÁTICOS Y OPTIMIZACIÓN SISTÉMICA:
-DE LOS LÍMITES CLÁSICOS A LOS INVARIANTES MULTIESCALA
 ================================================================================
-Documento de Trabajo - Versión 0.3 - Mayo 2026
-Revisión: Ampliación del marco para incluir invariantes cuánticos y relativistas.
+HIPÓTESIS SOBRE ATRACTORES MATEMÁTICOS Y OPTIMIZACIÓN SISTÉMICA EN EL UNIVERSO 3+1
+De los Límites Isoperimétricos a las Baterías Cuánticas
+================================================================================
+Documento de Trabajo - Versión 0.2 - Abril 2026
 Autor: [Tu nombre o pseudónimo]
+Revisión: Incorporación de marco formal de límites variacionales.
 
 ADVERTENCIA: Este documento es un ejercicio de síntesis especulativa. No presenta
 resultados experimentales nuevos ni una teoría física formal. Su valor es heurístico:
 propone un lenguaje unificado para reconocer restricciones geométricas universales
 y sus firmas matemáticas en sistemas físicos, biológicos y organizacionales.
-Las extensiones más allá del dominio clásico son aún más tentativas y se
-incluyen como apéndice con el único fin de estimular el debate.
 ================================================================================
 
-INTRODUCCIÓN: EL PROBLEMA DE LA OPTIMIZACIÓN EN DISTINTOS PLANOS DE REALIDAD
+INTRODUCCIÓN: EL PROBLEMA DE LA OPTIMIZACIÓN EN UN UNIVERSO 3+1
 
-La física nos muestra que el universo no es un escenario único, sino una jerarquía
-de escalas y regímenes gobernados por diferentes simetrías e invariantes. En
-nuestra experiencia cotidiana —el mundo macroscópico— operamos en un espacio
-de tres dimensiones más una temporal, con leyes de difusión, termodinámica
-y gravedad newtoniana. Pero al descender a lo muy pequeño (cuántica) o al
-considerar altas energías y velocidades (relatividad), las restricciones
-cambian radicalmente.
-
-La pregunta original de este trabajo —¿existen principios arquitectónicos que
-constituyan límites superiores de eficiencia bajo las restricciones del universo
-3+1?— se revela ahora como una pregunta parcial. Debe ser reformulada:
-
-¿Existen, en cada capa de la realidad, invariantes y constantes irracionales
-que actúen como cotas de eficiencia para los procesos que allí ocurren?
-
-Proponemos que ciertas constantes (π, φ, e en el límite clásico; α, c, h en
-otros regímenes) emergen como soluciones estacionarias a problemas variacionales
-bajo las restricciones propias de cada escala. No son "fuerzas" místicas, sino
-firmas de la violación de un límite físico específico. En este documento
-extendemos el marco clásico presentado en versiones anteriores y, en un apéndice
-especulativo, exploramos cómo esta lógica podría trasladarse a los dominios
-cuántico y relativista.
-
-================================================================================
-PARTE I: EL LÍMITE CLÁSICO MACROSCÓPICO (UNIVERSO 3+1 COTIDIANO)
-================================================================================
-
-LOS NÚMEROS IRRACIONALES COMO LÍMITES VARIACIONALES CLÁSICOS
-
-En el mundo regido por la termodinámica del equilibrio, la difusión y la gravedad
-newtoniana, tres restricciones dominan:
+Vivimos en un universo con tres dimensiones espaciales y una temporal. Esta
+estructura no es neutra; impone restricciones fundamentales a cualquier sistema
+físico que opere en su interior:
 
 Restricción Isoperimétrica (3D): La gravedad y las fuerzas de largo alcance
-decaen con 1/r², vinculando área superficial y volumen.
+decaen con el cuadrado de la distancia (∝ 1/r²), una propiedad exclusiva de 3
+dimensiones espaciales que vincula inexorablemente el área superficial con el
+volumen contenido.
 
-Límite de Difusión (Tiempo): τ ≈ L²/D, penalizando extensiones grandes.
+Límite de Difusión (Tiempo): Los procesos de transporte (calor, masa, carga)
+tienen un tiempo característico que escala con el cuadrado de la distancia
+(τ ≈ L²/D), imponiendo una penalización cuadrática a las arquitecturas extensas.
 
-Trade-off Superficie/Volumen (S/V ∝ 1/r): Las pérdidas son dominantes en
-sistemas pequeños o mal empaquetados.
+Trade-off Superficie/Volumen (S/V ∝ 1/r): La relación entre superficie y
+volumen hace que las pérdidas superficiales (fricción, fugas térmicas,
+decoherencia) sean proporcionalmente dominantes en sistemas pequeños o mal
+empaquetados.
 
-Bajo estas restricciones, las constantes π, φ y e se erigen como cotas de
-eficiencia:
+La pregunta que guía este trabajo es:
 
-2.1 π (Pi) ≈ 3.14159... - La Cota Isoperimétrica
-La esfera minimiza la superficie para un volumen dado. La relación está gobernada
-por π. Desviarse de la esfericidad aumenta la producción de entropía por unidad
-de volumen.
+¿Existen principios arquitectónicos que constituyan límites superiores de eficiencia
+bajo estas restricciones? Y si existen, ¿cuáles son sus firmas matemáticas
+ineludibles?
 
-2.2 φ (Phi) ≈ 1.618... - La Cota de No-Superposición Logarítmica
-En el crecimiento secuencial (filotaxis, empaquetamiento), el ángulo áureo
-maximiza la distancia a ángulos racionales previos, evitando resonancias y
-sombras. Es la solución óptima para minimizar el solapamiento.
+Proponemos que ciertas constantes irracionales (π, φ, e) emergen como soluciones
+estacionarias a problemas variacionales bajo dichas restricciones geométricas.
+No son "fuerzas" que atraen a los sistemas, sino firmas espectrales de la
+violación de un límite físico. Asimismo, mostramos cómo la cibernética
+organizacional (Stafford Beer) y la morfogénesis biológica (filotaxis) convergen
+en estas mismas soluciones, y cómo este marco ilumina el diseño de sistemas de
+almacenamiento energético de última generación.
 
-2.3 e (Euler) ≈ 2.718... - La Cota de Auto-Referencia Temporal
-Los procesos con realimentación positiva no amortiguada (crecimiento exponencial,
-decaimiento) tienen a e como base. Representa el horizonte de viabilidad antes
-del colapso o la extinción exponencial.
+LOS NÚMEROS IRRACIONALES COMO LÍMITES VARIACIONALES
 
-Síntesis clásica: π establece el costo mínimo de existencia; φ, la máxima
-eficiencia de crecimiento; e, el horizonte del colapso.
+La hipótesis central es que las constantes irracionales son las cotas de
+eficiencia que resultan de resolver el "Principio de Mínima Acción" bajo las
+restricciones del universo 3+1. Su irracionalidad no es una propiedad estética
+o mística, sino el resultado matemático inevitable de buscar la máxima distancia
+en el espacio de fases para evitar colapsos resonantes.
 
-STAFFORD BEER Y EL MODELO DE SISTEMA VIABLE COMO GESTOR DE ESTOS LÍMITES
+2.1 π (Pi) ≈ 3.14159... - La Cota Isoperimétrica (El Límite del Contenedor)
+Optimiza la relación entre un volumen contenido y su superficie de pérdida.
+π es la firma de la Desigualdad Isoperimétrica: para un volumen dado, la
+superficie mínima posible (y por tanto, la mínima disipación entrópica) se
+alcanza en una esfera, y esa relación mínima está gobernada por π.
 
-El VSM puede reinterpretarse como una arquitectura que gestiona las cotas
-clásicas:
+Consecuencia Física: Cualquier desviación de la simetría esférica (láminas
+planas, cubos, dendritas fractales) aumenta la producción de entropía por
+unidad de volumen. Un sistema no está obligado a ser esférico, pero si no
+gestiona su exceso de superficie, el costo energético de mantenimiento se
+dispara.
 
-Sistema 1 (Operación): explota el volumen usando φ para empaquetar.
+En Sistemas Complejos: Es la base de la homeostasis cíclica. El "bucle"
+cibernético (VSM) es una proyección temporal de este límite: busca mantener
+la identidad del sistema (volumen funcional) con la mínima fricción comunicativa
+(superficie de interacción).
 
-Sistema 2 (Coordinación): amortigua oscilaciones (anti-φ informacional).
+2.2 φ (Phi) ≈ 1.618... - La Cota de No-Superposición Logarítmica (El Límite de la Espiral)
+Optimiza la disposición de elementos añadidos secuencialmente en un espacio finito
+para minimizar el solapamiento (sombra, interferencia).
+φ es el Número Más Irracional (fracción continua [1;1,1,1...]). Es el punto
+en el espacio de fases del círculo unitario que maximiza la distancia a todos
+los ángulos racionales previos.
 
-Sistema 3 (Control): frena runaways exponenciales (gestión de e).
+Consecuencia Física: Si un sistema de crecimiento secuencial utiliza un
+ángulo racional (ej. 1/2, 1/3, 2/5), los elementos se alinean en radios,
+creando resonancias catastróficas que colapsan el sistema (sombra total en
+una planta, cuellos de botella fijos en una red logística). φ es el límite
+superior de eficiencia de empaquetamiento en espiral. Alejarse de φ implica
+aceptar una penalización en la captación de recursos.
 
-Sistema 4 (Inteligencia): monitoriza cambios en la superficie de pérdida (S/V).
+En Sistemas Complejos: Es la base de la Recursión Dinámica y la Arquitectura
+Hexagonal. Es la estrategia para que los módulos crezcan sin que las
+dependencias entre ellos "hagan sombra" al núcleo de negocio.
 
-Sistema 5 (Política): define la identidad que justifica el gasto entrópico.
+2.3 e (Euler) ≈ 2.718... - La Cota de Auto-Referencia Temporal (El Límite del Colapso)
+Optimiza (o describe el límite de) los procesos cuya tasa de cambio es proporcional
+a su estado actual.
+e es la base del logaritmo natural. Es la solución a la ecuación diferencial
+más simple de realimentación: dN/dt = kN.
 
-APLICACIÓN CLÁSICA: BATERÍAS 3D Y CUÁNTICAS
+Consecuencia Física: Cualquier proceso de realimentación positiva no
+amortiguada (interés compuesto, reacción en cadena, runaway térmico, pánico
+financiero) sigue la trayectoria eᵗ. Representa el límite temporal más allá
+del cual el sistema pierde su viabilidad y se dirige al colapso exponencial.
 
-Los electrodos nanoestructurados buscan maximizar la relación volumen activo /
-superficie de pérdida (aproximación a π) y disponer poros y materiales con
-orientaciones no alineadas (estrategia φ) para evitar fracturas por resonancia
-mecánica. Las baterías cuánticas de superabsorción intentan operar por debajo
-del límite de decaimiento exponencial (e) mediante pulsos ultrarrápidos.
+En Sistemas Complejos: Es la base de la Gestión Condicional de la Entropía.
+El rol del Sistema 3 y 4 en el VSM es precisamente introducir atenuadores
+logarítmicos (planificación, presupuestos) para contrarrestar la tendencia
+natural del sistema a seguir la curva e.
 
-Estos son ejemplos de aplicación de las cotas clásicas en ingeniería.
+Síntesis: π establece el costo mínimo de existencia. φ establece la máxima
+eficiencia de crecimiento. e establece el horizonte temporal del colapso. Un
+sistema viable es aquel que opera dentro de estos límites conjugados.
 
-================================================================================
-PARTE II: MÁS ALLÁ DEL LÍMITE CLÁSICO (EXTENSIÓN ESPECULATIVA)
-================================================================================
+STAFFORD BEER Y EL MODELO DE SISTEMA VIABLE (VSM) COMO GESTOR DE LÍMITES
 
-Cuando abandonamos la escala macroscópica, las restricciones cambian. La geometría
-euclídea deja paso a la curvatura espaciotemporal o a la discretitud de la
-acción. Emergen nuevos invariantes y, con ellos, nuevas "constantes de
-eficiencia".
+El cibernético Stafford Beer desarrolló el Modelo de Sistema Viable (VSM) como
+una arquitectura organizativa recursiva que garantiza la viabilidad. A la luz de
+lo anterior, podemos reinterpretar el VSM no como un organigrama, sino como un
+mecanismo homeostático para gestionar los límites π, φ y e.
 
-3.1 En el plano cuántico: acción, fase y entrelazamiento
+Sistema 1 (Operación): Unidades que explotan el volumen (φ para empaquetar).
 
-La constante de Planck (h) establece la discretitud mínima de la acción. La
-constante de estructura fina (α ≈ 1/137.035999...) —un número irracional— gobierna
-la intensidad de la interacción electromagnética y determina la estabilidad de
-la materia. Aquí, π ya no es solo límite de superficie, sino fase de la función
-de onda; e aparece en decaimientos y oscilaciones; y la entropía de entrelazamiento
-sigue una "ley del área" que recuerda a la isoperimetría, pero en un espacio
-abstracto de estados cuánticos.
+Sistema 2 (Coordinación): Mecanismo Anti-φ. Si φ evita el solapamiento
+físico, el Sistema 2 evita el solapamiento informacional (oscilaciones y
+conflictos). Es el amortiguador que mantiene el ritmo (π) del sistema.
 
-Hipótesis especulativa: En el dominio cuántico, α y otras constantes (como los
-ángulos de mezcla de sabor) podrían representar cotas de eficiencia para procesos
-de interacción y coherencia. La máxima capacidad de entrelazamiento por unidad
-de volumen (o área) podría estar limitada por un invariante aún no identificado
-que juegue el papel de π en la termodinámica.
+Sistema 3 (Control): Gestor del límite e. Asigna recursos (energía) para
+evitar que las unidades del Sistema 1 entren en un runaway exponencial
+consumiendo todos los recursos.
 
-3.2 En el plano relativista: causalidad y curvatura
+Sistema 4 (Inteligencia): Monitor del entorno para detectar cuándo la
+superficie de pérdida (S/V) ha cambiado y se requiere una reconfiguración
+morfológica (cambiar la arquitectura φ o π).
 
-La velocidad de la luz (c) es el invariante supremo de causalidad. Las ecuaciones
-de Einstein introducen 8π como factor geométrico inevitable. En soluciones de
-agujero negro, la entropía es proporcional al área del horizonte (de nuevo una
-ley de área), lo que sugiere que π sigue siendo un límite de almacenamiento de
-información. e emerge en la expansión inflacionaria y en el enfriamiento de
-estrellas.
+Sistema 5 (Política): El Principio de Mínima Acción encarnado. Define
+la "identidad" que justifica el gasto energético de mantener la estructura
+frente al Segundo Principio de la Termodinámica.
 
-Hipótesis especulativa: Así como φ maximiza la no-superposición en el crecimiento
-clásico, podría existir una constante análoga en la evolución de espaciotiempos
-que maximice la complejidad causal sin crear singularidades desnudas.
+El VSM es, en esencia, la implementación cibernética de la desigualdad isoperimétrica
+aplicada a flujos de información.
 
-3.3 En el plano atómico y nuclear: simetrías rotas y cuasicristales
+LA FILOTAXIS COMO ARQUITECTURA DE PUERTOS Y ADAPTADORES (LA MISMA COTA φ)
 
-Los cuasicristales exhiben simetrías pentagonales ligadas a φ. En la cromodinámica
-cuántica, los piones (cuya masa depende de f_π) son un recordatorio de que π
-también aparece en rupturas de simetría quiral.
+La disposición de hojas (filotaxis) sigue el ángulo áureo (~137.5°). No es una
+preferencia estética de la naturaleza; es la solución mínima al problema de
+optimización combinatoria de evitar la alineación (resonancia) en un espacio
+3D proyectado sobre un tallo 2D.
 
-Hipótesis especulativa: Cada simetría rota o conservada a una escala podría
-llevar asociado un invariante adimensional (a menudo irracional) que fije el
-máximo rendimiento de un proceso: eficiencia de fusión, tasas de desintegración,
-etc.
+En el ámbito del software, la Arquitectura Hexagonal (Puertos y Adaptadores)
+resuelve el mismo problema en el espacio de dependencias lógicas:
 
-================================================================================
-DISCUSIÓN Y LÍMITES DEL MARCO AMPLIADO
-================================================================================
+Problema: Cómo añadir funcionalidades (interfaces de usuario, BBDD) sin
+que el código de dominio quede "a la sombra" de los detalles de implementación.
 
-Este trabajo no afirma que la física sea una pirámide de constantes místicas.
-Reconoce que las cotas de eficiencia dependen de los invariantes de cada régimen.
-La versión original se ceñía al límite clásico 3+1; la presente extensión
-especulativa sugiere que esa lógica podría trasladarse a otros dominios, pero
-carece de desarrollo formal.
+Solución: Orientar las dependencias hacia el dominio (el tallo) con un
+ángulo abstracto (interfaces/adaptadores) que garantiza que los nuevos módulos
+se añaden sin crear acoplamientos alineados (dependencias circulares).
 
-La principal limitación es que no se ha establecido una conexión rigurosa entre
-los invariantes cuánticos/relativistas y los límites de eficiencia en sistemas
-complejos. Es posible que en esos planos la noción misma de "eficiencia" deba
-ser redefinida (por ejemplo, en términos de fidelidad de entrelazamiento o de
-mínima acción de Einstein-Hilbert).
+Ambas son manifestaciones del Límite de No-Superposición Logarítmica (φ). Una
+en biología, otra en ingeniería de software. La convergencia no es casual, es
+una imposición de la geometría de la información.
 
-Futuros trabajos podrían explorar si existe un principio variacional único que,
-al aplicarse en distintas condiciones límite (h → 0, c → ∞, N → ∞), reproduzca
-las cotas irracionales observadas en cada escala.
+APLICACIÓN PRÁCTICA: SISTEMAS DE ALMACENAMIENTO ENERGÉTICO EN 3+1 DIMENSIONES
 
-================================================================================
+Las restricciones del universo 3+1 (Superficie/Volumen, Difusión, Decoherencia)
+imponen los mismos trade-offs a cualquier dispositivo de almacenamiento de energía.
+Las soluciones de vanguardia son intentos de aproximarse a las cotas π, φ y e.
+
+5.1 Baterías de Iones de Litio con Electrodos 3D (Gestión de la Cota π y φ)
+
+Problema (Violación de π): Los ánodos planos (2D) tienen una relación S/V
+desfavorable. Para almacenar más carga (V), la superficie de contacto (S)
+crece muy poco, limitando la potencia.
+
+Problema (Violación de φ en el tiempo): El silicio se expande un ~300%.
+Una estructura rígida y alineada (ángulo racional) fractura el material por
+resonancia mecánica.
+
+Solución 3D (Aproximación a φ): Estructuras jerárquicas (nanocolumnas,
+porosidad controlada). Crean una "filotaxis material": disposición no alineada
+de poros que acomoda la expansión sin crear planos de fractura preferentes
+(resonancia mecánica). Acorta L (distancia de difusión) reduciendo la
+penalización temporal τ ≈ L²/D.
+
+Principio aplicado: Maximización del Volumen Activo con Mínima Fricción
+Mecánica e Iónica.
+
+5.2 Baterías Cuánticas de Superabsorción (Gestión de la Cota e)
+
+Problema (El límite e de la Decoherencia): En sistemas cuánticos, la
+información (entrelazamiento) se pierde en la superficie (entorno) siguiendo
+una curva de decaimiento similar a e⁻ᵗ.
+
+Solución 3D+T (Microcavidad + Pulso ultrarrápido): La cavidad óptica
+confina la luz (3D) creando un estado colectivo (Superradiancia de Dicke) que
+maximiza la interacción útil (Volumen Coherente) frente a la interacción
+disipativa (Superficie de Decoherencia). El pulso láser de femtosegundos
+completa el ciclo de carga antes de que la "penalización temporal e" degrade
+el sistema.
+
+Transferencia conceptual: Aunque la física subyacente es la Ecuación
+Maestra de Lindblad, la estrategia de diseño es la misma: Maximizar la
+relación Volumen/Superficie en el espacio de Hilbert (análogo a π) y operar
+en un régimen temporal por debajo de la cota de decaimiento e.
+
+5.3 Volantes de Inercia y Almacenamiento Térmico
+
+Volantes: Materiales compuestos 3D (fibra de carbono) diseñados con
+orientaciones de fibra no alineadas (estrategia φ) para evitar fracturas por
+resonancia (tensión de von Mises). Levitación magnética para minimizar la
+fricción superficial (reducción de pérdidas por violación de π).
+
+Térmico: Tanques de sales fundidas. La estratificación térmica natural
+(termoclina) es un análogo térmico del ángulo áureo: evita la mezcla completa
+(alineación de temperaturas) que destruiría la exergía disponible.
+
+En todos los casos, la arquitectura óptima no es una geometría simple, sino una
+estructura jerárquica que negocia simultáneamente con las cotas π, φ y e.
+
+DISCUSIÓN Y LÍMITES DEL MARCO
+
+Este trabajo propone una conexión formal entre límites variacionales geométricos,
+cibernética y diseño de ingeniería. No se afirma que la Mecánica Cuántica se
+derive de φ. La transferencia es a nivel de estrategias de diseño para eludir
+restricciones universales, no de mecanismos físicos.
+
+La afirmación de que π, φ, y e son "cotas de eficiencia" es rigurosa en el
+contexto de los problemas de optimización respectivos (Isoperimetría,
+Empaquetamiento en Espiral, Crecimiento Exponencial). La hipótesis especulativa
+es que la evolución biológica y la buena ingeniería convergen en estas soluciones
+porque ambas operan bajo la presión selectiva del Principio de Mínima Acción
+en un universo 3+1.
+
+La principal limitación es la dificultad de cuantificar la "distancia" de un
+sistema organizacional (VSM) a la cota φ. Futuros trabajos podrían explorar
+métricas de entropía topológica en redes de comunicación organizacional para
+verificar si las estructuras más viables exhiben una menor fricción informacional
+(aproximándose a la cota inferior establecida por la desigualdad isoperimétrica
+de Shannon).
+
 CONCLUSIÓN
-================================================================================
 
-Hemos reformulado la hipótesis original: las constantes irracionales no son
-misterios, sino soluciones a problemas de optimización bajo restricciones que
-dependen del plano de realidad que habitemos. En el límite clásico macroscópico,
-π, φ y e gobiernan el almacenamiento, el crecimiento y la estabilidad temporal.
-Al adentrarnos en lo cuántico y lo relativista, emergen otros invariantes (α, c,
-h) que podrían desempeñar papeles análogos.
+Hemos reformulado el hilo conductor que conecta las matemáticas con la viabilidad
+sistémica bajo un prisma de Límites Físicos:
 
-Esta "gramática de restricciones multiescala" no es una teoría del todo, sino
-un programa de investigación heurístico. Sugiere que las matemáticas de Euler,
-lejos de ser un mero adorno, proporcionan el lenguaje para expresar estos límites.
-Pero el auténtico valor está en reconocer que las paredes matemáticas del universo
-son múltiples y se nos revelan capa a capa, cada una con sus propios números
-ineludibles.
+π, φ, y e no son misterios, son soluciones a problemas de optimización
+con restricciones geométricas.
 
-================================================================================
-APÉNDICE: NOTA SOBRE LA NATURALEZA ESPECULATIVA DE LA EXTENSIÓN MULTIESCALA
-================================================================================
+El VSM de Stafford Beer es la tecnología social para implementar estas
+soluciones en organizaciones humanas.
 
-La Parte II de este documento es una extensión especulativa que surgió de una
-conversación sobre las limitaciones del marco original. Se reconoce explícitamente
-que:
+La Filotaxis es la tecnología biológica para implementar φ en el crecimiento.
 
-No existe prueba formal de que constantes como α o c actúen como "límites
-variacionales de eficiencia" en el sentido termodinámico clásico.
+Las Baterías 3D y Cuánticas son la tecnología física para implementar
+estas estrategias en el almacenamiento de energía.
 
-La transferencia del concepto de "cota de eficiencia" a regímenes cuánticos o
-relativistas es metafórica y requiere una reformulación matemática.
-
-Las ideas aquí esbozadas no han sido testadas ni publicadas en literatura
-revisada por pares. Son, simplemente, la respuesta a la pregunta: ¿y si la lógica
-de los límites isoperimétricos también aplica, mutatis mutandis, a otros planos
-de la realidad?
-
-Se incluye este apéndice para hacer justicia a la objeción de que "faltan cosas"
-y para invitar a físicos, matemáticos y filósofos a explorar si los invariantes
-fundamentales pueden ser reinterpretados como las "cotas de eficiencia" que
-surgen al hacer mínima la acción en cada estrato de la realidad. Por el momento,
-es solo una idea, no está probado.
+Este marco no es una teoría del todo, sino una gramática de restricciones.
+Sugiere que la "sabiduría de la naturaleza" y la "inteligencia de la ingeniería"
+convergen no por casualidad, sino porque ambas chocan contra las mismas paredes
+matemáticas del universo 3+1. Entender esas paredes (π, φ, e) es entender los
+límites de lo posible.
 
 ================================================================================
-FIN DEL DOCUMENTO DE TRABAJO - VERSIÓN 0.3
+FIN DEL DOCUMENTO DE TRABAJO - VERSIÓN 0.2
+================================================================================
