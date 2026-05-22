@@ -78,6 +78,24 @@ La pregunta inicial sobre Galicia queda sin respuesta causal. El texto aprovecha
 
 Estas limitaciones no invalidan la interpretación, pero obligan a tomarla por lo que es: una hipótesis de trabajo basada en hechos verificables e inferencias razonables, sometida a debate y abierta a refutación.
 
+La resistencia contenida: por qué ganar casos no es ganar el sistema
+
+Existen defensas. Los tribunales corrigen las resoluciones restrictivas del INSS. Los sindicatos denuncian los conciertos opacos y el trasvase de patologías. Los médicos de familia se organizan para señalar las consecuencias clínicas de las altas forzosas. Sería inexacto afirmar que el circuito descrito opera sin oposición.
+
+Pero la oposición y el circuito no libran su batalla en el mismo plano.
+
+La justicia resuelve conflictos individuales. Cada sentencia estima un recurso concreto, reconoce una prestación denegada, anula una resolución administrativa. Son actos de reparación, necesarios pero necesariamente puntuales. Un tribunal no puede dictar una sentencia que declare que el sistema de altas forzosas es estructuralmente perverso; solo puede corregir sus efectos en el caso que tiene ante sí. La arquitectura que produjo ese caso permanece intacta.
+
+Los sindicatos, por su parte, denuncian, se personan, negocian. Pero su capacidad de presión opera en el terreno de la negociación colectiva y la denuncia pública, no en el de la reforma institucional. Pueden señalar el trasvase de patologías; no pueden impedirlo sin un cambio normativo que depende del legislador.
+
+El resultado es una asimetría de planos. La captura opera en red, de forma multisistémica: las mutuas presionan, el INSS restringe, la administración sanciona al médico, los centros privados absorben los fondos. Todo ocurre simultáneamente, sin necesidad de coordinación central. La resistencia, en cambio, opera en el plano del caso, del recurso, de la denuncia. Gana batallas puntuales. Pero el sistema puede permitirse perderlas porque el mecanismo que las produce sigue girando.
+
+Dicho de otro modo: el propio sistema canaliza la resistencia hacia la excepcionalidad. Convierte cada victoria en un hecho aislado, celebrado por quien la obtiene pero inocuo para la estructura. El trabajador que gana su recurso obtiene justicia. El siguiente trabajador tendrá que empezar de cero.
+
+No se sugiere aquí que los tribunales o los sindicatos estén capturados en el sentido de cooptados. Se sugiere algo más sutil: que el diseño institucional les asigna un carril —el del caso individual— desde el cual pueden reparar daños pero no desmontar la maquinaria que los causa.
+
+
+
 Conclusión
 Los cuatro niveles descritos no operan de forma aislada. Se ensamblan en un circuito cuyo motor es el flujo de dinero público: la infrainversión crónica en la sanidad pública genera una saturación que alarga las bajas y alimenta las listas de espera; la administración, en lugar de reforzar los medios propios, deriva pacientes a centros privados mediante conciertos cada vez más costosos; esos fondos, detraídos del sistema público, perpetúan la infrainversión y cierran el bucle.
 
