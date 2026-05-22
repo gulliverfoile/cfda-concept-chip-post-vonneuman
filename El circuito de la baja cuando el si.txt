@@ -1,0 +1,86 @@
+El circuito de la baja: cuando el sistema enferma al trabajador
+Nota metodológica
+
+Este análisis examina relaciones entre instituciones, no actores aislados. La hipótesis de partida es que ciertos resultados —presión sobre el trabajador enfermo, restricción de prestaciones, cronificación de listas de espera, derivación de fondos públicos hacia el sector privado— no se explican completamente observando a un solo actor, sino atendiendo a cómo sus lógicas respectivas convergen y se refuerzan.
+
+No se postula una coordinación deliberada ni una conspiración. Se describe una convergencia de incentivos que, de forma sostenida, produce sesgos estructurales. Cada actor persigue sus propios fines; el efecto de conjunto no requiere un plan.
+
+Se advierte al lector que este texto describe patrones, no establece certezas absolutas. Se ofrecen hechos verificables junto con inferencias razonables, y se señala explícitamente cuándo se pasa de unos a otras. La interpretación final —el circuito— es una hipótesis abierta a debate y refutación.
+
+Introducción
+
+En España, la duración media de una baja laboral por incapacidad temporal es de 42,5 días. En Galicia, esa misma variable alcanza los 78,8 días. La diferencia es de tal magnitud que obliga a preguntarse qué factores operan en el territorio para que sus procesos de baja casi dupliquen la media nacional.
+
+Una primera hipótesis, recurrente en el debate público, atribuye este diferencial a actitudes individuales: una supuesta «cultura del subsidio» o un uso fraudulento de las prestaciones. Sin embargo, ese argumento encuentra dificultades para explicar por qué dicha actitud se manifestaría con tanta intensidad precisamente en Galicia y no en otras comunidades con marcos normativos similares.
+
+Este texto no pretende resolver el enigma de la excepcionalidad gallega —cuya raíz probablemente esté en la estructura demográfica y productiva—, sino aprovechar ese dato extremo como disparador de una pregunta distinta: una vez que un trabajador está de baja, ¿qué mecanismos institucionales operan sobre él? ¿Cómo interactúan entre sí? Y, sobre todo, ¿al servicio de qué intereses?
+
+La respuesta que se propone es que cuatro ámbitos —mutuas, INSS, administración sanitaria y centros privados concertados— funcionan con lógicas propias que, al converger, producen un efecto de conjunto que trasciende a cada uno de ellos. No se trata de una suma de ineficiencias, sino de un sistema que se retroalimenta a través de los flujos de dinero público.
+
+Nivel 1: Las mutuas y la construcción del diagnóstico
+Las mutuas colaboradoras con la Seguridad Social son entidades privadas que gestionan prestaciones públicas, fundamentalmente la incapacidad temporal. Su modelo de negocio se basa en un sistema de primas: las empresas pagan cuotas y las mutuas gestionan las bajas. Cuanto más cortas son las bajas, menor es el gasto y mayor el margen de la mutua.
+
+Este diseño genera un incentivo estructural: reducir la duración de las bajas es rentable. No hace falta que nadie dé órdenes ni que exista mala fe. Basta con que la arquitectura del sistema premie económicamente la contención del gasto para que esa lógica impregne todas las decisiones.
+
+De este incentivo se deriva una producción constante de informes que presentan el absentismo como un problema de abuso individual. Estos documentos, elaborados por las propias mutuas o por entidades vinculadas, ofrecen cifras sobre el supuesto fraude y reclaman medidas más restrictivas. Su metodología ha sido cuestionada por organizaciones sindicales, que denuncian un «concepto falso y torticero» de absentismo que infla artificialmente las cifras para generar alarma social. Estamos aquí ante un hecho verificable (los informes existen) y una interpretación discutible (si sus cifras son o no correctas). Lo relevante no es dirimir ahora esa disputa, sino señalar que esos informes cumplen una función política: construyen un diagnóstico que justifica políticas de presión sobre el trabajador.
+
+Un segundo mecanismo, más opaco, es el trasvase de patologías. Determinadas dolencias de origen laboral son calificadas como enfermedad común en lugar de contingencia profesional, lo que desplaza el coste desde las mutuas hacia el sistema público de salud. La Unión General de Trabajadores ha denunciado un «grave trasvase de patologías que tienen un origen laboral y que están siendo desviadas al Sistema Público de Salud». De nuevo, estamos ante una denuncia sindical, no ante una sentencia judicial. Pero la lógica económica que la haría verosímil es clara: para la mutua, cada contingencia profesional que consigue reclasificar como enfermedad común es un ahorro directo.
+
+El resultado es un doble movimiento: las mutuas generan una narrativa que atribuye el absentismo al fraude individual —proporcionando coartada argumental a las políticas restrictivas—, mientras derivan al erario público el coste de las patologías que deberían asumir.
+
+Nivel 2: El INSS y la restricción de prestaciones
+El Instituto Nacional de la Seguridad Social gestiona las prestaciones económicas por incapacidad temporal y resuelve las solicitudes de incapacidad permanente. En teoría, evalúa cada caso según criterios médicos y legales. En la práctica, los datos muestran una tendencia restrictiva que los tribunales corrigen con frecuencia.
+
+En 2024 se registraron en España 671.618 bajas laborales por motivos de salud mental. De ellas, solo 708 fueron calificadas como enfermedad profesional. Es decir, en el 99,9% de los casos la administración no reconoció vínculo causal entre las condiciones de trabajo y el trastorno mental diagnosticado. El dato contrasta con la creciente literatura científica que asocia factores laborales —precariedad, intensificación, falta de control sobre la tarea— con el aumento de problemas de salud mental. Conviene precisar: la evidencia epidemiológica muestra correlaciones poblacionales, mientras que la calificación de enfermedad profesional exige prueba de nexo causal individual. Pero la desproporción es tan abrumadora que invita a pensar en un sesgo sistemático, no en un mero rigor probatorio.
+
+En el ámbito judicial, aunque no existe una estadística oficial centralizada, los datos fragmentarios indican un volumen considerable de litigios contra el INSS. Solo en los juzgados de lo social de Vigo se tramitaron 706 demandas de este tipo en un año. Las sentencias del Tribunal Superior de Xustiza de Galicia recogen numerosos casos en los que se revoca la decisión administrativa y se reconoce al trabajador el derecho a la prestación previamente denegada.
+
+Una sentencia del Tribunal Supremo de 2026 ha venido a confirmar este sesgo. El alto tribunal frenó la práctica automática del INSS de denegar la prestación por incapacidad temporal cuando el trabajador recaía en la misma enfermedad, obligando al organismo a justificar sus decisiones con criterios médicos individualizados y no con meras presunciones administrativas. La sentencia no es un caso aislado: revela un patrón de actuación que los tribunales se ven obligados a corregir de forma recurrente.
+
+Este desfase entre resoluciones administrativas y judiciales sugiere que el criterio aplicado por el INSS es, en una proporción significativa de casos, más restrictivo que el que finalmente establecen los tribunales. Para el trabajador, obtener el reconocimiento de sus derechos requiere, con frecuencia, un proceso judicial que puede prolongarse años.
+
+Nivel 3: La administración sanitaria y la presión sobre el médico
+Mientras el INSS aplica criterios restrictivos en el ámbito administrativo, la administración sanitaria gallega despliega sus propias herramientas de presión sobre el eslabón más cercano al paciente: el médico de familia.
+
+Entre mediados de 2024 y finales de 2025, la Xunta de Galicia revisó 107.500 procesos de incapacidad temporal mediante unidades de apoyo desplegadas en los centros de salud. Como resultado, se emitieron 25.684 altas médicas forzosas. Aproximadamente uno de cada cuatro pacientes citados recibió el alta tras la revisión.
+
+La medida, denominada «Plan de Altas Innecesarias» por sus impulsores, consiste en la revisión sistemática de los procesos abiertos con el objetivo declarado de detectar bajas que se prolongan más allá de lo necesario. Desde la gestión sanitaria, puede interpretarse como eficiencia en el uso de recursos. Desde la perspectiva del paciente, implica la finalización de una prestación sin que necesariamente se haya producido una recuperación completa. El dato que falta —y que sería necesario para evaluar la medida— es cuántas de esas altas forzosas derivaron en recaídas o nuevas bajas en los meses siguientes. Sin ese seguimiento, la eficacia real del plan es una incógnita.
+
+A esta política se suma un mecanismo adicional: la vinculación del complemento de productividad de los médicos de familia a que las bajas que prescriben no excedan una «duración estándar». La Asociación Galega de Medicina Familiar e Comunitaria denunció que esta medida introduce una «preocupación meramente económica» en un terreno donde impera la subjetividad clínica, y señaló que ignora el «colapso» de la sanidad pública como causa real del alargamiento de las bajas.
+
+La lógica es circular: la saturación de la atención primaria dificulta que el médico realice un seguimiento adecuado, lo que prolonga las bajas; la administración responde penalizando económicamente al médico por esa duración, en lugar de abordar la saturación que la produce. El médico queda atrapado entre su deber clínico y la presión administrativa.
+
+A estos factores se suma la saturación del sistema público. En Galicia, la lista de espera quirúrgica alcanza una media de 72,8 días, y la espera para consultas externas con especialistas supera los 62 días. Un trabajador que requiere una intervención o un diagnóstico especializado permanece de baja durante todo el período de espera. La incapacidad temporal no se extiende por decisión del paciente o del médico, sino por la imposibilidad de acceder al tratamiento que la cerraría. La saturación actúa como un multiplicador de la duración de las bajas.
+
+Nivel 4: Los centros privados concertados y el cierre del circuito
+El cuarto nivel lo ocupan los centros sanitarios privados que operan mediante conciertos con la administración. Su función declarada es complementar al sistema público, absorbiendo parte de la demanda para reducir las listas de espera. Su funcionamiento real revela una dinámica distinta, y aquí es donde los cuatro niveles se ensamblan en un circuito que se retroalimenta.
+
+El mecanismo de cierre es presupuestario. La sanidad pública gallega sufre una saturación crónica: falta de especialistas, listas de espera prolongadas, atención primaria desbordada. Esa saturación alarga las bajas y genera una demanda insatisfecha que presiona al sistema. La respuesta de la administración no es reforzar los medios propios, sino derivar pacientes a centros privados mediante conciertos.
+
+En Galicia, el gasto en conciertos sanitarios se ha multiplicado por cuatro desde 2022, alcanzando los 9,75 millones de euros en cuatro años. En Ourense, el precio del concierto sanitario se ha incrementado un 42% entre 2025 y 2027, pasando de 13,5 a 29 millones de euros por dos años. Las partidas presupuestarias destinadas a la sanidad pública y a los conciertos privados se presentan con frecuencia de forma agregada, lo que impide trazar con precisión el destino final de cada euro público.
+
+Los centros concertados, por su parte, practican lo que en la literatura sanitaria se denomina «selección adversa»: derivan hacia el sistema público los casos complejos, crónicos o de alto coste, y retienen aquellos más rentables, como intervenciones de baja complejidad o pruebas diagnósticas sencillas. Esta práctica, documentada en informes de federaciones de sanidad pública, implica que el sector privado se queda con la parte lucrativa mientras desvía el gasto real hacia el sistema público.
+
+Las puertas giratorias completan el mecanismo. El trasvase de profesionales entre cargos de gestión de la sanidad pública y empresas privadas del sector es constante. En Madrid, la figura de Víctor Madera, fundador del grupo Quirón, ha sido señalada como el «principal ideólogo de las políticas privatizadoras de la sanidad pública». En Andalucía, un exviceconsejero de Salud se convirtió en director médico de una aseguradora privada tras haber beneficiado previamente a esa misma compañía con contratos públicos.
+
+El circuito se cierra así: saturación de la sanidad pública → prolongación de bajas y listas de espera → derivación de pacientes a centros privados concertados → transferencia de fondos públicos hacia el sector privado → infrainversión en medios propios → más saturación. Los centros privados se presentan como la solución a las listas de espera, pero su modelo de negocio depende de que esas listas persistan. Si la sanidad pública resolviera sus problemas de saturación, el flujo de pacientes derivados —y por tanto de ingresos— se reduciría drásticamente.
+
+Y mientras ese bucle presupuestario gira, los otros niveles operan sobre el trabajador: las mutuas presionan para acortar bajas y externalizan costes al sistema público; el INSS aplica criterios restrictivos que los tribunales corrigen años después; la administración presiona al médico con incentivos económicos y altas forzosas. Todo ocurre simultáneamente, sin necesidad de coordinación central, pero con un efecto convergente: el trabajador enfermo se enfrenta a un sistema que le presiona para reincorporarse antes de estar curado, que le deniega prestaciones que luego le reconocerán los tribunales, y que deriva hacia el sector privado los recursos que podrían aliviar la saturación del sistema público.
+
+Lo que este análisis no demuestra (y no pretende demostrar)
+Conviene explicitar las limitaciones de esta interpretación:
+
+La cronificación no está cuantificada. El circuito supone que las altas forzosas y la falta de seguimiento generan recaídas que realimentan el sistema. Es clínicamente plausible, pero no se dispone aquí de estudios que comparen la evolución de pacientes con alta forzosa frente a pacientes con alta clínicamente consensuada.
+
+La trazabilidad del gasto es opaca. Las partidas agregadas de los presupuestos impiden demostrar de forma concluyente que cada euro desviado a conciertos es un euro que se deja de invertir en medios propios, aunque los indicios apunten en esa dirección.
+
+La pregunta inicial sobre Galicia queda sin respuesta causal. El texto aprovecha el dato extremo gallego como disparador, pero no explica por qué allí el fenómeno es más intenso. Esa cuestión requeriría un análisis específico de la estructura demográfica y productiva que excede el propósito de estas páginas.
+
+Estas limitaciones no invalidan la interpretación, pero obligan a tomarla por lo que es: una hipótesis de trabajo basada en hechos verificables e inferencias razonables, sometida a debate y abierta a refutación.
+
+Conclusión
+Los cuatro niveles descritos no operan de forma aislada. Se ensamblan en un circuito cuyo motor es el flujo de dinero público: la infrainversión crónica en la sanidad pública genera una saturación que alarga las bajas y alimenta las listas de espera; la administración, en lugar de reforzar los medios propios, deriva pacientes a centros privados mediante conciertos cada vez más costosos; esos fondos, detraídos del sistema público, perpetúan la infrainversión y cierran el bucle.
+
+Alrededor de ese eje presupuestario, las mutuas construyen el discurso del fraude individual mientras externalizan costes al erario público. El INSS aplica criterios restrictivos que los tribunales corrigen de forma recurrente. Los médicos de familia soportan incentivos perversos que penalizan la duración de las bajas en lugar de abordar la saturación que las produce. Y el trabajador enfermo queda atrapado en un sistema que le presiona, le deniega prestaciones y deriva hacia el sector privado los recursos que podrían curarle.
+
+Este texto no propone soluciones. Solo describe un mecanismo. Pero una descripción precisa es el primer paso para imaginar una alternativa. Porque un circuito que se comprende puede, tal vez, interrumpirse.
