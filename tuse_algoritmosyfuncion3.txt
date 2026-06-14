@@ -1041,3 +1041,288 @@ La base material es el límite jerárquico último de cualquier dinámica.
 El observador-diseñador que asume estos principios no aspira a la
 objetividad transparente. Aspira a la honestidad epistemológica y a la
 coherencia entre lo que su sistema hace y lo que su sistema excluye
+
+Anexo X: Mitigación de la parálisis por análisis en el ciclo T-A-S-D-C
+
+1. Problema
+La Duda/Crítica puede disparar una recursión infinita: el sistema se observa a sí mismo observándose y nunca actúa.
+
+2. Principio de mitigación
+No se elimina la Duda/Crítica. Se la fuerza a converger aplicando un sesgo estructural: los pesos de la Sabiduría Práctica (Real, Racional, Virtuoso, Posible) actúan como un timeout operativo. El sistema actúa con lo disponible, no con lo óptimo.
+
+3. Analogía: el fractal de crecimiento con φ
+El girasol no planea todas las semillas. Usa una regla simple: coloca cada semilla donde menos solape con las anteriores. La recursión es infinita, pero cada paso añade información nueva. El sistema no lo sabe todo; sabe lo suficiente para el siguiente paso.
+
+4. Mecanismos de timeout
+
+Timeout duro: tras N iteraciones sin mejora, se fuerza Síntesis.
+
+Timeout blando: si la mejora de Coherencia Y(t) es menor que un delta, se corta.
+
+Timeout térmico: si la entropía (temperatura, gasto computacional) supera un umbral, se actúa para disipar.
+
+5. Implementación en el ciclo
+La Duda/Crítica sigue activa, pero los pesos de la phrónesis fuerzan una decisión cuando el sistema detecta que seguir iterando no añade información nueva (no-solapamiento) o acerca al colapso (horizonte e).
+
+Para el código (CFDA_Gardener)
+Ahora mismo tu RelationalKernel hace scheduleo greedy: asigna procesos a cores fríos. Eso es Tesis y Antítesis. Pero no hay Duda/Crítica ni timeout. Se puede añadir así:
+
+python
+class RelationalKernel:
+    def __init__(self, cores, processes):
+        # ... lo que ya tienes ...
+        self.doubt_counter = 0
+        self.max_doubt_iterations = 5  # timeout duro
+        self.improvement_threshold = 0.01  # timeout blando
+        self.last_Y = 0.0
+
+    def doubt_and_criticize(self):
+        """
+        Fase de Duda/Crítica: ¿debemos replanificar la asignación?
+        Solo se ejecuta si la mejora es marginal o si llevamos muchas iteraciones.
+        """
+        current_Y = self.compute_coherence()
+        improvement = abs(current_Y - self.last_Y)
+        
+        if improvement < self.improvement_threshold:
+            self.doubt_counter += 1
+        else:
+            self.doubt_counter = 0  # hay mejora, reseteamos
+        
+        self.last_Y = current_Y
+        
+        # Timeout: forzamos una reasignación si llevamos muchas dudas
+        if self.doubt_counter >= self.max_doubt_iterations:
+            self.force_reshuffle()  # actuar con lo disponible
+            self.doubt_counter = 0
+
+    def force_reshuffle(self):
+        """
+        Timeout duro: reasigna todos los procesos a cores sin optimizar.
+        Es el 'trabajar con lo que hay'.
+        """
+        for proc in self.processes:
+            if proc.assigned_core:
+                proc.assigned_core.current_process = None
+                proc.assigned_core = None
+        # Asignación simple: procesos a cores en orden
+        for i, proc in enumerate(self.processes):
+            core = self.cores[i % len(self.cores)]
+            core.current_process = proc
+            proc.assigned_core = core
+
+    def step(self):
+        # Ejecutar ciclo normal
+        for core in self.cores:
+            # ... lo que ya tienes ...
+        
+        # Fase de Duda/Crítica con timeout
+        self.doubt_and_criticize()
+        
+        # Schedule normal
+        self.schedule()
+        
+        Y = self.compute_coherence()
+        self.history.append(Y)
+        return Y
+
+
+examinador.json
+
+class ExaminadorJSON[T]:
+    """
+    Adaptador Enactivo con timeout de Sabiduría Práctica.
+    
+    Nueva funcionalidad (Anexo X - Mitigación de parálisis):
+    - Los pesos de los 4 ejes (Real, Racional, Virtuoso, Posible) sesgan la elección.
+    - Un timeout duro fuerza decisión con lo disponible tras N iteraciones sin mejora.
+    - Un timeout blando corta si la coherencia marginal es menor que delta.
+    - Inspirado en el fractal de crecimiento con φ: cada iteración añade información
+      sin solaparse. No se sabe todo, pero sí lo suficiente para el siguiente paso.
+    """
+    
+    def __init__(self, perfil: dict, timeout_duro: int = 5, delta_coherencia: float = 0.01):
+        """
+        perfil: diccionario con pesos y tolerancias.
+            - 'pesos': {'real': w1, 'racional': w2, 'virtuoso': w3, 'posible': w4}
+            - 'tolerancia': float (para parseo parcial)
+        timeout_duro: iteraciones máximas sin mejora antes de forzar decisión.
+        delta_coherencia: mejora mínima para considerar que la iteración fue útil.
+        """
+        self.perfil = perfil
+        self.timeout_duro = timeout_duro
+        self.delta_coherencia = delta_coherencia
+        
+        # Estado interno del timeout
+        self.duda_counter = 0
+        self.mejor_coherencia = 0.0
+        self.mejor_opcion = None
+        
+        # Memoria local (aprendizaje de bucle doble, ya existente)
+        self.memoria: dict[str, Partial[T]] = {}
+
+    def examinar(self, raw: str, cliente_id: str) -> Resultado[T]:
+        """
+        Examina una entrada externa aplicando los 4 ejes con timeout.
+        Si tras varias iteraciones no se mejora, fuerza decisión con lo disponible.
+        """
+        # Paso 1: Hechos (analizar lo que realmente llegó)
+        fragmento = self.extraer_fragmento_valido(raw)
+        if not fragmento:
+            return Resultado(tipo='RECHAZADO', datos=None, flags=['formato_ilegible'])
+
+        # Paso 2: Creatividad (generar opciones de acción)
+        opciones = [
+            self.parseo_completo(raw),
+            self.parseo_parcial(fragmento),
+            self.inferir(fragmento, cliente_id),
+        ]
+        opciones = [o for o in opciones if o is not None]
+
+        # Paso 3: Lógica y Ética (filtros)
+        validas = []
+        for o in opciones:
+            if self.es_estructuralmente_valido(o) and self.riesgo_aceptable(o):
+                validas.append(o)
+
+        if not validas:
+            return Resultado(tipo='RECHAZADO', datos=None, flags=['sin_opciones_validas'])
+
+        # Paso 4: Negociación y Coherencia con timeout
+        # Ajustamos cada opción con flags de advertencia
+        ajustadas = [self.añadir_flags(o) for o in validas]
+        
+        # Elegimos la mejor según los pesos del perfil
+        mejor = self.elegir_por_pesos(ajustadas)
+        coherencia_actual = self.calcular_coherencia(mejor, ajustadas)
+
+        # --- NUEVO: Lógica de timeout ---
+        mejora = coherencia_actual - self.mejor_coherencia
+        
+        if mejora > self.delta_coherencia:
+            # Hay mejora sustancial: reseteamos el contador de duda
+            self.duda_counter = 0
+            self.mejor_coherencia = coherencia_actual
+            self.mejor_opcion = mejor
+        else:
+            # No hay mejora: acumulamos duda
+            self.duda_counter += 1
+            
+        # Timeout duro: si llevamos muchas iteraciones sin mejora, forzamos decisión
+        if self.duda_counter >= self.timeout_duro:
+            # Actuar con lo disponible
+            mejor = self.forzar_decision(ajustadas)
+            coherencia_actual = self.calcular_coherencia(mejor, ajustadas)
+            # Reseteamos para el próximo ciclo
+            self.duda_counter = 0
+            self.mejor_coherencia = coherencia_actual
+            self.mejor_opcion = mejor
+            # Añadimos flag de timeout para trazabilidad
+            mejor.flags.append('timeout_forzado')
+        # --- FIN NUEVO ---
+
+        # Aprendizaje (bucle doble)
+        if mejor.tipo == 'INFERIDO':
+            self.memoria[cliente_id] = mejor.datos
+
+        return mejor
+
+    def forzar_decision(self, opciones: list) -> Resultado[T]:
+        """
+        Timeout duro: elige la opción menos mala con lo disponible.
+        Prioriza lo Real (datos parseables) sobre lo Posible (inferencias).
+        No busca óptimo, busca acción.
+        """
+        # Criterio simple: parseo completo > parseo parcial > inferencia
+        for o in opciones:
+            if o.tipo == 'COMPLETO':
+                return o
+        for o in opciones:
+            if o.tipo == 'PARCIAL':
+                return o
+        # Si solo quedan inferencias, tomamos la de mayor soporte en memoria
+        return opciones[0] if opciones else Resultado(tipo='RECHAZADO')
+
+    def calcular_coherencia(self, opcion: Resultado[T], todas: list) -> float:
+        """
+        Calcula la coherencia de una opción respecto al conjunto.
+        Pondera según los pesos del perfil del observador.
+        """
+        pesos = self.perfil.get('pesos', {
+            'real': 0.4, 'racional': 0.3, 'virtuoso': 0.2, 'posible': 0.1
+        })
+        # Simplificación: la coherencia es la suma ponderada de los flags presentes
+        score = 0.0
+        if 'completo' in opcion.flags:
+            score += pesos['real']
+        if 'estructuralmente_valido' in opcion.flags:
+            score += pesos['racional']
+        if 'riesgo_aceptable' in opcion.flags:
+            score += pesos['virtuoso']
+        if 'inferido' in opcion.flags:
+            score += pesos['posible']
+        # Normalizar respecto al máximo posible en este conjunto
+        max_score = sum(pesos.values())
+        return score / max_score if max_score > 0 else 0.0
+
+    # --- Métodos auxiliares (ya existentes, se mantienen) ---
+    def extraer_fragmento_valido(self, raw: str) -> Optional[str]:
+        """Intenta extraer un subconjunto parseable del input crudo."""
+        # Implementación existente
+        pass
+
+    def parseo_completo(self, raw: str) -> Optional[Resultado[T]]:
+        """Intenta parsear todo el input."""
+        pass
+
+    def parseo_parcial(self, fragmento: str) -> Optional[Resultado[T]]:
+        """Intenta parsear solo el fragmento válido."""
+        pass
+
+    def inferir(self, fragmento: str, cliente_id: str) -> Optional[Resultado[T]]:
+        """Infiera campos faltantes usando memoria local."""
+        if cliente_id in self.memoria:
+            return Resultado(tipo='INFERIDO', datos=self.memoria[cliente_id], 
+                           flags=['inferido'])
+        return None
+
+    def es_estructuralmente_valido(self, opcion: Resultado[T]) -> bool:
+        """Verifica coherencia lógica de la opción."""
+        pass
+
+    def riesgo_aceptable(self, opcion: Resultado[T]) -> bool:
+        """Verifica que la opción no implica riesgo inaceptable."""
+        pass
+
+    def añadir_flags(self, opcion: Resultado[T]) -> Resultado[T]:
+        """Añade flags de advertencia (ej: 'campo_inferido')."""
+        pass
+
+    def elegir_por_pesos(self, opciones: list) -> Resultado[T]:
+        """Elige la mejor opción según los pesos del perfil."""
+        # Ordena por coherencia calculada con los pesos
+        return max(opciones, key=lambda o: self.calcular_coherencia(o, opciones))
+
+
+Lo que cambió:
+
+Timeout duro (timeout_duro): tras N iteraciones sin mejora, forzar_decision elige la opción menos mala y la marca con flag 'timeout_forzado'. No se optimiza, se actúa.
+
+Timeout blando (delta_coherencia): si la mejora de coherencia entre iteraciones es marginal, se acumula duda. Si hay mejora real, se resetea. Esto evita que el sistema se estanque en micro-optimizaciones.
+
+forzar_decision: implementa el "trabajar con lo que hay". Prioriza lo Real (parseo completo) sobre lo Posible (inferencias). Es el equivalente computacional de "vale, tiramos con esto".
+
+Pesos en la coherencia: calcular_coherencia ya existía implícitamente, pero ahora es explícita y configurable desde perfil['pesos']. El operador puede sesgar hacia lo Real, lo Racional, lo Virtuoso o lo Posible según el contexto.
+
+Aprendizaje intacto: el bucle doble de memoria (self.memoria) sigue funcionando. El timeout no impide aprender; al contrario, fuerza una acción cuyo resultado alimentará la memoria para la próxima vez.
+
+Correspondencia con el Anexo X (texto):
+
+Concepto	Implementación
+Timeout duro	timeout_duro y forzar_decision
+Timeout blando	delta_coherencia y duda_counter
+Trabajar con lo que hay	forzar_decision prioriza parseo completo > parcial > inferencia
+Pesos de phrónesis	perfil['pesos'] en calcular_coherencia
+Fractal de crecimiento	Cada iteración del adaptador añade información; el timeout evita solapamiento
+Horizonte e	timeout_duro es el umbral antes del colapso por parálisis
+
