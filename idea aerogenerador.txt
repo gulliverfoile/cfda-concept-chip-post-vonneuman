@@ -1,5 +1,5 @@
 Documento de Trabajo: Mecanismos y Viabilidad de un Sistema Termo-Aerodinámico Integrado para la Recuperación de Calor por Fricción en Conductos de Aire
-
+no tira, o no creo, el intercamio termodinamico necesitaria un cambio de fase, aprovechar dos propiedades del fluido, asi no salen las cuentas. pero es una idea :P
 Hipótesis central:
 
 Sistema termo-eólico poroso con tornillo de Arquímedes integrado, operando deliberadamente en el régimen de transición laminar-turbulento (Re ≈ 2000–3000), mediante microtubos o geometría alveolar expuesta al viento a varios metros de altura. El calor de fricción y/o trabajo del tornillo se reinyecta en las paredes —vía bomba de calor acoplada— para estabilizar localmente el flujo laminar, reducir drásticamente la resistencia aerodinámica y aumentar la energía neta extraíble del viento. Un ciclo de retroalimentación positiva basado en sinergia ecosistémica, no en una máquina cerrada.
