@@ -88,6 +88,10 @@ aceptar una penalización en la captación de recursos.
 En Sistemas Complejos: Es la base de la Recursión Dinámica y la Arquitectura
 Hexagonal. Es la estrategia para que los módulos crezcan sin que las
 dependencias entre ellos "hagan sombra" al núcleo de negocio.
+aqui se podrian añadir los fractales y el caso del aureo como uno
+para un empaquetamiento especifico en un medio con necesidades especificas,
+las espirales logaritmicas, tengo la intuicion q son fractales de cecimiento,
+un subtipo, y que el resto tienen usos, funciones estructurales, diferentes
 
 2.3 e (Euler) ≈ 2.718... - La Cota de Auto-Referencia Temporal (El Límite del Colapso)
 Optimiza (o describe el límite de) los procesos cuya tasa de cambio es proporcional
