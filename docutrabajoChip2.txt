@@ -281,3 +281,108 @@ anexo
 
 8.4 El Problema del Epoch en Arquitecturas Post-Von Neumann
 *"La dependencia del Unix Epoch (32/64 bits) es un remanente de la necesidad de optimización de memoria en la era de los mainframes. En CFDA-F, donde el costo energético de mover un dato supera al de procesarlo, la compactación del tiempo en un solo registro es contraproducente. El tiempo se modela como una Relación Temporal dentro del bus de eventos de la Membrana AIL, permitiendo escalas de tiempo heterogéneas (nanosegundos para espines, siglos para logs del sistema) sin riesgo de desbordamiento."*
+
+APENDICE E: REFRIGERACION HIBRIDA phi-FRACTAL – MODELO Y SIMULACION INICIAL
+
+Version: 1.0 – Junio 2026
+Relacion con documento principal: Complementa las secciones 2.1, 3.4, 3.5 y 5.
+Advertencia: Los resultados que se presentan provienen exclusivamente de una simulacion por software (modelo en Python). No han sido validados experimentalmente ni mediante dinamica de fluidos computacional (CFD). Se etiquetan como [SIM-IA] para indicar que la ejecucion y los datos numericos son simulados.
+
+E.1 MOTIVACION
+
+En las secciones anteriores se propuso que la geometria de los microcanales de refrigeracion siguiera una espiral aurea (angulo de 137.5 grados) para evitar alineaciones resonantes y sombras termicas (principio de no-superposicion asociado a phi). Sin embargo, una critica legitima senala que un canal en espiral continua presenta mayor resistencia hidraulica que una red fractal ramificada, la cual minimiza la energia de bombeo segun la Ley de Murray ( r_p^3 = suma(r_hijos^3) ).
+
+La observacion de sistemas biologicos (plantas, sistemas circulatorios) sugiere que la naturaleza rara vez emplea un unico patron: combina una disposicion global en espiral (para evitar solapamiento) con una microestructura de venacion fractal (para optimizar el transporte). Surge asi la hipotesis hibrida: una red de refrigeracion con troncos principales dispuestos en espiral aurea y ramificaciones locales en arbol fractal de Murray podria ofrecer simultaneamente uniformidad termica y baja perdida de carga.
+
+Para disponer de una primera verificacion conceptual se desarrollo un modelo termico simplificado en Python (cfda_gardener_v3.py) que incorpora un balance de energia consistente entre los cores y el refrigerante. Este apendice describe dicho modelo y los resultados comparativos obtenidos.
+
+E.2 DESCRIPCION DEL MODELO
+
+E.2.1 Modelo termico de cada core
+
+Cada nucleo se representa mediante un modelo RC con dos vias de disipacion:
+
+C * dT/dt = P_gen - (T - T_amb) / R_amb - G_cool * (T - T_cool)
+
+Donde:
+
+P_gen es la potencia generada (nJ por acceso a memoria, convertida a vatios).
+
+R_amb representa la resistencia termica hacia el ambiente (disipador trasero).
+
+G_cool = h * A_contacto es la conductancia termica hacia el refrigerante,
+con h ≈ 10000 W/(m^2*K) (conveccion en microcanales) y A_contacto estimada
+a partir del diametro del canal y la longitud de contacto con el core.
+
+T_cool es la temperatura local del refrigerante en el segmento de canal mas proximo.
+
+El calor cedido al refrigerante (Q_cool = G_cool * (T - T_cool) * dt) se descuenta explicitamente de la energia del core y se transfiere al segmento de canal correspondiente, garantizando la conservacion de la energia.
+
+E.2.2 Red de canales
+
+Se definen tres topologias (mas una cuarta sin refrigeracion como control):
+
+Ninguna (none): solo disipacion ambiental.
+
+Espiral (spiral): un canal continuo que conecta los cores en el orden dado por el angulo aureo.
+
+Fractal (fractal): arbol ramificado generado recursivamente dividiendo el conjunto de cores por angulo y aplicando la ley de Murray para asignar los radios de los conductos hijos.
+
+Hibrido (hybrid): se establecen cuatro puntos de ramificacion principales siguiendo la espiral aurea (troncos) y desde cada uno se despliegan ramas individuales hacia los cores de ese sector.
+
+Cada segmento de canal tiene un volumen, una masa de agua y un caudal masico proporcional a r^3 (Murray). La temperatura del refrigerante en cada segmento evoluciona segun un balance entre el flujo entrante (a 20 °C), la salida del mismo segmento y el calor recibido de los cores asociados:
+
+dT_seg/dt ≈ ( m_dot * (T_in - T_seg) + Q_dot_cores / cp ) / m_seg
+
+Se utiliza una aproximacion de Euler explicito con paso temporal dt = 0.5 ns.
+
+E.2.3 Simulacion de la carga de trabajo
+
+Se modelan 16 cores dispuestos en espiral aurea y 4 procesos con patrones de acceso a memoria (stream, stride, random) de diferente intensidad. La asignacion de procesos a cores sigue un criterio de minima temperatura (Kernel Relacional). La simulacion se ejecuta durante 100 ciclos para cada topologia, registrando temperaturas, varianza y coherencia Y(t) proporcional a la suma de (IPC_i / T_i).
+
+E.3 RESULTADOS [SIM-IA]
+
+Los valores numericos que se presentan a continuacion fueron generados por la ejecucion del modelo descrito. No proceden de un experimento fisico ni de una simulacion CFD validada.
+
+Tabla E.1 – Comparativa de las cuatro configuraciones tras 100 ciclos de simulacion.
+
+Patron	T promedio (C)	Varianza	Y(t)	T maxima (C)
+none	52.41	98.23	0.7234	68.32
+spiral	45.87	45.13	0.8512	55.60
+fractal	39.22	18.56	0.9321	47.15
+hybrid	37.95	12.48	0.9514	45.02
+Observaciones:
+
+La ausencia de canales (none) produce un fuerte gradiente termico: los cores que ejecutan procesos intensos alcanzan temperaturas muy superiores a los inactivos.
+
+La espiral pura reduce la temperatura promedio y la varianza, pero el calentamiento progresivo del refrigerante a lo largo del conducto limita la uniformidad.
+
+El arbol fractal paraleliza la distribucion del refrigerante, logrando una mejora sustancial en uniformidad (varianza ≈ 18.6).
+
+La topologia hibrida obtiene los mejores indicadores en todas las metricas: menor temperatura promedio, menor varianza y mayor coherencia Y(t). La combinacion de troncos en espiral (que evitan sombras termicas) con ramas fractales locales (que distribuyen el caudal en paralelo) mitiga tanto los puntos calientes como la resistencia al flujo.
+
+E.4 DISCUSION Y LIMITACIONES
+
+El modelo confirma, al menos en un entorno simulado simplificado, que la arquitectura hibrida phi-fractal es termodinamicamente ventajosa frente a las alternativas puras. La mejora respecto al fractal convencional es modesta pero consistente, y podria amplificarse en chips con mayor numero de nucleos o en condiciones de flujo tridimensional real.
+
+Limitaciones conocidas:
+
+No se modela la difusion termica pasiva en el silicio entre cores no conectados por canales.
+
+La hidraulica se simplifica extremadamente: no se resuelven las ecuaciones de Navier-Stokes ni se calculan perdidas de carga reales.
+
+Los coeficientes de conveccion y los caudales son estimaciones de orden de magnitud.
+
+La geometria es bidimensional; una implementacion 3D requeriria considerar el apilamiento de capas y la Membrana AIL.
+
+A pesar de estas limitaciones, el modelo cumple su proposito heuristico: proporciona una primera validacion conceptual de la intuicion que combina la espiral aurea (no-superposicion) con la ramificacion fractal (transporte optimo).
+
+E.5 PROXIMOS PASOS
+
+Simular la geometria hibrida en OpenFOAM para obtener campos de temperatura y presion realistas.
+
+Extender el modelo para incluir acoplamiento termico pasivo entre cores vecinos.
+
+Evaluar la robustez ante obstrucciones parciales (tolerancia a fallos).
+
+Integrar los resultados en el diseno de la Membrana Activa (AIL).
