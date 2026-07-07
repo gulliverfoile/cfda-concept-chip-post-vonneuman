@@ -1,0 +1,138 @@
+Documento Técnico: Estructuras Fractales para Intercambiadores de Calor
+Octet-Truss vs. Red Jerárquica de Murray
+
+1. Introducción
+El diseño de intercambiadores de calor y sistemas de disipación térmica ha evolucionado hacia estructuras cada vez más complejas para maximizar la relación superficie-volumen y optimizar el flujo de fluidos. Este documento compara dos familias de estructuras fractales con aplicaciones termomecánicas:
+
+Octet-Truss Lattice (celosía octet): estructura periódica tridimensional basada en la teselación del espacio por tetraedros y octaedros, propuesta originalmente por Buckminster Fuller.
+
+Red Jerárquica de Murray: estructura de bifurcaciones jerárquicas que sigue la Ley de Hess-Murray, inspirada en sistemas biológicos como los vasos sanguíneos y el sistema respiratorio.
+
+Ambas estructuras son candidatas prometedoras para aplicaciones de intercambio térmico debido a su alta relación superficie-volumen y su capacidad para ser fabricadas mediante técnicas de fabricación aditiva (impresión 3D en metal).
+
+2. Octet-Truss Lattice (Celosía Octet)
+2.1 Definición y Estructura
+La estructura Octet-Truss es una celosía periódica formada por la repetición de una celda unidad que combina tetraedros y octaedros. Sus características principales son:
+
+Alta conectividad nodal: cada nodo está conectado a múltiples barras, lo que proporciona una alta rigidez estructural.
+
+Estructura periódica: se puede modelar mediante simulaciones de una celda unidad periódica.
+
+Geometría ordenada: a diferencia de las espumas metálicas estocásticas, presenta un patrón regular y predecible.
+
+2.2 Comportamiento Térmico e Hidráulico
+Los estudios han caracterizado exhaustivamente el comportamiento de las estructuras Octet-Truss:
+
+Permeabilidad: la permeabilidad normalizada de las celosías Octet es 20-80% mayor que la de espumas metálicas estocásticas para una porosidad dada.
+
+Coeficiente de inercia: los coeficientes de inercia de las celosías Octet son aproximadamente el 50% de los medidos en espumas estocásticas.
+
+Factor de fricción: presentan factores de fricción menores o similares en comparación con espumas estocásticas.
+
+Conductividad térmica efectiva: las predicciones coinciden bien con modelos existentes de conductividad térmica.
+
+2.3 Estado de la Investigación
+La estructura Octet-Truss es la más estudiada y validada experimentalmente de las dos:
+
+Se han realizado simulaciones numéricas directas de celdas unitarias periódicas.
+
+Se han fabricado estructuras de aleación de aluminio (AlSi10Mg) con porosidades del 70,6%, 86,9% y 91,3% mediante fabricación aditiva.
+
+Se han realizado mediciones experimentales de conductividad térmica efectiva, permeabilidad, factor de fricción y número de Nusselt.
+
+Los resultados se han comparado con datos experimentales de espumas metálicas estocásticas.
+
+Conclusión sobre Octet-Truss: es una estructura bien caracterizada, con validación experimental, que demuestra un rendimiento superior a las espumas metálicas convencionales tanto en términos estructurales como térmicos.
+
+3. Red Jerárquica de Murray (Murray Fractal)
+3.1 Definición y Estructura
+La Red Jerárquica de Murray es una estructura de bifurcaciones jerárquicas que sigue la Ley de Hess-Murray, la cual establece que, para minimizar la resistencia al flujo y el consumo energético, el radio de un tubo padre al cubo debe ser igual a la suma de los cubos de los radios de los tubos hijos:
+
+r₀³ = r₁³ + r₂³
+
+Esta ley fue formulada originalmente por Cecil D. Murray para describir la optimización de los sistemas vasculares en biología. En el contexto de intercambiadores de calor, la estructura se diseña con bifurcaciones en forma de Y o Ψ, basándose en esta ley.
+
+3.2 Comportamiento Térmico e Hidráulico
+Los estudios numéricos han demostrado mejoras significativas en el rendimiento de los intercambiadores de calor basados en la Ley de Murray:
+
+Reducción de la variación de temperatura: hasta un 75% de reducción en la variación de temperatura en comparación con diseños tradicionales.
+
+Reducción de la caída de presión: 10% de reducción en la caída de presión.
+
+Mejora en las tasas de transferencia de calor: se ha logrado un aumento significativo en comparación con modelos tradicionales.
+
+Optimización de parámetros: se han optimizado ángulos de bifurcación y relaciones de diámetro para mejorar el flujo y la eficiencia térmica.
+
+3.3 Estado de la Investigación
+La Red de Murray está en una fase más temprana de investigación:
+
+La mayoría de los trabajos se han realizado mediante análisis numérico y simulación CFD.
+
+Se han realizado validaciones experimentales limitadas, principalmente con visualización directa de perfiles de temperatura en microcanales.
+
+Se ha encontrado que el factor óptimo de escala fractal es a=1,75 para minimizar el consumo de bombeo.
+
+Los estudios más recientes (2025) combinan simulaciones numéricas con validación experimental para garantizar la precisión y fiabilidad.
+
+Conclusión sobre la Red de Murray: es una estructura muy prometedora que muestra mejoras significativas en simulación, pero que aún requiere más validación experimental y estudios a mayor escala para confirmar su rendimiento en aplicaciones reales.
+
+4. Comparación de Estructuras
+Característica	Octet-Truss	Red Jerárquica de Murray
+Inspiración	Optimización topológica	Sistemas biológicos (vasos sanguíneos)
+Estructura	Celosía periódica	Bifurcaciones jerárquicas
+Geometría	Uniforme, celdas repetidas	Variable, ramificada
+Objetivo principal	Rigidez estructural + conducción térmica	Transferencia de calor con baja pérdida de presión
+Estado de validación	Extensa validación experimental	Mayoritariamente simulación numérica
+Rendimiento	Permeabilidad 20-80% > espumas	75% reducción variación temp.
+Aplicaciones	Disipadores de calor estructurales	Refrigeración de microchips, celdas solares
+Ventaja clave	Bien caracterizada y probada	Alto potencial teórico en eficiencia hidráulica
+5. Limitaciones y Consideraciones
+5.1 Escala de Aplicación
+Ambas estructuras presentan desafíos relacionados con la escala:
+
+Octet-Truss: se ha probado en escalas desde microscópicas hasta macroscópicas, con resultados consistentes.
+
+Red de Murray: la Ley de Murray muestra un rendimiento óptimo para longitudes de canal superiores a aproximadamente 1 mm. Por debajo de esta escala, los beneficios pueden no ser significativos.
+
+5.2 Anisotropía
+La celosía Octet puede presentar anisotropía en sus propiedades mecánicas y térmicas.
+
+Las redes jerárquicas pueden diseñarse para ser más isotrópicas, pero requieren un diseño cuidadoso.
+
+5.3 Fabricación
+Ambas estructuras requieren técnicas de fabricación aditiva avanzada (SLM, DLP, etc.) debido a su complejidad geométrica.
+
+6. Referencias
+Fluid flow and heat transfer characteristics of octet truss lattice geometry (Elsevier, 2018) - Simulaciones numéricas directas de celdas unitarias periódicas.
+
+Experimental investigation of heat transfer and fluid flow in octet-truss lattice geometry (International Journal of Thermal Sciences, 2019) - Mediciones experimentales en estructuras de AlSi10Mg fabricadas por adición.
+
+Evaluation of hydraulic and thermal performance in a novel fractal heat exchanger: a comparative study (Springer, 2025) - Evaluación numérica de un intercambiador de calor fractal en forma de Y basado en la Ley de Murray.
+
+Direct Visualization of Temperature Profiles in Fractal Microchannel Heat Sink for Optimizing Thermohydrodynamic Characteristics (Korea Science, 2024) - Visualización experimental de perfiles de temperatura en microcanales fractales.
+
+Effect of Channel Structure on the Heat Transfer Performance of Fractal Microchannels (Journal of BJUT, 2025) - Investigación de microcanales de tipo Y y Ψ-Y basados en la Ley de Murray.
+
+7. Declaración de Estado
+Este documento y los códigos asociados se proporcionan "TAL CUAL", sin garantía de ningún tipo, expresa o implícita.
+
+Ambas estructuras son objeto de investigación activa. Mientras que la estructura Octet-Truss cuenta con una validación experimental extensa, la Red Jerárquica de Murray se encuentra en una fase más temprana de validación, con resultados prometedores pero limitados principalmente a simulaciones numéricas.
+
+El usuario asume toda la responsabilidad por el uso de estos diseños en aplicaciones reales. Se recomienda encarecidamente realizar simulaciones específicas y pruebas experimentales antes de cualquier implementación industrial.
+
+📜 Licencia
+text
+Copyright (C) 2026
+
+Este programa es software libre: puede redistribuirlo y/o modificarlo
+bajo los términos de la Licencia Pública General Affero de GNU
+publicada por la Free Software Foundation, ya sea la versión 3 de la
+Licencia, o (a su elección) cualquier versión posterior.
+
+Este programa se distribuye con la esperanza de que sea útil,
+pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de
+COMERCIABILIDAD o IDONEIDAD PARA UN PROPÓSITO PARTICULAR.
+Véase la Licencia Pública General Affero de GNU para más detalles.
+
+Debería haber recibido una copia de la Licencia Pública General Affero de GNU
+junto con este programa. Si no es así, consulte <https://www.gnu.org/licenses/>.
