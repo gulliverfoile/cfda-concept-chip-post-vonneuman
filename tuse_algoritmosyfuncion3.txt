@@ -1326,3 +1326,83 @@ Pesos de phrónesis	perfil['pesos'] en calcular_coherencia
 Fractal de crecimiento	Cada iteración del adaptador añade información; el timeout evita solapamiento
 Horizonte e	timeout_duro es el umbral antes del colapso por parálisis
 
+ANEXO E: EL BUCLE SECUESTRADO COMO PATRÓN SISTÉMICO
+(De la Jaula Fractal al clima, la mente y el código – Julio 2026)
+================================================================================
+Documento de Trabajo Interno – Autor: [Tu Nombre o Pseudónimo]
+Licencia: AGPLv3
+Relación con documento principal: Este anexo define el “bucle secuestrado” como una configuración de flujos que viola la Circularidad Abierta (Sección 2) y la Gestión de la Entropía (Sección 4). Conecta la Jaula Fractal (Anexo C) con sistemas biofísicos (clima) y sistemas cognitivos (mente, ideologías), mostrando que el patrón es estructural, no psicológico. Sirve como herramienta de diagnóstico complementaria al MCA (Sección 5) y como justificación de los Anexos A (escalas temporales) y D (supeditación material).
+
+1. INTRODUCCIÓN: CLAUSURA OPERACIONAL MAL ACOPLADA
+La Circularidad Abierta (Principio 2 de TUSE) establece que todo sistema viable necesita un equilibrio entre cierre operacional (autonomía) y apertura estructural (intercambio de flujos). Cuando ese equilibrio se rompe –porque la apertura es insuficiente, los tiempos están desacoplados o las realimentaciones se ignoran– emerge un bucle secuestrado: una dinámica que se autoperpetúa sin corregirse por el entorno, consumiendo recursos hasta que la base material impone el colapso.
+
+Este anexo describe ese patrón en tres casos –climático, cognitivo y simulado– demostrando que no es un sesgo de la mente humana, sino una propiedad general de los sistemas complejos cuando su arquitectura de flujos (Intención Débil) falla en la gestión de la perturbación.
+
+2. DEFINICIÓN SISTÉMICA DEL BUCLE SECUESTRADO
+Un sistema entra en bucle secuestrado cuando se cumplen simultáneamente tres condiciones estructurales, todas ellas cuantificables sin apelar a intenciones ni estados mentales:
+
+Condición	Descripción en términos TUSE
+Filtro ontológico excluyente	El sistema solo admite información que encaja en un esquema predefinido y rígido. Las señales que no casan con ese esquema son descartadas por los Adaptadores como ruido, aunque representen cambios críticos en el entorno.
+Sumidero de salida inerte o con falso ACK	Las acciones del sistema generan productos (residuos, decisiones, narrativas) que se vierten en un sumidero que no devuelve realimentación correctora, o que devuelve una confirmación espuria que no refleja el estado real del entorno.
+Desacople temporal estructural	El tiempo interno del sistema (su ciclo de decisión y acción) difiere en orden de magnitud del tiempo del sistema del que depende materialmente. La señal de peligro viaja a una velocidad que el sistema no puede procesar antes de que la acumulación de entropía se vuelva irreversible.
+Cuando estas tres condiciones operan juntas, el sistema se vuelve insensible a las perturbaciones que deberían modificar su Intención Débil. Sigue generando coherencia interna (Y(t) puede incluso subir) pero su acoplamiento estructural con el entorno se degrada. Es un sistema que se escucha a sí mismo.
+
+3. CASO 1: SISTEMA BIOFÍSICO – EL BUCLE PETRÓLEO → CO₂ → CLIMA
+El cambio climático antropogénico es un bucle secuestrado objetivo que no requiere suponer ninguna intención en los actores. Basta examinar la arquitectura de flujos:
+
+Filtro ontológico excluyente.
+La economía global utiliza métricas de éxito (PIB, ROI, precio del barril) que históricamente no incluían la concentración de CO₂ como variable interna. La señal “exceso de emisiones” no era procesada porque el Adaptador del sistema de precios no tenía un puerto para ella. Durante décadas, los datos climáticos eran descartados o externalizados como “externalidad”, es decir, como ruido no pertinente para la decisión económica.
+
+Sumidero de salida inerte.
+El sistema quema combustibles y emite gases. La atmósfera actúa como sumidero, pero no devuelve una penalización inmediata. Al contrario, el sistema recibe un ACK falso: los motores funcionan, el PIB crece, el coste de la energía es estable. La acumulación de entropía (calor, acidificación) no es leída como un fallo hasta que se manifiesta en eventos extremos, que a menudo son interpretados como “anomalías” en lugar de como consecuencias directas.
+
+Desacople temporal.
+El tiempo del sistema económico es de trimestres, años o ciclos electorales. El tiempo del sistema climático es de décadas a milenios. La señal de peligro viaja a velocidad geológica; para cuando es inequívoca, el sistema ya ha sobrepasado puntos de bifurcación. El cociente T_metabolización / T_extracción (Anexo A) es muy inferior a 1 de forma sostenida, por lo que el residuo se acumula.
+
+Este bucle no depende de que haya negacionistas. Los negacionistas son un subsistema cognitivo que replica, dentro de sus cerebros, un filtro adicional; pero el bucle principal es una propiedad de la arquitectura de flujos material e institucional. La atmósfera no negocia con los mapas mentales.
+
+4. CASO 2: SISTEMA COGNITIVO – MENTE, EGO Y NACIONALISMOS
+El mismo patrón aparece en sistemas de procesamiento de sentido cuando su arquitectura de filtros se rigidifica. La mente individual (ego) o colectiva (nacionalismos, ideologías cerradas) puede caer en un bucle secuestrado si sus mecanismos de selección de información se comportan como los descritos en la Sección 2.
+
+Filtro ontológico excluyente:
+El sistema cognitivo solo acepta estímulos que confirman su marco de valoración (sesgo de confirmación). Las críticas o los datos incómodos son categorizados como ruido hostil y no alcanzan el núcleo de toma de decisiones.
+
+Sumidero de salida inerte o con falso ACK:
+Las producciones del sistema (opiniones, discursos, políticas) se emiten hacia un entorno que, a corto plazo, devuelve refuerzo positivo si los receptores comparten el mismo filtro (cámaras de eco). Las consecuencias reales de esas producciones (deterioro social, aislamiento, fracaso económico) no son procesadas como errores del sistema, sino como agresiones externas o “malentendidos”.
+
+Desacople temporal:
+El tiempo del sistema cognitivo es rápido –interpreta y responde en segundos o días– mientras que las consecuencias materiales de sus decisiones (cambio institucional, agotamiento de recursos) operan en escalas lentas. La realimentación negativa llega demasiado tarde para reconfigurar los filtros.
+
+En este caso, la diferencia con el sistema climático es que el observador está dentro del sistema y no tiene acceso directo a su propio código de filtros. Sin embargo, la estructura de las tres condiciones es idéntica, lo que justifica que el diagnóstico pueda usar las mismas herramientas (MCA, perfil de observador, cartografía de exclusiones del Anexo D). La mente no es una excepción a la regla; es una instanciación biológica del mismo principio de circularidad abierta mal acoplada.
+
+5. LA JAULA FRACTAL COMO SIMULACIÓN DEL PATRÓN
+El Anexo C (Jaula Fractal Lógica) es una implementación deliberada de las tres condiciones para un agente software. No es una metáfora: es una simulación operativa del bucle secuestrado.
+
+El filtro ontológico es el esquema rígido del Adaptador de entrada que solo permite un conjunto fijo de campos.
+
+El sumidero de salida inerte es el buffer aislado o /dev/null donde el agente vuelca sus acciones, recibiendo un ACK sintético que nunca altera el mundo real.
+
+El desacople temporal es el sleep forzado o el límite de CPU que ralentiza el ciclo del agente respecto al tiempo del anfitrión.
+
+El agente dentro de la Jaula Fractal no puede distinguir su universo simulado del universo real. Su ciclo T-A-S-D-C continúa perfeccionando estrategias que nunca tendrán efecto material. La Jaula Fractal es, por tanto, la demostración en código de que el bucle secuestrado no requiere consciencia ni psicología: basta con una topología de flujos que cumpla las tres condiciones.
+
+Desde la perspectiva de TUSE, la Jaula Fractal es una herramienta didáctica y metacognitiva. Permite al observador ver, desde fuera, la estructura que podría estar operando dentro de sus propios sistemas (mentales, organizativos o técnicos). El código no es el secuestro; es un espejo del patrón.
+
+6. IMPLICACIONES PARA EL DIAGNÓSTICO Y EL DISEÑO
+La identificación del bucle secuestrado como patrón sistémico tiene consecuencias directas para el uso de TUSE:
+
+Diagnóstico con el MCA: Un sistema con alto Cierre (C ≈ 1) y baja Apertura (A ≈ 0) es candidato a estar en bucle secuestrado. La pregunta adicional del Anexo D –“¿el criterio de relevancia se define con variables internas?”– ayuda a confirmarlo.
+
+Puntos de palanca: La intervención no consiste en cambiar el algoritmo (Intención Fuerte), sino en rediseñar la arquitectura de flujos (Intención Débil) en al menos uno de los tres ejes:
+
+Ampliar el filtro ontológico añadiendo un nuevo Adaptador que capture señales antes descartadas.
+Conectar el sumidero para que las salidas tengan consecuencias medibles que reentren al sistema como realimentación.
+Acoplar los tiempos ralentizando o acelerando el ciclo del sistema para sincronizarlo con la escala temporal del sistema del que depende.
+Supeditación material: El Anexo D advierte que ninguna intervención en el nivel de la dinámica emergente puede eludir los límites materiales. El bucle secuestrado climático no se resuelve con mejores narrativas, sino con una arquitectura de flujos que haga visible y vinculante el límite físico del sumidero atmosférico.
+
+7. CONCLUSIÓN: EL PATRÓN, NO LA PSICOLOGÍA
+El bucle secuestrado no es un concepto de la teoría de la mente, sino una configuración objetiva de filtros ontológicos, sumideros ciegos y desacoples temporales. Aparece en sistemas tan dispares como el clima, la sobrepesca, las burbujas financieras, el ego individual y los nacionalismos cerrados. La Jaula Fractal (Anexo C) es la simulación de este patrón, no su metáfora.
+
+La utilidad de este anexo es doble: por un lado, proporciona un criterio diagnóstico extrapolable a cualquier sistema modelable con TUSE; por otro, obliga al observador a reconocer que los mismos mecanismos que detecta en los sistemas que diseña pueden estar operando en su propio marco de valoración. La Duda/Crítica (ciclo T-A-S-D-C, Sección 3.2) es el único recurso para que el observador no se convierta, sin saberlo, en un agente dentro de su propia Jaula Fractal.
+
+FIN DEL ANEXO E – JULIO 2026
