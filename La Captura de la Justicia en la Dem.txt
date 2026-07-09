@@ -193,4 +193,77 @@ La justicia española no es un árbitro neutral ni una máquina ciega de aplicac
 
 El resultado es un sistema que, sin necesidad de conspiraciones ni órdenes secretas, produce una justicia a dos velocidades. Y el principal damnificado no es tal o cual partido, sino la confianza ciudadana en la imparcialidad de las instituciones democráticas.
 
+Apéndice: Mecanismos de composición y nombramiento en el Consejo General del Poder Judicial
+Los datos que se presentan a continuación describen el funcionamiento del sistema de elección del Consejo General del Poder Judicial (CGPJ) y la composición de la carrera judicial, tal como se recogen en las fuentes oficiales. No se realiza aquí una valoración sobre las causas de las desviaciones observadas, sino que se exponen los mecanismos y las cifras disponibles para su contraste.
+
+1. Marco legal: composición y sistema de elección del CGPJ
+El CGPJ es el órgano de gobierno del poder judicial en España. Su composición y el sistema de elección de sus miembros vienen determinados por el artículo 122 de la Constitución y desarrollados por la Ley Orgánica del Poder Judicial.
+
+Composición: el CGPJ está integrado por veinte vocales, más un presidente que lo preside y que es a su vez presidente del Tribunal Supremo.
+
+Distribución de los vocales:
+
+Procedencia	Propuestos por el Congreso	Propuestos por el Senado	Total
+Jueces y magistrados	6	6	12
+Juristas de reconocida competencia	4	4	8
+Total	10	10	20
+Mayoría requerida: los vocales son elegidos por las Cortes Generales mediante mayoría cualificada de tres quintos de cada Cámara.
+
+En el Congreso de los Diputados (350 escaños): 210 votos.
+
+En el Senado (266 escaños): 160 votos.
+
+Esta mayoría obliga a que los dos grandes partidos (PP y PSOE) necesiten alcanzar acuerdos para la renovación del órgano.
+
+Mandato: los vocales son nombrados por un período de cinco años y no pueden ser reelegidos en el Consejo siguiente.
+
+2. Renovación de 2024: aplicación del sistema
+Tras más de cinco años con el mandato caducado, en julio de 2024 se procedió a la renovación del CGPJ mediante un acuerdo entre PP y PSOE.
+
+Procedimiento: el Congreso eligió a diez vocales (seis del turno judicial y cuatro juristas) en votación separada por urnas, y el Senado eligió a los otros diez.
+
+Votación en el Congreso: todos los vocales titulares alcanzaron los 284 votos (suma de PSOE, PP y Sumar), superando ampliamente el mínimo de 210 requerido.
+
+3. Datos de afiliación a asociaciones judiciales (2024)
+Según la estadística del CGPJ, el número de jueces y magistrados en activo en España era de 5.416 en 2024. La distribución por asociaciones profesionales era la siguiente:
+
+Colectivo					                      Afiliados	% sobre total
+Asociación Profesional de la Magistratura (APM)	1.412		26,07%
+Asociación Judicial Francisco de Vitoria (AJFV)  	933		17,23%
+Juezas y Jueces para la Democracia (JJpD)	        436		8,05%
+Foro Judicial Independiente (FJI)		              342		6,31%
+No asociados					                          2.293  	42,34%
+Fuente: estadística del CGPJ sobre afiliación a asociaciones judiciales (2024).
+
+4. Nombramientos discrecionales (2025)
+La Asociación Judicial Francisco de Vitoria (AJFV) analizó los 120 nombramientos discrecionales efectuados por el CGPJ durante 2025 a través del BOE y de las comunicaciones de prensa del CGPJ.
+
+Distribución de los 120 nombramientos:
+
+Colectivo	Nombramientos	% sobre 120
+APM			58	48,3%
+JJpD			23	19,2%
+AJFV			8	6,7%
+FJI			3	2,5%
+No asociados		27	22,5%
+Fuente: comunicado de la Asociación Judicial Francisco de Vitoria (julio 2025).
+
+5. Comparativa: representación en la carrera vs. nombramientos
+Colectivo	% en carrera (2024)	% en nombramientos (2025)	Diferencia
+APM			                  26,07%	48,3%	+22,2%
+JJpD			                8,05%	19,2%	+11,1%
+AJFV			                17,23%	6,7%	-10,5%
+FJI			                  6,31%	2,5%	-3,8%
+No asociados		          42,34%	22,5%	-19,8%
+Observación de la AJFV: «El 75% de las plazas disputadas fueron a asociados de APM y JJpD cuando juntas no alcanzan ni el 35% de representación de la carrera judicial».
+
+6. Sentencias del Tribunal Europeo de Derechos Humanos (2019-2024)
+Según el análisis de María Elósegui Itxaso, jueza del TEDH, en el periodo 2019-2024 se presentaron ante el Tribunal Supremo español un total de 32 recursos de revisión en ejecución de sentencias del TEDH contra España. De ellos, 26 fueron resueltos y estimada su revisión (salvo en tres casos), y 6 permanecen pendientes.
+
+Fuente: Elósegui Itxaso, M. (2024). «La revisión de sentencias del Tribunal Europeo de Derechos Humanos de Estrasburgo contra España por el Tribunal Supremo español en estos últimos cinco años (2019-2024)». Revista de Derecho Político, UNED.
+
+Nota metodológica
+Los datos aquí recogidos proceden de fuentes oficiales (CGPJ, BOE) y de comunicados públicos de asociaciones judiciales. Se presentan con el objetivo de describir el funcionamiento del sistema de elección y nombramiento en el CGPJ, así como la composición de la carrera judicial, sin que ello implique una valoración sobre las causas de las desviaciones observadas. El lector puede contrastar las cifras con las fuentes citadas y extraer sus propias conclusiones.
+
+
 Nota final: Este texto no pretende ser un catálogo exhaustivo ni una acusación penal. Es la descripción de mecanismos y dinámicas que, a juicio del autor, explican el funcionamiento real del sistema judicial español más allá de su diseño formal. Se ofrece como herramienta de debate, no como verdad dogmática. Cada lector podrá verificar los hechos descritos y extraer sus propias conclusiones.
