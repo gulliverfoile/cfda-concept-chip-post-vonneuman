@@ -267,3 +267,38 @@ Los datos aquí recogidos proceden de fuentes oficiales (CGPJ, BOE) y de comunic
 
 
 Nota final: Este texto no pretende ser un catálogo exhaustivo ni una acusación penal. Es la descripción de mecanismos y dinámicas que, a juicio del autor, explican el funcionamiento real del sistema judicial español más allá de su diseño formal. Se ofrece como herramienta de debate, no como verdad dogmática. Cada lector podrá verificar los hechos descritos y extraer sus propias conclusiones.
+
+Apéndice adicional: Las Capas Ocultas de la Captura
+
+1. El Circuito Cerrado de los Méritos
+
+El texto ha descrito el reparto de nombramientos discrecionales. Pero queda una pregunta previa: ¿quién determina qué jueces tienen los "méritos" para ser nombrados?
+
+Formalmente, el baremo lo fija el CGPJ. En la práctica, el sistema opera como un circuito cerrado en tres niveles:
+
+La formación que puntúa: Las asociaciones judiciales organizan seminarios, congresos y cursos que otorgan créditos necesarios para el ascenso. Un juez no asociado tiene mucho más difícil acceder a esa formación especializada.
+
+Los informes de idoneidad: Las Salas de Gobierno de los Tribunales Superiores de Justicia, compuestas mayoritariamente por jueces afiliados a las asociaciones dominantes, emiten informes sobre los candidatos. Esos informes orientan el voto del CGPJ.
+
+La definición del perfil: Las convocatorias de plazas suelen incluir "méritos de especialización" que coinciden con los perfiles que las propias asociaciones han cultivado entre sus afiliados. El baremo se adapta a los elegidos, no al revés.
+
+El resultado es una profecía autocumplida: las asociaciones que controlan el CGPJ definen qué se valora, sus afiliados son quienes cumplen esos requisitos, y los jueces sin padrino asociativo quedan excluidos de facto, no por falta de capacidad, sino porque el circuito de acreditación está cerrado para ellos. Como señaló un analista, "los méritos los conceden los que eligen".
+
+2. El Espejismo de la Cuota Progresista
+
+El reparto de vocales en el CGPJ y los datos de nombramientos muestran una aparente sobrerrepresentación de JpD (8% de la carrera, 19% de los nombramientos en 2025). Sin embargo, esta lectura es engañosa.
+
+La APM cuenta con 1.412 afiliados (26%). Sumados a AJFV (17%) y FJI (6%), el bloque conservador representa al 49% de la carrera. Controla, por pura inercia demográfica, las presidencias de Audiencias Provinciales, los juzgados decanos y las Salas de lo Contencioso-Administrativo de los TSJ. No necesita que el CGPJ le regale nada: su mayoría natural le garantiza el control de las subcúpulas.
+
+JpD, con solo 436 afiliados (8%), es una minoría permanente en la base. Su presencia en el CGPJ es un espejismo de poder negociado en el Parlamento, no un reflejo de fuerza real. Fuera de la cúpula madrileña, su capacidad de influencia es mínima. La izquierda judicial no gana nunca; simplemente es tolerada en la cima para dar una pátina de pluralismo a un sistema estructuralmente asimétrico.
+
+3. La Capilaridad: El Verdadero Poder está en las Subcúpulas
+
+El análisis suele centrarse en el CGPJ y el Tribunal Supremo. Pero la captura opera de forma más eficaz en escalones inferiores menos visibles.
+
+Las presidencias de los Tribunales Superiores de Justicia, las Audiencias Provinciales y los juzgados decanos son puestos que controlan la distribución de casos, los permisos, la formación de jueces jóvenes y, crucialmente, la doctrina local. Una mayoría conservadora en una Sala de lo Contencioso-Administrativo de un TSJ puede paralizar políticas progresistas de vivienda o medio ambiente sin que el Supremo intervenga.
+
+El dato de 2025 es elocuente: de los 58 nombramientos de la APM, una parte significativa correspondió a estos puestos intermedios. No se necesita controlar toda la carrera; basta con controlar los puestos de influencia desde los que se ejerce fuerza sobre el resto del sistema. La captura no es solo vertical (hacia arriba), sino horizontal y capilar.
+
+
+
