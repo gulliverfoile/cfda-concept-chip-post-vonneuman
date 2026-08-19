@@ -1,0 +1,2201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrenamiento Articular – Badges y Progresión</title>
+    <style>
+        :root {
+            --azul: #1a5276;
+            --azul-oscuro: #154360;
+            --gris: #f0f0f0;
+            --fondo: #f8f9fa;
+            --texto: #2c3e50;
+            --exito: #27ae60;
+            --peligro: #e74c3c;
+            --amarillo: #f39c12;
+            --sombra: 0 2px 8px rgba(0,0,0,0.08);
+            --radio: 12px;
+            --transicion: 0.3s ease;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--fondo);
+            color: var(--texto);
+            line-height: 1.5;
+            padding-top: 70px;
+            transition: background var(--transicion), color var(--transicion);
+        }
+        body.modo-oscuro {
+            --fondo: #1e1e1e;
+            --texto: #e0e0e0;
+            --gris: #2a2a2a;
+            --sombra: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--azul) 0%, #2c3e50 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        header h1 { font-size: 1.5em; margin: 0; }
+        .btn-config {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background var(--transicion);
+        }
+        .btn-config:hover { background: rgba(255,255,255,0.3); }
+
+        .tab-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            max-width: 1100px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 8px 20px;
+            font-size: 1.1em;
+            cursor: pointer;
+            color: var(--texto);
+            border-radius: 20px 20px 0 0;
+            transition: background var(--transicion), color var(--transicion);
+        }
+        .tab-btn.activo {
+            background: var(--azul);
+            color: white;
+            font-weight: bold;
+        }
+        .vista-oculta { display: none; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.activo { display: flex; }
+        .modal-panel {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            position: relative;
+            transition: background var(--transicion), color var(--transicion);
+        }
+        body.modo-oscuro .modal-panel { background: #2a2a2a; color: #e0e0e0; }
+        .modal-panel h2 { margin-top: 0; color: var(--azul); }
+        .btn-cerrar {
+            position: absolute;
+            top: 10px; right: 15px;
+            background: none; border: none; font-size: 2em;
+            cursor: pointer; color: #777;
+        }
+        .btn-cerrar:hover { color: #000; }
+
+        .contenido-principal { max-width: 1100px; margin: 0 auto; padding: 20px; }
+        .seccion { margin-bottom: 30px; }
+
+        .filtros-categorias { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .filtro-btn {
+            background: white; border: 2px solid #ddd;
+            border-radius: 20px; padding: 6px 15px;
+            cursor: pointer; font-size: 0.9em;
+            transition: all var(--transicion);
+        }
+        .filtro-btn.activo { background: var(--azul); color: white; border-color: var(--azul); }
+
+        .selector-filtros {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            background: white;
+            padding: 12px;
+            border-radius: var(--radio);
+            box-shadow: var(--sombra);
+        }
+        .selector-filtros label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.9em;
+            gap: 5px;
+        }
+        .selector-filtros select {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background: white;
+            color: var(--texto);
+        }
+
+        .btn-accion {
+            background: var(--azul);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .btn-accion:hover { background: var(--azul-oscuro); }
+        .btn-excluir {
+            background: var(--peligro);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        .btn-priorizar {
+            background: var(--exito);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        .btn-excluir.activo, .btn-priorizar.activo { opacity: 0.6; }
+
+        .tarjeta-ejercicio {
+            background: white; border-radius: var(--radio);
+            padding: 18px; margin-bottom: 20px;
+            box-shadow: var(--sombra); border-left: 5px solid var(--azul);
+            transition: background var(--transicion), box-shadow var(--transicion);
+        }
+        body.modo-oscuro .tarjeta-ejercicio { background: #2a2a2a; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .tarjeta-ejercicio h3 { color: var(--azul); font-size: 1.3em; margin-bottom: 8px; }
+        .badges { margin-bottom: 8px; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-right: 4px;
+            background: #e8f0fe;
+            color: #1a5276;
+            white-space: nowrap;
+        }
+        .badge-zona { background: #d5f4e6; color: #1e8449; }
+        .badge-categoria { background: #fdebd0; color: #ca6f1e; }
+        .badge-equipo { background: #fadbd8; color: #c0392b; }
+        .badge-dificultad { background: #fef9e7; color: #7d6608; }
+
+        .diagrama {
+            text-align: center; margin: 15px 0;
+            background: #fafafa; border-radius: 8px; padding: 10px;
+            transition: background var(--transicion);
+            overflow: hidden;
+        }
+        body.modo-oscuro .diagrama { background: #1e1e1e; }
+        .diagrama svg, .diagrama img { max-width: 100%; height: auto; }
+
+        .niveles { display: flex; flex-direction: column; gap: 8px; margin: 15px 0; }
+        .nivel {
+            background: var(--gris); border-left: 4px solid var(--azul);
+            padding: 10px; border-radius: 5px;
+        }
+        .nivel strong { color: var(--azul); }
+        .fibras {
+            display: inline-block; padding: 2px 10px; border-radius: 12px;
+            font-size: 0.8em; font-weight: bold; margin-left: 5px;
+        }
+        .fibras-lentas { background: #d5f4e6; color: #1e8449; }
+        .fibras-rapidas { background: #fadbd8; color: #c0392b; }
+        .fibras-mixtas { background: #fdebd0; color: #ca6f1e; }
+        .nota {
+            background: #fff3cd; border-radius: 5px; padding: 10px;
+            font-size: 0.9em; margin-top: 10px; border-left: 3px solid var(--amarillo);
+        }
+
+        table {
+            width: 100%; border-collapse: collapse;
+            background: white; border-radius: 10px; overflow: hidden;
+            margin-top: 20px; box-shadow: var(--sombra);
+        }
+        th, td {
+            padding: 12px; text-align: left;
+            border-bottom: 1px solid #ddd; vertical-align: top;
+        }
+        th { background: var(--azul); color: white; }
+
+        .contador-ejercicios { margin-bottom: 10px; font-size: 0.9em; color: #666; }
+        .btn-reset {
+            background: var(--peligro); color: white; border: none;
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; margin-top: 10px;
+        }
+        .btn-imprimir {
+            background: var(--exito); color: white; border: none;
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; margin-top: 10px;
+        }
+        .btn-regenerar {
+            background: var(--azul); color: white; border: none;
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; margin-top: 10px;
+            margin-right: 10px;
+        }
+        .btn-completar {
+            background: var(--exito); color: white; border: none;
+            padding: 4px 10px; border-radius: 12px; cursor: pointer;
+            font-size: 0.8em; margin-top: 5px;
+        }
+        .btn-youtube {
+            background: #c0392b; color: white; border: none;
+            padding: 4px 10px; border-radius: 12px; cursor: pointer;
+            font-size: 0.8em; margin-top: 5px;
+            text-decoration: none; display: inline-block;
+        }
+        .btn-youtube:hover { background: #e74c3c; }
+        .completado-indicador { color: var(--exito); font-weight: bold; }
+
+        .nombre-ejercicio {
+            cursor: pointer;
+            color: var(--azul);
+            text-decoration: underline;
+        }
+        .nombre-ejercicio:hover { color: #2c3e50; }
+
+        .progreso-indicador {
+            font-size: 0.8em;
+            color: #666;
+            margin-left: 5px;
+        }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.2em; }
+            .modal-panel { width: 95%; padding: 15px; }
+            .tarjeta-ejercicio { padding: 12px; }
+            table { font-size: 0.85em; }
+            .tab-btn { font-size: 0.9em; padding: 6px 12px; }
+            .selector-filtros { flex-direction: column; }
+        }
+        @media print {
+            header, .btn-config, .modal-overlay, .filtros-categorias,
+            .btn-imprimir, .btn-reset, .btn-regenerar, .btn-completar, .btn-youtube,
+            .tab-bar, .selector-filtros, .btn-accion, .btn-excluir, .btn-priorizar,
+            .badges, .badge, .progreso-indicador { display: none; }
+            body { padding-top: 0; background: white; color: black; }
+            .contenido-principal { max-width: 100%; padding: 0; }
+            .tarjeta-ejercicio { border-left: none; box-shadow: none; break-inside: avoid; }
+            table { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🏋️‍♂️ Entrenamiento Articular</h1>
+    <button class="btn-config" id="btnAbrirConfig">⚙️ Configuración</button>
+</header>
+
+<div class="tab-bar">
+    <button class="tab-btn activo" data-vista="explorar">💪 Explorar</button>
+    <button class="tab-btn" data-vista="plan">📋 Mi Plan</button>
+</div>
+
+<div class="contenido-principal">
+    <div id="vistaExplorar" class="vista-activa">
+        <h2>💪 Explorar ejercicios</h2>
+        <div class="selector-filtros" id="selectorFiltros">
+            <label>Zona:
+                <select id="selectZona">
+                    <option value="todas">Todas las zonas</option>
+                </select>
+            </label>
+            <label>Músculo:
+                <select id="selectMusculo">
+                    <option value="todos">Todos los músculos</option>
+                </select>
+            </label>
+        </div>
+        <div class="filtros-categorias" id="filtrosCategorias"></div>
+        <button id="btnGenerarPlanFocalizado" class="btn-accion">🎯 Generar plan con estos filtros</button>
+        <div class="contador-ejercicios" id="contadorEjercicios">Mostrando 0 ejercicios</div>
+        <div id="listadoEjercicios"></div>
+    </div>
+
+    <div id="vistaPlan" class="vista-oculta">
+        <h2>📋 Tu plan personalizado</h2>
+        <div id="infoPlan"></div>
+        <button id="btnImprimirPlan" class="btn-imprimir">🖨️ Imprimir plan</button>
+        <button id="btnRegenerarPlan" class="btn-regenerar">🔄 Regenerar plan</button>
+        <button id="btnVolverPlanGeneral" class="btn-accion">🧩 Volver al plan general</button>
+        <div id="resultado"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-panel">
+        <button class="btn-cerrar" id="btnCerrarConfig">&times;</button>
+
+        <h2>📖 Tutorial rápido</h2>
+        <details>
+            <summary>🧬 Fibras musculares y cómo entrenarlas</summary>
+            <p>El cuerpo tiene tres tipos principales de fibras:</p>
+            <ul>
+                <li><strong>Tipo I (lentas):</strong> resistentes, se activan con tensiones largas y cargas bajas/medias. Ideales para salud articular y postura.</li>
+                <li><strong>Tipo IIa (intermedias):</strong> fuerza y resistencia, se estimulan con cargas moderadas y tempo controlado.</li>
+                <li><strong>Tipo IIx (rápidas):</strong> explosivas, se fatigan rápido. Se trabajan con cargas altas o movimientos balísticos (no recomendados con prótesis).</li>
+            </ul>
+            <p>En este programa usamos <strong>isométricos largos</strong> para fibras tipo I y <strong>tensiones altas o pausas</strong> para tipo IIa.</p>
+        </details>
+        <details>
+            <summary>🦴 Tendones y tejido conectivo</summary>
+            <p>Los tendones se adaptan a la <strong>tensión mecánica mantenida</strong>. Los isométricos de 30-45 s y los excéntricos lentos (bajar en 3-5 s) son los mejores estímulos sin riesgo.</p>
+        </details>
+        <details>
+            <summary>⚠️ Seguridad con prótesis de rodilla y SLAP</summary>
+            <p>- <strong>Rodilla:</strong> evitar impacto, flexión profunda forzada y torsión. Usar ángulos de 0-60°.<br>
+            - <strong>Hombro:</strong> evitar abducción + rotación externa, movimientos balísticos y cargas sobre la cabeza. Mantener codos pegados al cuerpo en empujes y tracciones.</p>
+            <p>El dolor es la señal de parada. Progresa lentamente.</p>
+        </details>
+
+        <h2 style="margin-top:20px;">🧩 Personaliza tu plan</h2>
+        <form id="formularioConfig">
+            <label for="objetivo">🎯 Objetivo principal:</label>
+            <select id="objetivo">
+                <option value="salud">Salud articular y movilidad</option>
+                <option value="fuerza">Fuerza funcional suave</option>
+                <option value="mixto">Equilibrio entre ambos</option>
+            </select>
+
+            <label style="margin-top:10px;">🩺 Limitaciones (marca todas las que apliquen):</label>
+            <div>
+                <label><input type="checkbox" id="limitRodilla" checked> Prótesis de rodilla</label>
+                <label><input type="checkbox" id="limitHombro" checked> Hombro operado (SLAP)</label>
+            </div>
+
+            <label style="margin-top:10px;">🏋️ Equipo disponible:</label>
+            <div>
+                <label><input type="checkbox" id="eqMancuernas" checked> Mancuernas ligeras</label>
+                <label><input type="checkbox" id="eqBanda" checked> Banda elástica</label>
+                <label><input type="checkbox" id="eqParalelas"> Barras para fondos</label>
+                <label><input type="checkbox" id="eqSuelo" checked> Suelo / pared</label>
+                <label><input type="checkbox" id="eqSilla" checked> Silla o banco</label>
+                <label><input type="checkbox" id="eqPelota" checked> Pelota blanda</label>
+                <label><input type="checkbox" id="eqToalla"> Toalla</label>
+            </div>
+
+            <label for="dias" style="margin-top:10px;">📅 Días por semana:</label>
+            <select id="dias">
+                <option value="2">2 días</option>
+                <option value="3" selected>3 días</option>
+                <option value="4">4 días</option>
+            </select>
+
+            <label for="numEjercicios" style="margin-top:10px;">🔢 Número de ejercicios por día:</label>
+            <select id="numEjercicios">
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5" selected>5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+            </select>
+        </form>
+
+        <h2 style="margin-top:20px;">🔍 Filtrar ejercicios</h2>
+        <div class="filtros-categorias" id="filtrosCategoriasModal"></div>
+
+        <button id="btnAplicarCambios" style="margin-top:20px; width:100%;">✅ Aplicar cambios</button>
+        <button id="btnResetConfig" class="btn-reset">🔄 Restablecer valores por defecto</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalDetalleEjercicio">
+    <div class="modal-panel">
+        <button class="btn-cerrar" id="btnCerrarDetalle">&times;</button>
+        <div id="detalleContenido"></div>
+    </div>
+</div>
+
+<!-- Datos de ejercicios como variable JavaScript (evita problemas de parseo JSON) -->
+<script>
+const datosEjercicios = [
+  {
+    "id": "zhan",
+    "nombre": "Abrazar el Árbol (Zhan Zhuang)",
+    "categoria": "isometrico",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["cuádriceps","glúteo medio"],
+    "musculos_secundarios": ["core"],
+    "descripcion": "De pie, rodillas ligeramente flexionadas (10-20°), brazos como abrazando un globo. Mantén la respiración fluida y relaja los hombros.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 1-3 min","fibras":"Tipo I","rpe":4,"tut":"1-3 min"},
+      {"nivel":2,"detalle":"Añadir tensión imaginaria de separar manos (30%)","fibras":"Tipo I/IIa","rpe":6,"tut":"30-60 s"},
+      {"nivel":3,"detalle":"Con mancuernas ligeras (1-3 kg) colgando","fibras":"Tipo I/IIa","rpe":7,"tut":"20-30 s"}
+    ],
+    "nota":"Codos bajos para no pinzar el SLAP."
+  },
+  {
+    "id": "ma",
+    "nombre": "Jinete Alto (Ma Bu adaptado)",
+    "categoria": "isometrico",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["cuádriceps","glúteo medio"],
+    "musculos_secundarios": ["isquiotibiales"],
+    "descripcion": "Piernas anchas, rodillas flexionadas 30-45°, brazos en cruz o relajados. Empuja el suelo para activar glúteos.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 30-45 s","fibras":"Tipo I","rpe":4,"tut":"30-45 s"},
+      {"nivel":2,"detalle":"Elevar talones manteniendo postura","fibras":"Tipo I/IIa","rpe":6,"tut":"20-30 s"},
+      {"nivel":3,"detalle":"Brazos en cruz con tensión de puños","fibras":"Tipo IIa","rpe":8,"tut":"10-15 s"}
+    ],
+    "nota":"No bajar de 45° de flexión de rodilla."
+  },
+  {
+    "id": "flecha",
+    "nombre": "La Flecha (Empuje de palmas)",
+    "categoria": "isometrico",
+    "zonas": ["hombro"],
+    "musculos_principales": ["pectoral","serrato anterior"],
+    "musculos_secundarios": ["manguito rotador"],
+    "descripcion": "Empujar palmas entre sí delante del pecho, codos bajos. Exhala al empujar y mantén la tensión.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Empuje 50% 20-30 s","fibras":"Tipo I/IIa","rpe":5,"tut":"20-30 s"},
+      {"nivel":2,"detalle":"Contra marco en 3 ángulos 15 s","fibras":"Tipo IIa","rpe":7,"tut":"15 s por ángulo"},
+      {"nivel":3,"detalle":"Tensar banda como arco 15-20 s","fibras":"Tipo IIa","rpe":8,"tut":"15-20 s"}
+    ],
+    "nota":"No subir codos por encima del hombro."
+  },
+  {
+    "id": "planchaInv",
+    "nombre": "Plancha Sueca Invertida (Puente)",
+    "categoria": "cadera",
+    "zonas": ["cadera","rodilla"],
+    "musculos_principales": ["glúteo mayor","isquiotibiales"],
+    "musculos_secundarios": ["core"],
+    "descripcion": "Boca arriba, rodillas flexionadas, elevar cadera en línea. Aprieta glúteos arriba y no arquees lumbar.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 30-60 s","fibras":"Tipo I","rpe":4,"tut":"30-60 s"},
+      {"nivel":2,"detalle":"Elevar una pierna 15-20 s","fibras":"Tipo I/IIa","rpe":6,"tut":"15-20 s por lado"},
+      {"nivel":3,"detalle":"Con banda alrededor rodillas empujar","fibras":"Tipo I/IIa","rpe":7,"tut":"20-30 s"}
+    ],
+    "nota":"No arquear lumbar."
+  },
+  {
+    "id": "estocada",
+    "nombre": "Estocada Sueca Estática",
+    "categoria": "pierna",
+    "zonas": ["rodilla"],
+    "musculos_principales": ["cuádriceps","glúteo medio"],
+    "musculos_secundarios": ["VMO"],
+    "descripcion": "Zancada corta, rodilla delantera no pasa punta del pie, mantener. Rodilla alineada con segundo dedo.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 20-30 s por lado","fibras":"Tipo I","rpe":4,"tut":"20-30 s por lado"},
+      {"nivel":2,"detalle":"Rodilla trasera a 5 cm + banda lateral","fibras":"Tipo I/IIa","rpe":6,"tut":"15-20 s"},
+      {"nivel":3,"detalle":"Pulsos milimétricos 10-15","fibras":"Tipo IIa","rpe":8,"tut":"10-15 repeticiones"}
+    ],
+    "nota":"Rodilla alineada con segundo dedo."
+  },
+  {
+    "id": "nadador",
+    "nombre": "Nadador Sueco (Postura W)",
+    "categoria": "espalda",
+    "zonas": ["hombro","columna"],
+    "musculos_principales": ["trapecio","romboide"],
+    "musculos_secundarios": ["manguito rotador"],
+    "descripcion": "Boca abajo, brazos en W, pecho despegado. Aprieta escápulas sin levantar brazos por encima de horizontal.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 15-30 s","fibras":"Tipo I","rpe":4,"tut":"15-30 s"},
+      {"nivel":2,"detalle":"Apretar escápulas","fibras":"Tipo I/IIa","rpe":6,"tut":"15-20 s"},
+      {"nivel":3,"detalle":"Elevar brazo/pierna contrarios","fibras":"Tipo IIa","rpe":8,"tut":"10-15 repeticiones"}
+    ],
+    "nota":"No levantar brazos por encima de horizontal."
+  },
+  {
+    "id": "sentadillaPared",
+    "nombre": "Sentadilla Isométrica en Pared",
+    "categoria": "pierna",
+    "zonas": ["rodilla"],
+    "musculos_principales": ["cuádriceps","glúteo mayor"],
+    "musculos_secundarios": ["VMO"],
+    "descripcion": "Espalda en pared, rodillas 30-45°, mantener. Empuja el suelo para activar glúteos y respira profundo.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 20-30 s","fibras":"Tipo I","rpe":4,"tut":"20-30 s"},
+      {"nivel":2,"detalle":"Elevar talones alternos 30-40 s","fibras":"Tipo I/IIa","rpe":6,"tut":"30-40 s"},
+      {"nivel":3,"detalle":"Con mancuerna ligera 5-10 s máx.","fibras":"Tipo IIa","rpe":8,"tut":"5-10 s"}
+    ],
+    "nota":"No bajar de 60°."
+  },
+  {
+    "id": "puente",
+    "nombre": "Puente de Glúteos",
+    "categoria": "cadera",
+    "zonas": ["cadera","rodilla"],
+    "musculos_principales": ["glúteo mayor","isquiotibiales"],
+    "musculos_secundarios": ["core"],
+    "descripcion": "Boca arriba, elevar cadera. Aprieta glúteo arriba y no arquees lumbar.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 30-45 s","fibras":"Tipo I","rpe":4,"tut":"30-45 s"},
+      {"nivel":2,"detalle":"Subir/bajar lento 12-15 rep","fibras":"Tipo I/IIa","rpe":6,"tut":"2-3 s bajada, 1 s subida"},
+      {"nivel":3,"detalle":"A una pierna 20-30 s","fibras":"Tipo I/IIa","rpe":7,"tut":"20-30 s por lado"}
+    ],
+    "nota":"Apretar glúteo arriba."
+  },
+  {
+    "id": "flexiones",
+    "nombre": "Flexiones Inclinadas (codos pegados)",
+    "categoria": "empuje",
+    "zonas": ["hombro"],
+    "musculos_principales": ["pectoral","tríceps"],
+    "musculos_secundarios": ["serrato anterior"],
+    "descripcion": "Manos en banco, codos pegados al cuerpo. Baja en 3 segundos, exhala al subir.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo","silla"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x8-12 bajada 3 s","fibras":"Tipo I/IIa","rpe":5,"tut":"3 s bajada, 1 s subida"},
+      {"nivel":2,"detalle":"En suelo 3x6-10","fibras":"Tipo IIa","rpe":7,"tut":"2 s bajada, 1 s subida"},
+      {"nivel":3,"detalle":"Pausa abajo 3 s","fibras":"Tipo IIa","rpe":8,"tut":"3 s pausa + 2 s subida"}
+    ],
+    "nota":"Codos apuntando atrás, no abrir."
+  },
+  {
+    "id": "remo",
+    "nombre": "Remo con Banda",
+    "categoria": "traccion",
+    "zonas": ["hombro","espalda"],
+    "musculos_principales": ["dorsal","romboide"],
+    "musculos_secundarios": ["bíceps"],
+    "descripcion": "Tirar de banda hacia abdomen, codos pegados. Exhala al tirar y evita extender el brazo completamente.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["banda"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x12-15 pausa 2 s","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s pausa"},
+      {"nivel":2,"detalle":"Remo mancuerna 3x10-12","fibras":"Tipo I/IIa","rpe":6,"tut":"2 s bajada"},
+      {"nivel":3,"detalle":"Isométrico máx. 10-15 s","fibras":"Tipo IIa/IIx","rpe":9,"tut":"10-15 s"}
+    ],
+    "nota":"No extender brazo completamente."
+  },
+  {
+    "id": "rotacion",
+    "nombre": "Rotación Externa con Banda",
+    "categoria": "hombro",
+    "zonas": ["hombro"],
+    "musculos_principales": ["manguito rotador"],
+    "musculos_secundarios": ["deltoides posterior"],
+    "descripcion": "Codo 90° pegado, rotar hacia fuera. Exhala al rotar y mantén codo pegado al cuerpo.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["banda"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x15 vuelta lenta 5 s","fibras":"Tipo I","rpe":4,"tut":"5 s rotación"},
+      {"nivel":2,"detalle":"Pausa 3 s en rotación","fibras":"Tipo I/IIa","rpe":6,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"En 90° abducción si tolera","fibras":"Tipo I/IIa","rpe":7,"tut":"10-15 repeticiones"}
+    ],
+    "nota":"Codo pegado al cuerpo en niveles 1-2."
+  },
+  {
+    "id": "planchaFront",
+    "nombre": "Plancha Frontal",
+    "categoria": "core",
+    "zonas": ["core"],
+    "musculos_principales": ["recto abdominal","transverso"],
+    "musculos_secundarios": ["glúteo mayor"],
+    "descripcion": "Antebrazos apoyados, cuerpo recto. Aprieta abdomen y glúteos, no hundas cadera.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 20-30 s","fibras":"Tipo I","rpe":4,"tut":"20-30 s"},
+      {"nivel":2,"detalle":"Elevar pierna 15 s","fibras":"Tipo I/IIa","rpe":6,"tut":"15 s por lado"},
+      {"nivel":3,"detalle":"Toque hombro alterno","fibras":"Tipo IIa","rpe":8,"tut":"10 toques por lado"}
+    ],
+    "nota":"No hundir cadera."
+  },
+  {
+    "id": "planchaLat",
+    "nombre": "Plancha Lateral",
+    "categoria": "core",
+    "zonas": ["core"],
+    "musculos_principales": ["oblicuos","glúteo medio"],
+    "musculos_secundarios": ["transverso"],
+    "descripcion": "Apoyo lateral sobre antebrazo. Mantén cadera elevada y alineada.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 15-20 s","fibras":"Tipo I","rpe":4,"tut":"15-20 s"},
+      {"nivel":2,"detalle":"Completa 20-30 s","fibras":"Tipo I/IIa","rpe":6,"tut":"20-30 s"},
+      {"nivel":3,"detalle":"Elevar pierna","fibras":"Tipo IIa","rpe":8,"tut":"10-15 repeticiones"}
+    ],
+    "nota":"No dejar caer cadera."
+  },
+  {
+    "id": "fondos",
+    "nombre": "Fondos Asistidos",
+    "categoria": "empuje",
+    "zonas": ["hombro"],
+    "musculos_principales": ["pectoral","tríceps"],
+    "musculos_secundarios": ["deltoides anterior"],
+    "descripcion": "En paralelas con banda, codos atrás. Baja controlado y exhala al subir.",
+    "tags": ["fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["paralelas","banda"],
+    "niveles": [
+      {"nivel":1,"detalle":"Asistido 3x6-10","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s bajada"},
+      {"nivel":2,"detalle":"Pausa 2 s abajo","fibras":"Tipo IIa","rpe":7,"tut":"2 s pausa"},
+      {"nivel":3,"detalle":"Con carga ligera","fibras":"Tipo IIa/IIx","rpe":9,"tut":"1-2 s"}
+    ],
+    "nota":"No bajar de 90° de flexión."
+  },
+  {
+    "id": "jalon",
+    "nombre": "Jalón con Banda (agarre neutro)",
+    "categoria": "traccion",
+    "zonas": ["hombro","espalda"],
+    "musculos_principales": ["dorsal","redondo mayor"],
+    "musculos_secundarios": ["bíceps"],
+    "descripcion": "Banda anclada arriba, tirar hacia pecho. Exhala al tirar y no arquees lumbar.",
+    "tags": ["fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["banda"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x12-15 lento","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s bajada"},
+      {"nivel":2,"detalle":"Pausa 2 s abajo","fibras":"Tipo I/IIa","rpe":6,"tut":"2 s pausa"},
+      {"nivel":3,"detalle":"Isométrico 5-10 s","fibras":"Tipo IIa/IIx","rpe":9,"tut":"5-10 s"}
+    ],
+    "nota":"Codos al frente, no arquear lumbar."
+  },
+  {
+    "id": "caminataGranjero",
+    "nombre": "Caminata de Granjero Isométrica",
+    "categoria": "isometrico",
+    "zonas": ["core","hombro"],
+    "musculos_principales": ["trapecio","core"],
+    "musculos_secundarios": ["antebrazo"],
+    "descripcion": "De pie, sostén mancuernas ligeras a los lados, mantén postura erguida. Hombros abajo y atrás.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["mancuernas"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 30-60 s","fibras":"Tipo I","rpe":4,"tut":"30-60 s"},
+      {"nivel":2,"detalle":"Caminar 10-15 pasos lentos","fibras":"Tipo I/IIa","rpe":6,"tut":"10-15 pasos"},
+      {"nivel":3,"detalle":"Aumentar peso o tiempo","fibras":"Tipo IIa","rpe":8,"tut":"20-30 s"}
+    ],
+    "nota":"Hombros abajo y atrás, evitar encogerlos."
+  },
+  {
+    "id": "isometricoPecho",
+    "nombre": "Isométrico de Pecho (Pared)",
+    "categoria": "empuje",
+    "zonas": ["hombro"],
+    "musculos_principales": ["pectoral"],
+    "musculos_secundarios": ["serrato anterior"],
+    "descripcion": "Empuja contra la pared con codos flexionados 90°. Codos pegados al cuerpo.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Empuje 50% 20-30 s","fibras":"Tipo I/IIa","rpe":5,"tut":"20-30 s"},
+      {"nivel":2,"detalle":"Cambiar ángulos: alto, medio, bajo","fibras":"Tipo IIa","rpe":7,"tut":"15 s por ángulo"},
+      {"nivel":3,"detalle":"Máxima fuerza 5-10 s","fibras":"Tipo IIa/IIx","rpe":9,"tut":"5-10 s"}
+    ],
+    "nota":"Codos pegados al cuerpo."
+  },
+  {
+    "id": "circulosBrazos",
+    "nombre": "Círculos de Brazos con Banda",
+    "categoria": "hombro",
+    "zonas": ["hombro"],
+    "musculos_principales": ["deltoides"],
+    "musculos_secundarios": ["manguito rotador"],
+    "descripcion": "Brazos extendidos a los lados, hacer círculos pequeños con banda ligera. Evita subir los brazos por encima del hombro.",
+    "tags": ["salud","fuerza"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["banda"],
+    "niveles": [
+      {"nivel":1,"detalle":"2x10 círculos en cada dirección","fibras":"Tipo I","rpe":4,"tut":"10 círculos"},
+      {"nivel":2,"detalle":"Aumentar tensión de banda","fibras":"Tipo I/IIa","rpe":6,"tut":"10-15 círculos"},
+      {"nivel":3,"detalle":"Mantener brazos estáticos en cruz 15-20 s","fibras":"Tipo IIa","rpe":8,"tut":"15-20 s"}
+    ],
+    "nota":"Evitar subir los brazos por encima del hombro."
+  },
+  {
+    "id": "gatoCamello",
+    "nombre": "Gato-Camello (Movilidad de columna)",
+    "categoria": "movilidad",
+    "zonas": ["columna"],
+    "musculos_principales": ["erectores espinales"],
+    "musculos_secundarios": ["abdominales"],
+    "descripcion": "En cuadrupedia, alternar flexión y extensión de columna. Movimiento suave, sin dolor.",
+    "tags": ["salud","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"6-8 repeticiones lentas","fibras":"Tipo I","rpe":2,"tut":"2 s por fase"},
+      {"nivel":2,"detalle":"Añadir respiración profunda","fibras":"Tipo I","rpe":2,"tut":"3 s por fase"},
+      {"nivel":3,"detalle":"Pausa 5 s en cada extremo","fibras":"Tipo I/IIa","rpe":3,"tut":"5 s pausa"}
+    ],
+    "nota":"Movimiento suave, sin dolor."
+  },
+  {
+    "id": "respiracion",
+    "nombre": "Respiración Diafragmática",
+    "categoria": "movilidad",
+    "zonas": ["core","respiración"],
+    "musculos_principales": ["diafragma"],
+    "musculos_secundarios": ["transverso"],
+    "descripcion": "Tumbado boca arriba, respiración profunda expandiendo abdomen. Relaja cuello y hombros.",
+    "tags": ["salud","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"5 respiraciones profundas","fibras":"Tipo I","rpe":1,"tut":"5 min"},
+      {"nivel":2,"detalle":"Añadir exhalación prolongada","fibras":"Tipo I","rpe":1,"tut":"5 min"},
+      {"nivel":3,"detalle":"Añadir pausa post-exhalación","fibras":"Tipo I","rpe":1,"tut":"5 min"}
+    ],
+    "nota":"Relajar cuello y hombros."
+  },
+  {
+    "id": "birdDog",
+    "nombre": "Bird-Dog",
+    "categoria": "core",
+    "zonas": ["core","cadera"],
+    "musculos_principales": ["erectores espinales","glúteo mayor"],
+    "musculos_secundarios": ["core"],
+    "descripcion": "En cuadrupedia, extiende brazo y pierna contrarios. Mantén cadera nivelada.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"5 repeticiones lentas por lado","fibras":"Tipo I","rpe":4,"tut":"2 s extensión"},
+      {"nivel":2,"detalle":"Mantener 5 s en extensión","fibras":"Tipo I/IIa","rpe":6,"tut":"5 s"},
+      {"nivel":3,"detalle":"Añadir banda en tobillo","fibras":"Tipo IIa","rpe":7,"tut":"10 repeticiones"}
+    ],
+    "nota":"Mantener cadera nivelada."
+  },
+  {
+    "id": "deadBug",
+    "nombre": "Dead Bug",
+    "categoria": "core",
+    "zonas": ["core"],
+    "musculos_principales": ["transverso","recto abdominal"],
+    "musculos_secundarios": ["psoas"],
+    "descripcion": "Tumbado boca arriba, brazos y piernas alternando. Zona lumbar pegada al suelo.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"5 repeticiones lentas por lado","fibras":"Tipo I","rpe":4,"tut":"2 s por repetición"},
+      {"nivel":2,"detalle":"Mantener 3 s con pierna extendida","fibras":"Tipo I/IIa","rpe":6,"tut":"3 s"},
+      {"nivel":3,"detalle":"Añadir mancuerna ligera en manos","fibras":"Tipo IIa","rpe":7,"tut":"10 repeticiones"}
+    ],
+    "nota":"Zona lumbar pegada al suelo."
+  },
+  {
+    "id": "hollowBody",
+    "nombre": "Hollow Body Hold",
+    "categoria": "core",
+    "zonas": ["core"],
+    "musculos_principales": ["recto abdominal"],
+    "musculos_secundarios": ["transverso"],
+    "descripcion": "Tumbado boca arriba, elevar hombros y piernas, mantener. No arquear lumbar.",
+    "tags": ["fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 10-15 s","fibras":"Tipo I/IIa","rpe":5,"tut":"10-15 s"},
+      {"nivel":2,"detalle":"Extender piernas 20-30 s","fibras":"Tipo IIa","rpe":7,"tut":"20-30 s"},
+      {"nivel":3,"detalle":"Añadir balanceo lento","fibras":"Tipo IIa/IIx","rpe":9,"tut":"10-15 s"}
+    ],
+    "nota":"No arquear lumbar."
+  },
+  {
+    "id": "stepUp",
+    "nombre": "Step-Up con Silla",
+    "categoria": "pierna",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["cuádriceps","glúteo mayor"],
+    "musculos_secundarios": ["isquiotibiales"],
+    "descripcion": "Subir a una silla o banco bajo, alternando piernas. Rodilla alineada con pie.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["silla"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x8-10 lentos","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":2,"detalle":"Con mancuernas ligeras","fibras":"Tipo IIa","rpe":7,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":3,"detalle":"Pausa arriba 3 s","fibras":"Tipo IIa/IIx","rpe":8,"tut":"3 s pausa"}
+    ],
+    "nota":"Rodilla alineada con pie."
+  },
+  {
+    "id": "zancadaAtras",
+    "nombre": "Zancada Atrás",
+    "categoria": "pierna",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["cuádriceps","glúteo mayor"],
+    "musculos_secundarios": ["isquiotibiales"],
+    "descripcion": "Paso atrás y flexiona ambas rodillas, sin impacto. No golpees la rodilla contra el suelo.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x8-10 por lado","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s bajada, 1 s subida"},
+      {"nivel":2,"detalle":"Con mancuernas","fibras":"Tipo IIa","rpe":7,"tut":"2 s bajada, 1 s subida"},
+      {"nivel":3,"detalle":"Pausa abajo 3 s","fibras":"Tipo IIa/IIx","rpe":8,"tut":"3 s pausa"}
+    ],
+    "nota":"No golpear rodilla contra suelo."
+  },
+  {
+    "id": "elevacionTalones",
+    "nombre": "Elevación de Talones",
+    "categoria": "pierna",
+    "zonas": ["rodilla","tobillo"],
+    "musculos_principales": ["gemelos","sóleo"],
+    "musculos_secundarios": [],
+    "descripcion": "De pie, elevar talones lentamente. Mantén el equilibrio.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x15 lentas","fibras":"Tipo I","rpe":4,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":2,"detalle":"Con mancuernas","fibras":"Tipo I/IIa","rpe":6,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":3,"detalle":"Isométrico arriba 10 s","fibras":"Tipo IIa","rpe":8,"tut":"10 s"}
+    ],
+    "nota":"Mantener equilibrio."
+  },
+  {
+    "id": "abduccionCadera",
+    "nombre": "Abducción de Cadera de Pie",
+    "categoria": "cadera",
+    "zonas": ["cadera","rodilla"],
+    "musculos_principales": ["glúteo medio"],
+    "musculos_secundarios": ["tensor de la fascia lata"],
+    "descripcion": "De pie, elevar pierna lateralmente con banda. Tronco recto, no inclinarse.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["banda"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x12-15 por lado","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":2,"detalle":"Pausa arriba 3 s","fibras":"Tipo IIa","rpe":7,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Isométrico 10 s","fibras":"Tipo IIa/IIx","rpe":9,"tut":"10 s"}
+    ],
+    "nota":"Tronco recto, no inclinarse."
+  },
+  {
+    "id": "movilidadTobillo",
+    "nombre": "Movilidad de Tobillo (Rodilla a Pared)",
+    "categoria": "movilidad",
+    "zonas": ["tobillo"],
+    "musculos_principales": ["gemelos","sóleo"],
+    "musculos_secundarios": [],
+    "descripcion": "Pie a unos 10 cm de pared, llevar rodilla hacia delante sin levantar talón.",
+    "tags": ["salud"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"10 repeticiones lentas","fibras":"Tipo I","rpe":2,"tut":"2 s por repetición"},
+      {"nivel":2,"detalle":"Aumentar distancia","fibras":"Tipo I","rpe":2,"tut":"2 s por repetición"},
+      {"nivel":3,"detalle":"Pausa 5 s en máxima flexión","fibras":"Tipo I/IIa","rpe":3,"tut":"5 s pausa"}
+    ],
+    "nota":"Talón siempre en suelo."
+  },
+  {
+    "id": "rotacionToracica",
+    "nombre": "Rotación Torácica en Cuadrupedia (Open Book)",
+    "categoria": "movilidad",
+    "zonas": ["columna","hombro"],
+    "musculos_principales": ["rotadores torácicos"],
+    "musculos_secundarios": [],
+    "descripcion": "En cuadrupedia, llevar brazo hacia el techo rotando columna. Mantén cadera estable.",
+    "tags": ["salud"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"8 repeticiones por lado","fibras":"Tipo I","rpe":2,"tut":"2 s por repetición"},
+      {"nivel":2,"detalle":"Pausa 5 s arriba","fibras":"Tipo I","rpe":2,"tut":"5 s pausa"},
+      {"nivel":3,"detalle":"Con banda ligera","fibras":"Tipo I/IIa","rpe":4,"tut":"10 repeticiones"}
+    ],
+    "nota":"Mantener cadera estable."
+  },
+  {
+    "id": "apoyoMonopodal",
+    "nombre": "Apoyo Monopodal",
+    "categoria": "equilibrio",
+    "zonas": ["rodilla","tobillo"],
+    "musculos_principales": ["cuádriceps","glúteo medio"],
+    "musculos_secundarios": ["core"],
+    "descripcion": "Mantener equilibrio sobre una pierna. Apóyate si es necesario.",
+    "tags": ["salud"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"30 s por pierna","fibras":"Tipo I","rpe":3,"tut":"30 s"},
+      {"nivel":2,"detalle":"Ojos cerrados 20 s","fibras":"Tipo I","rpe":4,"tut":"20 s"},
+      {"nivel":3,"detalle":"Sobre cojín inestable","fibras":"Tipo I/IIa","rpe":6,"tut":"15-20 s"}
+    ],
+    "nota":"Apoyarse si es necesario."
+  },
+  {
+    "id": "tandem",
+    "nombre": "Equilibrio Tándem",
+    "categoria": "equilibrio",
+    "zonas": ["rodilla","tobillo"],
+    "musculos_principales": ["cuádriceps","glúteo medio"],
+    "musculos_secundarios": ["core"],
+    "descripcion": "Un pie delante del otro, talón con punta. Mantén postura erguida.",
+    "tags": ["salud"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"30 s","fibras":"Tipo I","rpe":3,"tut":"30 s"},
+      {"nivel":2,"detalle":"Ojos cerrados 15 s","fibras":"Tipo I","rpe":4,"tut":"15 s"},
+      {"nivel":3,"detalle":"Girar cabeza lentamente","fibras":"Tipo I/IIa","rpe":6,"tut":"20 s"}
+    ],
+    "nota":"Mantener postura erguida."
+  },
+  {
+    "id": "alcanceEstrella",
+    "nombre": "Alcance en Estrella (Star Excursion)",
+    "categoria": "equilibrio",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["cuádriceps","glúteo medio"],
+    "musculos_secundarios": ["core"],
+    "descripcion": "Sobre una pierna, alcanzar con la otra en diferentes direcciones. No pierdas el equilibrio.",
+    "tags": ["salud","fuerza"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"5 alcances por dirección","fibras":"Tipo I","rpe":4,"tut":"5 alcances"},
+      {"nivel":2,"detalle":"Mayor distancia","fibras":"Tipo I/IIa","rpe":6,"tut":"5-8 alcances"},
+      {"nivel":3,"detalle":"Con banda en tobillo","fibras":"Tipo IIa","rpe":8,"tut":"5 alcances"}
+    ],
+    "nota":"No perder el equilibrio."
+  },
+  {
+    "id": "planchaComando",
+    "nombre": "Plancha Comando (Toques de Hombro)",
+    "categoria": "core",
+    "zonas": ["core","hombro"],
+    "musculos_principales": ["recto abdominal","deltoides"],
+    "musculos_secundarios": ["transverso"],
+    "descripcion": "En posición de plancha, tocar hombro contrario alternando. No rotes la cadera.",
+    "tags": ["fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"8 toques por lado","fibras":"Tipo I/IIa","rpe":5,"tut":"8 toques por lado"},
+      {"nivel":2,"detalle":"Pausa 3 s en plancha","fibras":"Tipo IIa","rpe":7,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Elevar pies en banco","fibras":"Tipo IIa/IIx","rpe":9,"tut":"6 toques por lado"}
+    ],
+    "nota":"No rotar cadera."
+  },
+  {
+    "id": "remoMesa",
+    "nombre": "Remo Invertido en Mesa (Dominadas Australianas)",
+    "categoria": "traccion",
+    "zonas": ["hombro","espalda"],
+    "musculos_principales": ["dorsal","romboide"],
+    "musculos_secundarios": ["bíceps"],
+    "descripcion": "Debajo de una mesa, agarrar borde y tirar del pecho hacia arriba. Mantén el cuerpo recto.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["silla"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x8-12","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":2,"detalle":"Pausa arriba 3 s","fibras":"Tipo IIa","rpe":7,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Elevar pies en silla","fibras":"Tipo IIa/IIx","rpe":9,"tut":"6-8 repeticiones"}
+    ],
+    "nota":"Mantener cuerpo recto."
+  },
+  {
+    "id": "estocadaBulgarA",
+    "nombre": "Sentadilla Búlgara Asistida",
+    "categoria": "pierna",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["cuádriceps","glúteo mayor"],
+    "musculos_secundarios": ["isquiotibiales"],
+    "descripcion": "Pie trasero apoyado en silla, bajar lentamente. Rodilla delantera no sobrepasa la punta del pie.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["silla"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x8-10 por lado","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s bajada, 1 s subida"},
+      {"nivel":2,"detalle":"Con mancuernas","fibras":"Tipo IIa","rpe":7,"tut":"2 s bajada, 1 s subida"},
+      {"nivel":3,"detalle":"Pausa abajo 3 s","fibras":"Tipo IIa/IIx","rpe":8,"tut":"3 s pausa"}
+    ],
+    "nota":"Rodilla delantera no sobrepasar punta del pie."
+  },
+  {
+    "id": "sentadillaParedVMO",
+    "nombre": "Sentadilla Isométrica en Pared con Pelota entre Rodillas",
+    "categoria": "pierna",
+    "zonas": ["rodilla"],
+    "musculos_principales": ["VMO","cuádriceps"],
+    "musculos_secundarios": ["glúteo medio"],
+    "descripcion": "Espalda en pared, rodillas 30-45°, pies a anchura de caderas. Coloca una pelota blanda entre rodillas y aprieta suavemente hacia adentro.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["suelo","pelota"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 20-30 s con apretón suave","fibras":"Tipo I","rpe":4,"tut":"20-30 s"},
+      {"nivel":2,"detalle":"Apretar más fuerte 15-20 s","fibras":"Tipo I/IIa","rpe":6,"tut":"15-20 s"},
+      {"nivel":3,"detalle":"Elevar talones alternos + apretón","fibras":"Tipo IIa","rpe":8,"tut":"10-15 repeticiones"}
+    ],
+    "nota":"Rodillas alineadas con segundo dedo."
+  },
+  {
+    "id": "elevacionPiernaRecta",
+    "nombre": "Elevación de Pierna Recta con Rotación Externa",
+    "categoria": "pierna",
+    "zonas": ["rodilla"],
+    "musculos_principales": ["VMO","cuádriceps"],
+    "musculos_secundarios": ["psoas"],
+    "descripcion": "Tumbado boca arriba, pierna contraria flexionada. Gira ligeramente el pie hacia afuera y eleva la pierna recta 30-40 cm, manteniendo rodilla extendida.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x10-12 subida 2s bajada 3s","fibras":"Tipo I","rpe":4,"tut":"2 s subida, 3 s bajada"},
+      {"nivel":2,"detalle":"Pausa arriba 3 s","fibras":"Tipo I/IIa","rpe":6,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Con tobillera ligera","fibras":"Tipo IIa","rpe":7,"tut":"10 repeticiones"}
+    ],
+    "nota":"No arquear lumbar."
+  },
+  {
+    "id": "puenteAbduccion",
+    "nombre": "Puente de Glúteos con Abducción de Rodillas",
+    "categoria": "cadera",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["glúteo medio","VMO"],
+    "musculos_secundarios": ["glúteo mayor"],
+    "descripcion": "Boca arriba, rodillas flexionadas. Eleva cadera y separa ligeramente las rodillas, manteniendo cadera elevada.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x10-12 repeticiones","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s separar, 2 s juntar"},
+      {"nivel":2,"detalle":"Pausa 3 s con rodillas separadas","fibras":"Tipo IIa","rpe":7,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Con banda alrededor rodillas","fibras":"Tipo IIa/IIx","rpe":8,"tut":"10 repeticiones"}
+    ],
+    "nota":"No arquear lumbar."
+  },
+  {
+    "id": "abduccionCaderaBanda",
+    "nombre": "Abducción de Cadera de Pie con Banda",
+    "categoria": "cadera",
+    "zonas": ["cadera","rodilla"],
+    "musculos_principales": ["glúteo medio"],
+    "musculos_secundarios": ["tensor de la fascia lata"],
+    "descripcion": "De pie, eleva la pierna lateralmente con banda. Tronco recto, dedos hacia delante.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["banda"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x12-15 por lado","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":2,"detalle":"Pausa arriba 3 s","fibras":"Tipo IIa","rpe":7,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Isométrico 10 s","fibras":"Tipo IIa/IIx","rpe":9,"tut":"10 s"}
+    ],
+    "nota":"Tronco recto, no inclinarse."
+  },
+  {
+    "id": "curlIsquioBanda",
+    "nombre": "Curl de Isquiotibiales con Banda en Decúbito Prono",
+    "categoria": "pierna",
+    "zonas": ["rodilla"],
+    "musculos_principales": ["isquiotibiales"],
+    "musculos_secundarios": ["gemelos"],
+    "descripcion": "Tumbado boca abajo, banda en tobillos. Flexiona rodillas llevando talones hacia glúteos.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["banda"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x12-15 lentos","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":2,"detalle":"Pausa 2 s arriba","fibras":"Tipo IIa","rpe":7,"tut":"2 s pausa"},
+      {"nivel":3,"detalle":"Isométrico 10 s","fibras":"Tipo IIa/IIx","rpe":8,"tut":"10 s"}
+    ],
+    "nota":"No elevar cadera."
+  },
+  {
+    "id": "rotacionExternaBanda90",
+    "nombre": "Rotación Externa con Banda a 90° Abducción",
+    "categoria": "hombro",
+    "zonas": ["hombro"],
+    "musculos_principales": ["manguito rotador"],
+    "musculos_secundarios": ["deltoides posterior"],
+    "descripcion": "De pie, brazo en abducción de 90° con codo flexionado 90°. Rota hacia fuera contra banda. Solo si no hay dolor.",
+    "tags": ["fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["banda"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x10-12 lentos","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s rotación"},
+      {"nivel":2,"detalle":"Pausa 3 s arriba","fibras":"Tipo IIa","rpe":7,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Isométrico 8-10 s","fibras":"Tipo IIa/IIx","rpe":8,"tut":"8-10 s"}
+    ],
+    "nota":"Solo si tolera, evitar dolor."
+  },
+  {
+    "id": "sitToStand",
+    "nombre": "Sentarse y Levantarse (Sit-to-Stand)",
+    "categoria": "funcional",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["cuádriceps","glúteo mayor"],
+    "musculos_secundarios": ["core"],
+    "descripcion": "Desde una silla, bajar lentamente hasta casi tocar el asiento y volver a subir. Controla la bajada y no uses impulso.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["silla"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x8-10 bajada 3s","fibras":"Tipo I/IIa","rpe":5,"tut":"3 s bajada, 1 s subida"},
+      {"nivel":2,"detalle":"Con mancuernas ligeras","fibras":"Tipo IIa","rpe":7,"tut":"2 s bajada, 1 s subida"},
+      {"nivel":3,"detalle":"Pausa al tocar silla 3s","fibras":"Tipo IIa/IIx","rpe":8,"tut":"3 s pausa"}
+    ],
+    "nota":"Rodillas alineadas con pies, no usarlas para empujar."
+  },
+  {
+    "id": "miniSentadillaMonopodal",
+    "nombre": "Media Sentadilla Monopodal Asistida",
+    "categoria": "funcional",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["cuádriceps","glúteo medio"],
+    "musculos_secundarios": ["core"],
+    "descripcion": "Sujétate a una silla o pared. Flexiona la rodilla unos 20-30° y vuelve a extender. Mantén pelvis nivelada.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["silla","suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x8-10 por pierna","fibras":"Tipo I/IIa","rpe":5,"tut":"2 s bajada, 2 s subida"},
+      {"nivel":2,"detalle":"Sin apoyo de manos","fibras":"Tipo IIa","rpe":7,"tut":"2 s bajada, 1 s subida"},
+      {"nivel":3,"detalle":"Con mancuerna ligera","fibras":"Tipo IIa/IIx","rpe":8,"tut":"1-2 s"}
+    ],
+    "nota":"No bajar de 30° de flexión."
+  },
+  {
+    "id": "wallSlides",
+    "nombre": "Deslizamientos en Pared (Wall Slides)",
+    "categoria": "hombro",
+    "zonas": ["hombro"],
+    "musculos_principales": ["serrato anterior"],
+    "musculos_secundarios": ["manguito rotador"],
+    "descripcion": "De pie, antebrazos en pared. Desliza brazos hacia arriba sin levantar hombros, manteniendo codos flexionados.",
+    "tags": ["salud","fuerza","mixto"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x8-10 deslizamientos","fibras":"Tipo I","rpe":4,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":2,"detalle":"Pausa arriba 3s","fibras":"Tipo I/IIa","rpe":6,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Con banda ligera","fibras":"Tipo IIa","rpe":7,"tut":"8-10 repeticiones"}
+    ],
+    "nota":"Hombros abajo y atrás."
+  },
+  {
+    "id": "remoEscapularYTW",
+    "nombre": "Remo Escapular Y-T-W (sin peso)",
+    "categoria": "hombro",
+    "zonas": ["hombro","espalda"],
+    "musculos_principales": ["romboide","trapecio"],
+    "musculos_secundarios": ["manguito rotador"],
+    "descripcion": "Tumbado boca abajo o inclinado, eleva brazos en forma de Y, T, W. Aprieta escápulas y baja lentamente.",
+    "tags": ["salud","fuerza"],
+    "compatibilidades": ["hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"3x8-10 por letra","fibras":"Tipo I","rpe":4,"tut":"2 s subida, 2 s bajada"},
+      {"nivel":2,"detalle":"Pausa arriba 3s","fibras":"Tipo I/IIa","rpe":6,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Con mancuernas muy ligeras","fibras":"Tipo IIa","rpe":7,"tut":"8-10 repeticiones"}
+    ],
+    "nota":"No levantar brazos por encima de horizontal."
+  },
+  {
+    "id": "estiramientoCuadricepsToalla",
+    "nombre": "Estiramiento de Cuádriceps con Toalla",
+    "categoria": "movilidad",
+    "zonas": ["rodilla"],
+    "musculos_principales": ["cuádriceps"],
+    "musculos_secundarios": [],
+    "descripcion": "Boca abajo o de lado, flexiona rodilla llevando talón al glúteo con ayuda de una toalla. Solo rango indoloro.",
+    "tags": ["salud"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["toalla","suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 20-30 s por lado","fibras":"Tipo I","rpe":2,"tut":"20-30 s"},
+      {"nivel":2,"detalle":"Añadir respiración profunda","fibras":"Tipo I","rpe":2,"tut":"30 s"},
+      {"nivel":3,"detalle":"Estiramiento activo 5s + descanso","fibras":"Tipo I/IIa","rpe":3,"tut":"5 s"}
+    ],
+    "nota":"No forzar flexión máxima."
+  },
+  {
+    "id": "estiramientoIsquioToalla",
+    "nombre": "Estiramiento de Isquiotibiales con Toalla",
+    "categoria": "movilidad",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["isquiotibiales"],
+    "musculos_secundarios": [],
+    "descripcion": "Boca arriba, pierna extendida, tirar suavemente con toalla. Mantén pelvis neutra.",
+    "tags": ["salud"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["toalla","suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"Mantener 20-30 s por pierna","fibras":"Tipo I","rpe":2,"tut":"20-30 s"},
+      {"nivel":2,"detalle":"Pausa 3s en máxima tensión","fibras":"Tipo I","rpe":2,"tut":"3 s"},
+      {"nivel":3,"detalle":"Contraer 5s y relajar","fibras":"Tipo I/IIa","rpe":3,"tut":"5 s"}
+    ],
+    "nota":"No tirar bruscamente."
+  },
+  {
+    "id": "circulosRodillaCuadrupedia",
+    "nombre": "Círculos de Rodilla en Cuadrupedia",
+    "categoria": "movilidad",
+    "zonas": ["rodilla","cadera"],
+    "musculos_principales": ["movilidad articular"],
+    "musculos_secundarios": [],
+    "descripcion": "En cuadrupedia, realizar círculos suaves con la rodilla en ambos sentidos. Lubrica la articulación.",
+    "tags": ["salud"],
+    "compatibilidades": ["rodilla"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"5 círculos por sentido","fibras":"Tipo I","rpe":1,"tut":"5 círculos"},
+      {"nivel":2,"detalle":"Aumentar amplitud","fibras":"Tipo I","rpe":2,"tut":"8 círculos"},
+      {"nivel":3,"detalle":"Círculos con banda","fibras":"Tipo I/IIa","rpe":3,"tut":"5 círculos"}
+    ],
+    "nota":"Movimiento suave, sin dolor."
+  },
+  {
+    "id": "respiracionCostal",
+    "nombre": "Respiración Costal",
+    "categoria": "movilidad",
+    "zonas": ["core","respiración"],
+    "musculos_principales": ["intercostales"],
+    "musculos_secundarios": ["diafragma"],
+    "descripcion": "Manos en costillas, inhalar expandiendo lateralmente, exhalar lentamente. Relaja hombros.",
+    "tags": ["salud"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"5 respiraciones lentas","fibras":"Tipo I","rpe":1,"tut":"5 respiraciones"},
+      {"nivel":2,"detalle":"Exhalación prolongada","fibras":"Tipo I","rpe":1,"tut":"5 respiraciones"},
+      {"nivel":3,"detalle":"Pausa post-exhalación 3s","fibras":"Tipo I","rpe":1,"tut":"5 respiraciones"}
+    ],
+    "nota":"No elevar hombros."
+  },
+  {
+    "id": "exhalacionProlongada",
+    "nombre": "Exhalación Prolongada con Brazos en U",
+    "categoria": "movilidad",
+    "zonas": ["hombro","core"],
+    "musculos_principales": ["diafragma","trapecio"],
+    "musculos_secundarios": [],
+    "descripcion": "De pie o sentado, brazos en U, exhala profundamente mientras bajas los brazos. Relaja cuello.",
+    "tags": ["salud"],
+    "compatibilidades": ["rodilla","hombro"],
+    "equipo": ["suelo"],
+    "niveles": [
+      {"nivel":1,"detalle":"5 repeticiones","fibras":"Tipo I","rpe":1,"tut":"5 respiraciones"},
+      {"nivel":2,"detalle":"Pausa 3s tras exhalar","fibras":"Tipo I","rpe":1,"tut":"3 s pausa"},
+      {"nivel":3,"detalle":"Añadir ligera flexión rodillas","fibras":"Tipo I/IIa","rpe":2,"tut":"5 repeticiones"}
+    ],
+    "nota":"Movimiento fluido."
+  }
+];
+</script>
+
+<script>
+/* =====================================================================
+ * ARQUITECTURA MODULAR BASADA EN EVENTOS (MEJORADA)
+ * =====================================================================
+ * Capas:
+ *  - Dominio: Entidades y lógica pura (FiltroEjercicios, GeneradorPlan)
+ *  - Aplicación: Casos de uso que orquestan (App)
+ *  - Infraestructura: Adaptadores (RepositorioEjercicios, Persistencia, Preferencias, Progreso)
+ *  - Presentación: Componentes de UI (ModalConfiguracion, ListaEjercicios, PlanEntrenamiento, ModalDetalleEjercicio)
+ *  - Comunicación: EventBus (publicación/suscripción)
+ *
+ * Notas:
+ *  - El generador de plan ahora respeta preferencias y variedad de categorías.
+ *  - Se añade seguimiento de progresión por ejercicio.
+ *  - Los SVG se sustituyen por badges de iconos (emoji) según propiedades.
+ *  - Preparado para imágenes externas (campo 'imagen' opcional).
+ * =====================================================================
+ */
+
+/* ========== 1. EVENT BUS ========== */
+class EventBus {
+    constructor() {
+        this.listeners = new Map();
+        this.logger = new Logger('EventBus');
+    }
+    on(event, callback) {
+        if (!this.listeners.has(event)) this.listeners.set(event, []);
+        this.listeners.get(event).push(callback);
+        this.logger.log(`Suscripción a "${event}"`);
+    }
+    off(event, callback) {
+        if (!this.listeners.has(event)) return;
+        const callbacks = this.listeners.get(event);
+        const idx = callbacks.indexOf(callback);
+        if (idx > -1) callbacks.splice(idx, 1);
+        this.logger.log(`Desuscripción de "${event}"`);
+    }
+    emit(event, payload) {
+        if (!this.listeners.has(event)) return;
+        this.logger.log(`Emisión de "${event}"`, payload);
+        this.listeners.get(event).forEach(cb => {
+            try { cb(payload); } catch (e) { console.error(`Error en listener de "${event}"`, e); }
+        });
+    }
+}
+
+/* ========== 2. LOGGER ========== */
+class Logger {
+    constructor(context) { this.context = context; }
+    log(message, data = null) {
+        if (window.DEBUG_MODE) console.log(`[${this.context}] ${message}`, data ?? '');
+    }
+}
+window.DEBUG_MODE = false; // Cambiar a true para depurar
+
+/* ========== 3. DOMINIO ========== */
+class Ejercicio {
+    constructor({id, nombre, categoria, descripcion, imagen, tags, compatibilidades, equipo, niveles, nota, zonas, musculos_principales, musculos_secundarios}) {
+        this.id = id;
+        this.nombre = nombre;
+        this.categoria = categoria;
+        this.descripcion = descripcion;
+        this.imagen = imagen || null; // Ruta opcional a imagen/gif
+        this.tags = tags;
+        this.compatibilidades = compatibilidades;
+        this.equipo = equipo;
+        this.niveles = niveles;
+        this.nota = nota;
+        this.zonas = zonas || [];
+        this.musculos_principales = musculos_principales || [];
+        this.musculos_secundarios = musculos_secundarios || [];
+    }
+}
+
+class FiltroEjercicios {
+    filtrar(ejercicios, config, filtrosExploracion = {}) {
+        let filtrados = ejercicios.filter(e => e.tags.includes(config.objetivo));
+        if (config.limitRodilla) filtrados = filtrados.filter(e => e.compatibilidades.includes('rodilla'));
+        if (config.limitHombro) filtrados = filtrados.filter(e => e.compatibilidades.includes('hombro'));
+        if (!config.equipo.mancuernas) filtrados = filtrados.filter(e => !e.equipo.includes('mancuernas'));
+        if (!config.equipo.banda) filtrados = filtrados.filter(e => !e.equipo.includes('banda'));
+        if (!config.equipo.paralelas) filtrados = filtrados.filter(e => !e.equipo.includes('paralelas'));
+        if (!config.equipo.suelo) filtrados = filtrados.filter(e => !e.equipo.includes('suelo'));
+        if (!config.equipo.silla) filtrados = filtrados.filter(e => !e.equipo.includes('silla'));
+        if (!config.equipo.pelota) filtrados = filtrados.filter(e => !e.equipo.includes('pelota'));
+        if (!config.equipo.toalla) filtrados = filtrados.filter(e => !e.equipo.includes('toalla'));
+
+        if (filtrosExploracion.categoria && filtrosExploracion.categoria !== 'todos') {
+            filtrados = filtrados.filter(e => e.categoria === filtrosExploracion.categoria);
+        }
+        if (filtrosExploracion.zona && filtrosExploracion.zona !== 'todas') {
+            filtrados = filtrados.filter(e => e.zonas.includes(filtrosExploracion.zona));
+        }
+        if (filtrosExploracion.musculo && filtrosExploracion.musculo !== 'todos') {
+            filtrados = filtrados.filter(e => e.musculos_principales.includes(filtrosExploracion.musculo) || e.musculos_secundarios.includes(filtrosExploracion.musculo));
+        }
+        return filtrados;
+    }
+}
+
+class GeneradorPlan {
+    constructor() {
+        this.categorias = ['isometrico', 'core', 'pierna', 'cadera', 'empuje', 'traccion', 'hombro', 'espalda', 'movilidad', 'equilibrio', 'funcional'];
+    }
+
+    generar(ejercicios, config, preferencias = null, progreso = null) {
+        // Aplicar preferencias: excluir y priorizar
+        let disponibles = ejercicios;
+        if (preferencias) {
+            const excluidos = preferencias.obtenerExcluidos();
+            const prioritarios = preferencias.obtenerPrioritarios();
+            disponibles = ejercicios.filter(e => !excluidos.includes(e.id));
+            // Prioritarios se colocan al inicio de la lista para que sean elegidos primero
+            const prior = disponibles.filter(e => prioritarios.includes(e.id));
+            const resto = disponibles.filter(e => !prioritarios.includes(e.id));
+            disponibles = [...prior, ...resto];
+        }
+
+        // Agrupar por categoría, manteniendo prioridad dentro de cada grupo
+        const porCategoria = {};
+        this.categorias.forEach(cat => porCategoria[cat] = []);
+        disponibles.forEach(ej => {
+            if (porCategoria[ej.categoria]) porCategoria[ej.categoria].push(ej);
+        });
+
+        // Mezclar cada grupo (excepto prioritarios que ya están al frente)
+        this.categorias.forEach(cat => {
+            const prior = porCategoria[cat].filter(e => preferencias && preferencias.esPrioritario(e.id));
+            const resto = porCategoria[cat].filter(e => !(preferencias && preferencias.esPrioritario(e.id)));
+            porCategoria[cat] = [...prior, ...resto.sort(() => Math.random() - 0.5)];
+        });
+
+        const plan = [];
+        const numDias = config.dias;
+        const numEjercicios = config.numEjercicios;
+
+        // Para cada día, seleccionar ejercicios de categorías variadas
+        for (let d = 0; d < numDias; d++) {
+            const diaEjercicios = [];
+            const usadosEnDia = new Set();
+            const categoriasDisponibles = this.categorias.filter(cat => porCategoria[cat] && porCategoria[cat].length > 0);
+
+            // Intentar llenar el día con una rotación de categorías
+            let catIndex = d % categoriasDisponibles.length; // Rotar inicio de categoría por día
+            let intentos = 0;
+            const maxIntentos = categoriasDisponibles.length * numEjercicios * 2;
+
+            while (diaEjercicios.length < numEjercicios && intentos < maxIntentos) {
+                const cat = categoriasDisponibles[catIndex % categoriasDisponibles.length];
+                const listaCat = porCategoria[cat];
+                if (listaCat && listaCat.length > 0) {
+                    // Buscar un ejercicio no usado hoy en esa categoría
+                    let elegido = null;
+                    for (let i = 0; i < listaCat.length; i++) {
+                        const ej = listaCat[(i + d) % listaCat.length]; // variar índice por día
+                        if (!usadosEnDia.has(ej.id)) {
+                            elegido = ej;
+                            break;
+                        }
+                    }
+                    if (elegido) {
+                        diaEjercicios.push(elegido);
+                        usadosEnDia.add(elegido.id);
+                    }
+                }
+                catIndex++;
+                intentos++;
+            }
+
+            // Si no se llenó, completar con cualquier ejercicio disponible (sin repetir en el día)
+            if (diaEjercicios.length < numEjercicios) {
+                for (const ej of disponibles) {
+                    if (diaEjercicios.length >= numEjercicios) break;
+                    if (!usadosEnDia.has(ej.id)) {
+                        diaEjercicios.push(ej);
+                        usadosEnDia.add(ej.id);
+                    }
+                }
+            }
+
+            plan.push({ dia: d + 1, ejercicios: diaEjercicios });
+        }
+
+        return plan;
+    }
+}
+
+/* ========== 4. INFRAESTRUCTURA ========== */
+class RepositorioEjerciciosEnMemoria {
+    constructor(ejercicios) { this.ejercicios = ejercicios.map(e => new Ejercicio(e)); }
+    obtenerTodos() { return this.ejercicios; }
+    obtenerPorId(id) { return this.ejercicios.find(e => e.id === id); }
+}
+
+class PersistenciaLocalStorage {
+    constructor(clave) { this.clave = clave; this.memoria = null; }
+    guardar(config) {
+        try { localStorage.setItem(this.clave, JSON.stringify(config)); this.memoria = config; }
+        catch(e) { console.warn('No se pudo guardar en localStorage, usando memoria', e); this.memoria = config; }
+    }
+    cargar() {
+        try {
+            const data = localStorage.getItem(this.clave);
+            if (data) { const config = JSON.parse(data); this.memoria = config; return config; }
+        } catch(e) { console.warn('No se pudo leer localStorage, usando memoria', e); }
+        return this.memoria;
+    }
+    limpiar() {
+        try { localStorage.removeItem(this.clave); } catch(e) { console.warn('No se pudo limpiar localStorage', e); }
+        this.memoria = null;
+    }
+}
+
+class RegistroCompletados {
+    constructor(clave) { this.clave = clave; }
+    obtener() {
+        try { return JSON.parse(localStorage.getItem(this.clave)) || []; }
+        catch { return []; }
+    }
+    marcarEjercicio(id) {
+        const completados = this.obtener();
+        if (!completados.some(item => item.id === id && item.fecha === this.hoy())) {
+            completados.push({ id, fecha: this.hoy() });
+            localStorage.setItem(this.clave, JSON.stringify(completados));
+        }
+    }
+    hoy() { return new Date().toISOString().slice(0,10); }
+    estaCompletadoHoy(id) {
+        return this.obtener().some(item => item.id === id && item.fecha === this.hoy());
+    }
+}
+
+class PreferenciasEjercicios {
+    constructor(clave) { this.clave = clave; }
+    obtener() {
+        try { return JSON.parse(localStorage.getItem(this.clave)) || { excluidos: [], prioritarios: [] }; }
+        catch { return { excluidos: [], prioritarios: [] }; }
+    }
+    guardar(prefs) { localStorage.setItem(this.clave, JSON.stringify(prefs)); }
+    obtenerExcluidos() { return this.obtener().excluidos || []; }
+    obtenerPrioritarios() { return this.obtener().prioritarios || []; }
+    toggleExcluir(id) {
+        const prefs = this.obtener();
+        if (prefs.excluidos.includes(id)) {
+            prefs.excluidos = prefs.excluidos.filter(e => e !== id);
+        } else {
+            prefs.excluidos.push(id);
+            prefs.prioritarios = prefs.prioritarios.filter(e => e !== id);
+        }
+        this.guardar(prefs);
+    }
+    togglePrioritario(id) {
+        const prefs = this.obtener();
+        if (prefs.prioritarios.includes(id)) {
+            prefs.prioritarios = prefs.prioritarios.filter(e => e !== id);
+        } else {
+            prefs.prioritarios.push(id);
+            prefs.excluidos = prefs.excluidos.filter(e => e !== id);
+        }
+        this.guardar(prefs);
+    }
+    esExcluido(id) { return this.obtenerExcluidos().includes(id); }
+    esPrioritario(id) { return this.obtenerPrioritarios().includes(id); }
+}
+
+class Progreso {
+    constructor(clave) { this.clave = clave; }
+    obtener() {
+        try { return JSON.parse(localStorage.getItem(this.clave)) || {}; }
+        catch { return {}; }
+    }
+    guardar(prog) { localStorage.setItem(this.clave, JSON.stringify(prog)); }
+    registrarCompletado(id) {
+        const prog = this.obtener();
+        if (!prog[id]) prog[id] = { nivel: 1, completados: 0 };
+        prog[id].completados += 1;
+        if (prog[id].completados >= 3) {
+            prog[id].nivel += 1;
+            prog[id].completados = 0;
+        }
+        this.guardar(prog);
+    }
+    obtenerNivel(id) {
+        const prog = this.obtener();
+        return prog[id] ? prog[id].nivel : 1;
+    }
+    obtenerCompletados(id) {
+        const prog = this.obtener();
+        return prog[id] ? prog[id].completados : 0;
+    }
+}
+
+/* ========== 5. APLICACIÓN ========== */
+class Configuracion {
+    constructor({objetivo='salud', limitRodilla=true, limitHombro=true, equipo={mancuernas:true, banda:true, paralelas:false, suelo:true, silla:true, pelota:false, toalla:false}, dias=3, numEjercicios=5, categoria='todos'} = {}) {
+        this.objetivo = objetivo;
+        this.limitRodilla = limitRodilla;
+        this.limitHombro = limitHombro;
+        this.equipo = equipo;
+        this.dias = parseInt(dias, 10);
+        this.numEjercicios = parseInt(numEjercicios, 10);
+        this.categoria = categoria;
+    }
+}
+
+class App {
+    constructor(eventBus, repoEjercicios, persistencia, registroCompletados, preferencias, progreso) {
+        this.eventBus = eventBus;
+        this.repoEjercicios = repoEjercicios;
+        this.persistencia = persistencia;
+        this.registroCompletados = registroCompletados;
+        this.preferencias = preferencias;
+        this.progreso = progreso;
+        this.config = this.cargarConfiguracionInicial();
+        this.filtro = new FiltroEjercicios();
+        this.generador = new GeneradorPlan();
+        this.ejerciciosFiltrados = [];
+        this.plan = [];
+        this.planFocalizado = false;
+        this.filtrosExploracion = { zona: 'todas', musculo: 'todos', categoria: 'todos' };
+    }
+
+    cargarConfiguracionInicial() {
+        const guardada = this.persistencia.cargar();
+        return guardada ? new Configuracion(guardada) : new Configuracion();
+    }
+
+    aplicarConfiguracion(nuevaConfig) {
+        this.config = new Configuracion(nuevaConfig);
+        this.persistencia.guardar(this.config);
+        this.planFocalizado = false;
+        this.actualizarDatos();
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+
+    cambiarCategoria(categoria) {
+        this.filtrosExploracion.categoria = categoria;
+        this.actualizarDatos();
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+
+    cambiarZona(zona) {
+        this.filtrosExploracion.zona = zona;
+        this.filtrosExploracion.musculo = 'todos';
+        this.actualizarDatos();
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+
+    cambiarMusculo(musculo) {
+        this.filtrosExploracion.musculo = musculo;
+        this.actualizarDatos();
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+
+    actualizarDatos() {
+        const todos = this.repoEjercicios.obtenerTodos();
+        const filtradosBase = this.filtro.filtrar(todos, this.config);
+        this.ejerciciosFiltrados = this.filtro.filtrar(todos, this.config, this.filtrosExploracion);
+        this.plan = this.generador.generar(filtradosBase, this.config, this.preferencias, this.progreso);
+    }
+
+    generarPlanFocalizado() {
+        this.planFocalizado = true;
+        const todos = this.repoEjercicios.obtenerTodos();
+        const filtradosBase = this.filtro.filtrar(todos, this.config, this.filtrosExploracion);
+        this.plan = this.generador.generar(filtradosBase, this.config, this.preferencias, this.progreso);
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+
+    volverPlanGeneral() {
+        this.planFocalizado = false;
+        this.actualizarDatos();
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+
+    regenerarPlan() {
+        this.actualizarDatos();
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+
+    resetearConfiguracion() {
+        this.config = new Configuracion();
+        this.persistencia.limpiar();
+        this.planFocalizado = false;
+        this.actualizarDatos();
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+
+    marcarCompletado(ejercicioId) {
+        this.registroCompletados.marcarEjercicio(ejercicioId);
+        this.progreso.registrarCompletado(ejercicioId);
+        this.eventBus.emit('completado:actualizado', { ejercicioId });
+    }
+
+    toggleExcluir(id) {
+        this.preferencias.toggleExcluir(id);
+        this.actualizarDatos();
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+
+    togglePrioritario(id) {
+        this.preferencias.togglePrioritario(id);
+        this.actualizarDatos();
+        this.eventBus.emit('estado:actualizado', { config: this.config, ejerciciosFiltrados: this.ejerciciosFiltrados, plan: this.plan, planFocalizado: this.planFocalizado });
+    }
+}
+
+/* ========== 6. PRESENTACIÓN ========== */
+class TabView {
+    constructor() {
+        this.botones = document.querySelectorAll('.tab-btn');
+        this.vistas = { explorar: document.getElementById('vistaExplorar'), plan: document.getElementById('vistaPlan') };
+        this.bindEvents();
+        this.activar('explorar');
+    }
+    bindEvents() {
+        this.botones.forEach(btn => btn.addEventListener('click', () => this.activar(btn.dataset.vista)));
+    }
+    activar(nombreVista) {
+        this.botones.forEach(btn => btn.classList.toggle('activo', btn.dataset.vista === nombreVista));
+        Object.entries(this.vistas).forEach(([nombre, vista]) => vista.classList.toggle('vista-oculta', nombre !== nombreVista));
+    }
+}
+
+class ModalConfiguracion {
+    constructor(eventBus, app) {
+        this.eventBus = eventBus;
+        this.app = app;
+        this.modal = document.getElementById('modalOverlay');
+        this.categoriaActual = this.app.filtrosExploracion.categoria;
+        this.objetivo = document.getElementById('objetivo');
+        this.limitRodilla = document.getElementById('limitRodilla');
+        this.limitHombro = document.getElementById('limitHombro');
+        this.eqMancuernas = document.getElementById('eqMancuernas');
+        this.eqBanda = document.getElementById('eqBanda');
+        this.eqParalelas = document.getElementById('eqParalelas');
+        this.eqSuelo = document.getElementById('eqSuelo');
+        this.eqSilla = document.getElementById('eqSilla');
+        this.eqPelota = document.getElementById('eqPelota');
+        this.eqToalla = document.getElementById('eqToalla');
+        this.dias = document.getElementById('dias');
+        this.numEjercicios = document.getElementById('numEjercicios');
+        this.filtrosCategorias = document.getElementById('filtrosCategoriasModal');
+        this.generarBotonesCategorias();
+        this.bindEvents();
+        this.sincronizarUI();
+    }
+    generarBotonesCategorias() {
+        const categoriasUnicas = [...new Set(this.app.repoEjercicios.obtenerTodos().map(e => e.categoria))];
+        this.filtrosCategorias.innerHTML = '';
+        const btnTodos = document.createElement('button');
+        btnTodos.className = 'filtro-btn activo';
+        btnTodos.dataset.categoria = 'todos';
+        btnTodos.textContent = 'Todos';
+        this.filtrosCategorias.appendChild(btnTodos);
+        categoriasUnicas.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'filtro-btn';
+            btn.dataset.categoria = cat;
+            btn.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+            this.filtrosCategorias.appendChild(btn);
+        });
+    }
+    bindEvents() {
+        document.getElementById('btnAbrirConfig').addEventListener('click', () => this.abrir());
+        document.getElementById('btnCerrarConfig').addEventListener('click', () => this.cerrarSinAplicar());
+        document.getElementById('btnAplicarCambios').addEventListener('click', () => this.aplicarCambios());
+        document.getElementById('btnResetConfig').addEventListener('click', () => this.resetearConfig());
+        this.filtrosCategorias.addEventListener('click', (e) => {
+            const btn = e.target.closest('.filtro-btn');
+            if (btn) {
+                this.categoriaActual = btn.dataset.categoria;
+                this.actualizarBotonActivo(btn);
+            }
+        });
+        this.modal.addEventListener('click', (e) => { if (e.target === this.modal) this.cerrarSinAplicar(); });
+    }
+    abrir() { this.sincronizarUI(); this.modal.classList.add('activo'); }
+    cerrarSinAplicar() { this.modal.classList.remove('activo'); this.sincronizarUI(); }
+    aplicarCambios() {
+        const configData = {
+            objetivo: this.objetivo.value,
+            limitRodilla: this.limitRodilla.checked,
+            limitHombro: this.limitHombro.checked,
+            equipo: {
+                mancuernas: this.eqMancuernas.checked,
+                banda: this.eqBanda.checked,
+                paralelas: this.eqParalelas.checked,
+                suelo: this.eqSuelo.checked,
+                silla: this.eqSilla.checked,
+                pelota: this.eqPelota.checked,
+                toalla: this.eqToalla.checked
+            },
+            dias: this.dias.value,
+            numEjercicios: this.numEjercicios.value,
+            categoria: this.categoriaActual
+        };
+        this.app.aplicarConfiguracion(configData);
+        this.modal.classList.remove('activo');
+    }
+    resetearConfig() {
+        this.app.resetearConfiguracion();
+        this.sincronizarUI();
+        this.modal.classList.remove('activo');
+    }
+    sincronizarUI() {
+        this.objetivo.value = this.app.config.objetivo;
+        this.limitRodilla.checked = this.app.config.limitRodilla;
+        this.limitHombro.checked = this.app.config.limitHombro;
+        this.eqMancuernas.checked = this.app.config.equipo.mancuernas;
+        this.eqBanda.checked = this.app.config.equipo.banda;
+        this.eqParalelas.checked = this.app.config.equipo.paralelas;
+        this.eqSuelo.checked = this.app.config.equipo.suelo;
+        this.eqSilla.checked = this.app.config.equipo.silla;
+        this.eqPelota.checked = this.app.config.equipo.pelota;
+        this.eqToalla.checked = this.app.config.equipo.toalla;
+        this.dias.value = this.app.config.dias;
+        this.numEjercicios.value = this.app.config.numEjercicios;
+        this.categoriaActual = this.app.filtrosExploracion.categoria;
+        this.actualizarBotonActivo(Array.from(this.filtrosCategorias.children).find(btn => btn.dataset.categoria === this.categoriaActual));
+    }
+    actualizarBotonActivo(btnActivo) {
+        Array.from(this.filtrosCategorias.children).forEach(btn => btn.classList.remove('activo'));
+        if (btnActivo) btnActivo.classList.add('activo');
+    }
+}
+
+// Función para generar badges según propiedades del ejercicio
+function generarBadges(ejercicio) {
+    const badges = [];
+    // Zona
+    const zonaEmojis = { rodilla: '🦵', cadera: '🍑', hombro: '🙆', core: '🧘', espalda: '🧎', tobillo: '🦶', columna: '🦴', respiración: '🫁' };
+    ejercicio.zonas.forEach(z => {
+        if (zonaEmojis[z]) badges.push(`<span class="badge badge-zona">${zonaEmojis[z]} ${z}</span>`);
+    });
+    // Categoría/tipo
+    const categoriaEmojis = { isometrico: '🧍', core: '🧘', pierna: '🦵', cadera: '🍑', empuje: '💪', traccion: '🏋️', hombro: '🙆', espalda: '🧎', movilidad: '🤸', equilibrio: '⚖️', funcional: '🪑' };
+    if (categoriaEmojis[ejercicio.categoria]) badges.push(`<span class="badge badge-categoria">${categoriaEmojis[ejercicio.categoria]} ${ejercicio.categoria}</span>`);
+    // Equipo
+    const equipoEmojis = { suelo: '🧱', silla: '🪑', banda: '🎗️', mancuernas: '🏋️', pelota: '⚪', toalla: '🧻', paralelas: '🤸' };
+    ejercicio.equipo.forEach(eq => {
+        if (equipoEmojis[eq]) badges.push(`<span class="badge badge-equipo">${equipoEmojis[eq]} ${eq}</span>`);
+    });
+    return badges.join('');
+}
+
+class ListaEjercicios {
+    constructor(eventBus, app) {
+        this.eventBus = eventBus;
+        this.app = app;
+        this.contenedor = document.getElementById('listadoEjercicios');
+        this.contador = document.getElementById('contadorEjercicios');
+        this.filtrosCategorias = document.getElementById('filtrosCategorias');
+        this.selectZona = document.getElementById('selectZona');
+        this.selectMusculo = document.getElementById('selectMusculo');
+        this.generarBotonesCategorias();
+        this.generarOpcionesZonas();
+        this.bindEvents();
+        this.eventBus.on('estado:actualizado', (data) => {
+            this.render(data.ejerciciosFiltrados);
+            this.generarOpcionesMusculos();
+        });
+    }
+    generarBotonesCategorias() {
+        const categoriasUnicas = [...new Set(this.app.repoEjercicios.obtenerTodos().map(e => e.categoria))];
+        this.filtrosCategorias.innerHTML = '';
+        const btnTodos = document.createElement('button');
+        btnTodos.className = 'filtro-btn activo';
+        btnTodos.dataset.categoria = 'todos';
+        btnTodos.textContent = 'Todos';
+        this.filtrosCategorias.appendChild(btnTodos);
+        categoriasUnicas.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'filtro-btn';
+            btn.dataset.categoria = cat;
+            btn.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+            this.filtrosCategorias.appendChild(btn);
+        });
+    }
+    generarOpcionesZonas() {
+        const zonasUnicas = [...new Set(this.app.repoEjercicios.obtenerTodos().flatMap(e => e.zonas))];
+        this.selectZona.innerHTML = '<option value="todas">Todas las zonas</option>';
+        zonasUnicas.forEach(zona => {
+            const op = document.createElement('option');
+            op.value = zona;
+            op.textContent = zona.charAt(0).toUpperCase() + zona.slice(1);
+            this.selectZona.appendChild(op);
+        });
+    }
+    generarOpcionesMusculos() {
+        const zonaSeleccionada = this.selectZona.value;
+        const ejerciciosBase = this.app.repoEjercicios.obtenerTodos().filter(e => {
+            if (zonaSeleccionada === 'todas') return true;
+            return e.zonas.includes(zonaSeleccionada);
+        });
+        const musculos = new Set();
+        ejerciciosBase.forEach(e => {
+            e.musculos_principales.forEach(m => musculos.add(m));
+            e.musculos_secundarios.forEach(m => musculos.add(m));
+        });
+        const musculosOrdenados = Array.from(musculos).sort();
+        this.selectMusculo.innerHTML = '<option value="todos">Todos los músculos</option>';
+        musculosOrdenados.forEach(m => {
+            const op = document.createElement('option');
+            op.value = m;
+            op.textContent = m;
+            this.selectMusculo.appendChild(op);
+        });
+    }
+    bindEvents() {
+        this.filtrosCategorias.addEventListener('click', (e) => {
+            const btn = e.target.closest('.filtro-btn');
+            if (btn) {
+                Array.from(this.filtrosCategorias.children).forEach(b => b.classList.remove('activo'));
+                btn.classList.add('activo');
+                this.app.cambiarCategoria(btn.dataset.categoria);
+            }
+        });
+        this.selectZona.addEventListener('change', () => {
+            this.app.cambiarZona(this.selectZona.value);
+            this.generarOpcionesMusculos();
+            this.selectMusculo.value = 'todos';
+        });
+        this.selectMusculo.addEventListener('change', () => {
+            this.app.cambiarMusculo(this.selectMusculo.value);
+        });
+        document.getElementById('btnGenerarPlanFocalizado').addEventListener('click', () => {
+            this.app.generarPlanFocalizado();
+            document.querySelector('.tab-btn[data-vista="plan"]').click();
+        });
+    }
+    render(ejercicios) {
+        this.contenedor.innerHTML = '';
+        this.contador.textContent = `Mostrando ${ejercicios.length} ejercicio(s)`;
+        if (ejercicios.length === 0) {
+            this.contenedor.innerHTML = '<p>No hay ejercicios que cumplan los criterios. Ajusta los filtros.</p>';
+            return;
+        }
+        ejercicios.forEach(ej => {
+            const tarjeta = document.createElement('div');
+            tarjeta.className = 'tarjeta-ejercicio';
+            const completadoHoy = this.app.registroCompletados.estaCompletadoHoy(ej.id);
+            const esExcluido = this.app.preferencias.esExcluido(ej.id);
+            const esPrioritario = this.app.preferencias.esPrioritario(ej.id);
+            const nivelActual = this.app.progreso.obtenerNivel(ej.id);
+            const completados = this.app.progreso.obtenerCompletados(ej.id);
+            const badges = generarBadges(ej);
+            tarjeta.innerHTML = `
+                <div class="badges">${badges}</div>
+                <h3>${ej.nombre} ${completadoHoy ? '<span class="completado-indicador">✅</span>' : ''}</h3>
+                <p>${ej.descripcion}</p>
+                <div class="diagrama">${ej.imagen ? `<img src="${ej.imagen}" alt="${ej.nombre}">` : ''}</div>
+                <small>Nivel ${nivelActual} · ${completados}/3 para subir</small>
+                <br>
+                <button class="btn-detalle" data-id="${ej.id}">Ver detalle</button>
+                <button class="btn-priorizar ${esPrioritario ? 'activo' : ''}" data-id="${ej.id}">${esPrioritario ? '⭐ Quitar prioridad' : '⭐ Priorizar'}</button>
+                <button class="btn-excluir ${esExcluido ? 'activo' : ''}" data-id="${ej.id}">${esExcluido ? '↩️ Quitar exclusión' : '🚫 Excluir'}</button>
+            `;
+            tarjeta.querySelector('.btn-detalle').addEventListener('click', () => {
+                this.eventBus.emit('ejercicio:seleccionado', { id: ej.id });
+            });
+            tarjeta.querySelector('.btn-priorizar').addEventListener('click', () => {
+                this.app.togglePrioritario(ej.id);
+            });
+            tarjeta.querySelector('.btn-excluir').addEventListener('click', () => {
+                this.app.toggleExcluir(ej.id);
+            });
+            this.contenedor.appendChild(tarjeta);
+        });
+    }
+}
+
+class PlanEntrenamiento {
+    constructor(eventBus, app) {
+        this.eventBus = eventBus;
+        this.app = app;
+        this.contenedor = document.getElementById('resultado');
+        this.infoPlan = document.getElementById('infoPlan');
+        this.botonImprimir = document.getElementById('btnImprimirPlan');
+        this.botonRegenerar = document.getElementById('btnRegenerarPlan');
+        this.botonVolverGeneral = document.getElementById('btnVolverPlanGeneral');
+        this.botonImprimir.addEventListener('click', () => window.print());
+        this.botonRegenerar.addEventListener('click', () => this.app.regenerarPlan());
+        this.botonVolverGeneral.addEventListener('click', () => this.app.volverPlanGeneral());
+        this.eventBus.on('estado:actualizado', (data) => this.render(data.plan, data.planFocalizado));
+        this.eventBus.on('completado:actualizado', () => this.render(this.app.plan, this.app.planFocalizado));
+    }
+    render(plan, planFocalizado = false) {
+        this.contenedor.innerHTML = '';
+        this.infoPlan.innerHTML = '';
+        if (!plan || plan.length === 0) {
+            this.contenedor.innerHTML = '<p>No se pudo generar el plan.</p>';
+            return;
+        }
+        if (planFocalizado) {
+            const zona = this.app.filtrosExploracion.zona !== 'todas' ? this.app.filtrosExploracion.zona : 'todas las zonas';
+            const musculo = this.app.filtrosExploracion.musculo !== 'todos' ? this.app.filtrosExploracion.musculo : 'todos los músculos';
+            this.infoPlan.innerHTML = `<p><strong>Plan focalizado: ${zona} / ${musculo}</strong></p>`;
+            this.botonVolverGeneral.style.display = 'inline-block';
+        } else {
+            this.botonVolverGeneral.style.display = 'none';
+        }
+        const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        let html = `<div class="tarjeta-ejercicio"><h3>📋 Plan (${plan.length} días/semana)</h3>`;
+        html += '<table><tr><th>Día</th><th>Ejercicios</th></tr>';
+        plan.forEach(dia => {
+            html += `<tr><td><strong>${diasSemana[dia.dia - 1] || 'Día ' + dia.dia}</strong></td><td>`;
+            if (dia.ejercicios.length === 0) {
+                html += `<em>Día de descanso activo</em>`;
+            } else {
+                dia.ejercicios.forEach(ej => {
+                    const completadoHoy = this.app.registroCompletados.estaCompletadoHoy(ej.id);
+                    const esPrioritario = this.app.preferencias.esPrioritario(ej.id);
+                    const nivelActual = this.app.progreso.obtenerNivel(ej.id);
+                    const completados = this.app.progreso.obtenerCompletados(ej.id);
+                    const badges = generarBadges(ej);
+                    html += `<div style="margin-bottom:15px;">
+                        <span class="nombre-ejercicio" data-id="${ej.id}">${ej.nombre}</span>
+                        ${esPrioritario ? ' ⭐' : ''}
+                        ${completadoHoy ? '<span class="completado-indicador"> ✅</span>' : ''}
+                        <div class="badges">${badges}</div>
+                        <small>Nivel ${nivelActual} · ${completados}/3 para subir</small><br>
+                        <small>Nivel 1: ${ej.niveles[0].detalle} · RPE ${ej.niveles[0].rpe} · TUT ${ej.niveles[0].tut}</small><br>`;
+                    if (!completadoHoy) {
+                        html += `<button class="btn-completar" data-ejercicio-id="${ej.id}">✅ Marcar completado</button>`;
+                    }
+                    html += `</div>`;
+                });
+            }
+            html += '</td></tr>';
+        });
+        html += '</table></div>';
+        this.contenedor.innerHTML = html;
+
+        this.contenedor.querySelectorAll('.nombre-ejercicio').forEach(el => {
+            el.addEventListener('click', () => {
+                const id = el.dataset.id;
+                this.eventBus.emit('ejercicio:seleccionado', { id });
+            });
+        });
+        this.contenedor.querySelectorAll('.btn-completar').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.dataset.ejercicioId;
+                this.app.marcarCompletado(id);
+            });
+        });
+    }
+}
+
+class ModalDetalleEjercicio {
+    constructor(eventBus, app) {
+        this.eventBus = eventBus;
+        this.app = app;
+        this.modal = document.getElementById('modalDetalleEjercicio');
+        this.contenido = document.getElementById('detalleContenido');
+        this.btnCerrar = document.getElementById('btnCerrarDetalle');
+        this.btnCerrar.addEventListener('click', () => this.cerrar());
+        this.modal.addEventListener('click', (e) => { if (e.target === this.modal) this.cerrar(); });
+        this.eventBus.on('ejercicio:seleccionado', ({ id }) => this.abrir(id));
+    }
+    abrir(id) {
+        const ejercicio = this.app.repoEjercicios.obtenerPorId(id);
+        if (!ejercicio) return;
+        const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(ejercicio.nombre + ' ejercicio tecnica')}`;
+        const esExcluido = this.app.preferencias.esExcluido(ejercicio.id);
+        const esPrioritario = this.app.preferencias.esPrioritario(ejercicio.id);
+        const nivelActual = this.app.progreso.obtenerNivel(ejercicio.id);
+        const completados = this.app.progreso.obtenerCompletados(ejercicio.id);
+        const badges = generarBadges(ejercicio);
+        this.contenido.innerHTML = `
+            <div class="badges">${badges}</div>
+            <h2>${ejercicio.nombre}</h2>
+            <p>${ejercicio.descripcion}</p>
+            <div class="diagrama">${ejercicio.imagen ? `<img src="${ejercicio.imagen}" alt="${ejercicio.nombre}">` : ''}</div>
+            <p><strong>Nivel actual:</strong> ${nivelActual} · <strong>Completados:</strong> ${completados}/3 para subir</p>
+            <div class="niveles">
+                ${ejercicio.niveles.map(n => `
+                    <div class="nivel">
+                        <strong>Nivel ${n.nivel}:</strong> ${n.detalle}
+                        <span class="fibras ${this.obtenerClaseFibras(n.fibras)}">${n.fibras}</span>
+                        <br><small>RPE ${n.rpe} · TUT ${n.tut}</small>
+                    </div>
+                `).join('')}
+            </div>
+            ${ejercicio.nota ? `<div class="nota">⚠️ ${ejercicio.nota}</div>` : ''}
+            <a href="${youtubeUrl}" target="_blank" class="btn-youtube">🎥 Ver técnica en YouTube</a>
+            <br><br>
+            <button class="btn-priorizar ${esPrioritario ? 'activo' : ''}" id="btnPriorizarModal">${esPrioritario ? '⭐ Quitar prioridad' : '⭐ Priorizar'}</button>
+            <button class="btn-excluir ${esExcluido ? 'activo' : ''}" id="btnExcluirModal">${esExcluido ? '↩️ Quitar exclusión' : '🚫 Excluir'}</button>
+        `;
+        document.getElementById('btnPriorizarModal').addEventListener('click', () => {
+            this.app.togglePrioritario(ejercicio.id);
+            this.abrir(ejercicio.id);
+        });
+        document.getElementById('btnExcluirModal').addEventListener('click', () => {
+            this.app.toggleExcluir(ejercicio.id);
+            this.abrir(ejercicio.id);
+        });
+        this.modal.classList.add('activo');
+    }
+    cerrar() {
+        this.modal.classList.remove('activo');
+        this.contenido.innerHTML = '';
+    }
+    obtenerClaseFibras(fibras) {
+        if (fibras.includes('I') && !fibras.includes('II')) return 'fibras-lentas';
+        if (fibras.includes('II')) return 'fibras-rapidas';
+        return 'fibras-mixtas';
+    }
+}
+
+/* ========== 7. INICIALIZACIÓN ========== */
+document.addEventListener('DOMContentLoaded', () => {
+    // Asignar SVG a cada ejercicio (o imagen genérica)
+    const diagramas = {
+        zhan: () => `<svg viewBox="0 0 300 400" width="200" height="267"><circle cx="150" cy="45" r="18" fill="white" stroke="#2c3e50" stroke-width="3"/><line x1="150" y1="63" x2="150" y2="180" stroke="#2c3e50" stroke-width="3"/><line x1="150" y1="80" x2="105" y2="120" stroke="#2c3e50" stroke-width="3"/><line x1="105" y1="120" x2="115" y2="180" stroke="#2c3e50" stroke-width="3"/><line x1="150" y1="80" x2="195" y2="120" stroke="#2c3e50" stroke-width="3"/><line x1="195" y1="120" x2="185" y2="180" stroke="#2c3e50" stroke-width="3"/><circle cx="150" cy="180" r="25" stroke="#2c3e50" stroke-width="2" stroke-dasharray="5" fill="none"/><line x1="150" y1="205" x2="125" y2="280" stroke="#2c3e50" stroke-width="3"/><line x1="125" y1="280" x2="125" y2="360" stroke="#2c3e50" stroke-width="3"/><line x1="150" y1="205" x2="175" y2="280" stroke="#2c3e50" stroke-width="3"/><line x1="175" y1="280" x2="175" y2="360" stroke="#2c3e50" stroke-width="3"/><circle cx="125" cy="280" r="6" fill="#e74c3c"/><circle cx="175" cy="280" r="6" fill="#e74c3c"/></svg>`,
+        ma: () => `<svg viewBox="0 0 300 400" width="200" height="267"><circle cx="150" cy="45" r="18" fill="white" stroke="#2c3e50" stroke-width="3"/><line x1="150" y1="63" x2="150" y2="180" stroke="#2c3e50" stroke-width="3"/><line x1="150" y1="80" x2="80" y2="80" stroke="#2c3e50" stroke-width="3"/><line x1="80" y1="80" x2="55" y2="80" stroke="#2c3e50" stroke-width="3"/><line x1="150" y1="80" x2="220" y2="80" stroke="#2c3e50" stroke-width="3"/><line x1="220" y1="80" x2="245" y2="80" stroke="#2c3e50" stroke-width="3"/><circle cx="55" cy="80" r="5" fill="#2c3e50"/><circle cx="245" cy="80" r="5" fill="#2c3e50"/><line x1="150" y1="180" x2="100" y2="260" stroke="#2c3e50" stroke-width="3"/><line x1="100" y1="260" x2="70" y2="360" stroke="#2c3e50" stroke-width="3"/><line x1="150" y1="180" x2="200" y2="260" stroke="#2c3e50" stroke-width="3"/><line x1="200" y1="260" x2="230" y2="360" stroke="#2c3e50" stroke-width="3"/><circle cx="100" cy="260" r="6" fill="#e74c3c"/><circle cx="200" cy="260" r="6" fill="#e74c3c"/><line x1="62" y1="360" x2="78" y2="360" stroke="#2c3e50" stroke-width="3"/><line x1="222" y1="360" x2="238" y2="360" stroke="#2c3e50" stroke-width="3"/></svg>`,
+        // ... resto de SVG si los hubiera
+    };
+
+    // Asignar SVG a cada ejercicio
+    datosEjercicios.forEach(ej => {
+        ej.svg = diagramas[ej.id] ? diagramas[ej.id]() : '<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="40" fill="#ccc"/></svg>';
+    });
+
+    const eventBus = new EventBus();
+    const repo = new RepositorioEjerciciosEnMemoria(datosEjercicios);
+    const persistencia = new PersistenciaLocalStorage('entrenamiento-config-v8');
+    const registroCompletados = new RegistroCompletados('entrenamiento-completados');
+    const preferencias = new PreferenciasEjercicios('entrenamiento-preferencias-v1');
+    const progreso = new Progreso('entrenamiento-progreso-v1');
+
+    const app = new App(eventBus, repo, persistencia, registroCompletados, preferencias, progreso);
+
+    new TabView();
+    new ModalConfiguracion(eventBus, app);
+    new ListaEjercicios(eventBus, app);
+    new PlanEntrenamiento(eventBus, app);
+    new ModalDetalleEjercicio(eventBus, app);
+
+    app.actualizarDatos();
+    eventBus.emit('estado:actualizado', {
+        config: app.config,
+        ejerciciosFiltrados: app.ejerciciosFiltrados,
+        plan: app.plan,
+        planFocalizado: app.planFocalizado
+    });
+});
+</script>
+</body>
+</html>
