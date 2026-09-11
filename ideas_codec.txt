@@ -1,0 +1,147 @@
+import numpy as np
+from enum import Enum
+from dataclasses import dataclass, field
+from typing import List, Dict, Optional, Tuple
+
+# ---------- Tipos ----------
+class OptionType(Enum):
+    FULL_DECODE = "full"           # Todo llegó, decodificación normal
+    PARTIAL_DECODE = "partial"     # Falta algo, decodifico lo que hay
+    TEMPORAL_PREDICT = "temporal"  # Uso frame anterior + motion vectors
+    SPATIAL_INTERPOLATE = "spatial" # Relleno con vecinos espaciales
+    FREEZE = "freeze"              # Congelo el frame anterior
+
+@dataclass
+class DecodeOption:
+    kind: OptionType
+    frame: Optional[np.ndarray] = None
+    confidence: float = 0.0
+    flags: List[str] = field(default_factory=list)
+    estimated_artifacts: float = 0.0  # 0 = limpio, 1 = horrible
+
+@dataclass
+class DecoderProfile:
+    max_latency_ms: float = 33.0
+    min_confidence: float = 0.3
+    max_artifacts: float = 0.5
+    prefer_temporal: bool = True
+
+# ---------- Memoria local (bucle doble) ----------
+class LocalMemory:
+    def __init__(self):
+        self.failure_patterns: Dict[str, OptionType] = {}
+        self.success_count: Dict[str, int] = {}
+        self.failure_count: Dict[str, int] = {}
+    
+    def key(self, missing_ratio: float, motion_magnitude: float) -> str:
+        # Cuantizamos el contexto para que sea reutilizable
+        mr = round(missing_ratio, 1)  # 0.0, 0.1, ... 1.0
+        mm = round(motion_magnitude, 1)
+        return f"mr{mr}_mm{mm}"
+    
+    def record(self, context_key: str, option: OptionType, success: bool):
+        if success:
+            self.success_count[context_key] = self.success_count.get(context_key, 0) + 1
+        else:
+            self.failure_count[context_key] = self.failure_count.get(context_key, 0) + 1
+            # Si falla mucho, recordar la alternativa que funcionó
+            self.failure_patterns[context_key] = option
+
+# ---------- El Examinador ----------
+class DecoderExaminer:
+    def __init__(self, profile: DecoderProfile):
+        self.profile = profile
+        self.memory = LocalMemory()
+    
+    def examine(self, partial_frame: Optional[np.ndarray],
+                prev_frame: Optional[np.ndarray],
+                motion_vectors: Optional[np.ndarray],
+                missing_mask: np.ndarray,
+                motion_magnitude: float) -> DecodeOption:
+        
+        missing_ratio = float(np.mean(missing_mask))
+        context = self.memory.key(missing_ratio, motion_magnitude)
+        
+        # PASO 1: HECHOS
+        has_partial = partial_frame is not None
+        has_prev = prev_frame is not None
+        has_motion = motion_vectors is not None
+        
+        # PASO 2: CREATIVIDAD
+        options = []
+        
+        if missing_ratio == 0.0 and has_partial:
+            options.append(DecodeOption(OptionType.FULL_DECODE, partial_frame, 1.0, [], 0.0))
+        
+        if has_partial:
+            options.append(DecodeOption(OptionType.PARTIAL_DECODE, partial_frame, 
+                                        1.0 - missing_ratio, ["partial"], missing_ratio * 0.5))
+        
+        if has_prev and has_motion:
+            warped = self._warp(prev_frame, motion_vectors)
+            options.append(DecodeOption(OptionType.TEMPORAL_PREDICT, warped,
+                                        min(0.9, 1.0 - motion_magnitude * 0.2),
+                                        ["inferred", "temporal"],
+                                        motion_magnitude * 0.3))
+        
+        if has_partial and has_prev:
+            interp = self._spatial_interpolate(partial_frame, missing_mask, prev_frame)
+            options.append(DecodeOption(OptionType.SPATIAL_INTERPOLATE, interp,
+                                        0.6, ["inferred", "spatial"], 0.3))
+        
+        if has_prev:
+            options.append(DecodeOption(OptionType.FREEZE, prev_frame, 0.4, ["freeze"], 0.4))
+        
+        # PASO 3: LÓGICA (coherencia estructural)
+        valid = []
+        for opt in options:
+            if opt.frame is None:
+                continue
+            if opt.frame.shape != missing_mask.shape[:2] + (3,) and opt.frame.ndim == 3:
+                continue
+            valid.append(opt)
+        
+        # PASO 4: ÉTICA (riesgo inaceptable)
+        ethical = []
+        for opt in valid:
+            if opt.estimated_artifacts > self.profile.max_artifacts:
+                continue
+            if opt.confidence < self.profile.min_confidence:
+                continue
+            ethical.append(opt)
+        
+        if not ethical:
+            # Fallback: congelar siempre es posible
+            return DecodeOption(OptionType.FREEZE, prev_frame, 0.2, ["emergency"], 0.6)
+        
+        # PASO 5: NEGOCIACIÓN (flags de advertencia)
+        for opt in ethical:
+            if opt.confidence < 0.8:
+                opt.flags.append("low_confidence")
+        
+        # PASO 6: COHERENCIA (elegir por perfil)
+        best = self._choose_by_profile(ethical)
+        
+        # APRENDIZAJE (bucle doble)
+        self.memory.record(context, best.kind, success=(best.confidence > 0.5))
+        
+        return best
+    
+    def _choose_by_profile(self, options: List[DecodeOption]) -> DecodeOption:
+        # Ponderación simple
+        def score(opt):
+            s = opt.confidence * (1.0 - opt.estimated_artifacts)
+            if self.profile.prefer_temporal and opt.kind == OptionType.TEMPORAL_PREDICT:
+                s *= 1.2
+            return s
+        return max(options, key=score)
+    
+    def _warp(self, frame, motion_vectors):
+        # Placeholder: aquí iría la warping real con cv2.remap o similar
+        return frame.copy()
+    
+    def _spatial_interpolate(self, partial, mask, prev):
+        # Placeholder: relleno con inpainting simple
+        result = partial.copy()
+        result[mask] = prev[mask]
+        return result
