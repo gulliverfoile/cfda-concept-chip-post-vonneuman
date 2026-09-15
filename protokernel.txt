@@ -1,0 +1,172 @@
+from abc import ABC, abstractmethod
+from collections import deque
+
+# ------------------------
+# Módulos del proto-kernel
+# ------------------------
+
+class KernelModule(ABC):
+    @abstractmethod
+    def execute(self, context: dict):
+        pass
+
+class ProcessManager(KernelModule):
+    """Procesos con prioridades, dependencias y deadlocks simulados"""
+    def __init__(self):
+        self.process_queue = deque()
+        self.waiting_processes = []
+        self.executed_pids = set()
+    
+    def add_process(self, pid: int, priority: int, memory_needed: int, io_needed=False, dependencies=None):
+        if dependencies is None:
+            dependencies = []
+        process = {
+            "pid": pid,
+            "priority": priority,
+            "state": "ready",
+            "memory_needed": memory_needed,
+            "io_needed": io_needed,
+            "dependencies": dependencies
+        }
+        self.process_queue.append(process)
+    
+    def execute(self, context: dict):
+        memory_manager = context.get("memory_manager")
+        io_manager = context.get("io_manager")
+        executed_this_cycle = 0
+        
+        for _ in range(len(self.process_queue)):
+            process = self.process_queue.popleft()
+            
+            # Verificar dependencias
+            blocked = any(dep not in self.executed_pids for dep in process["dependencies"])
+            if blocked:
+                process["state"] = "waiting"
+                self.waiting_processes.append(process)
+                print(f"Proceso {process['pid']} bloqueado por dependencias {process['dependencies']}")
+                continue
+            
+            # Intentar asignar memoria
+            if memory_manager and not memory_manager.allocate(process["memory_needed"]):
+                process["state"] = "waiting"
+                self.waiting_processes.append(process)
+                print(f"Proceso {process['pid']} esperando memoria")
+                continue
+            
+            # Intentar reservar I/O si se necesita
+            if process["io_needed"] and io_manager:
+                if not io_manager.allocate_io(process["pid"]):
+                    process["state"] = "waiting"
+                    self.waiting_processes.append(process)
+                    print(f"Proceso {process['pid']} esperando I/O")
+                    continue
+            
+            # Ejecutar proceso
+            process["state"] = "running"
+            print(f"Ejecutando proceso {process['pid']} (prioridad {process['priority']})")
+            
+            # Simular I/O
+            if process["io_needed"] and io_manager:
+                io_manager.execute({"pid": process["pid"]})
+                io_manager.release_io(process["pid"])
+            
+            # Terminar proceso
+            process["state"] = "terminated"
+            executed_this_cycle += 1
+            self.executed_pids.add(process["pid"])
+            
+            # Liberar memoria
+            if memory_manager:
+                memory_manager.free(process["memory_needed"])
+        
+        # Reinsertar procesos bloqueados
+        self.process_queue.extend(self.waiting_processes)
+        self.waiting_processes = []
+        
+        return executed_this_cycle
+
+class MemoryManager(KernelModule):
+    def __init__(self, total_memory: int):
+        self.total_memory = total_memory
+        self.used_memory = 0
+    
+    def allocate(self, amount: int) -> bool:
+        if self.used_memory + amount > self.total_memory:
+            return False
+        self.used_memory += amount
+        print(f"Memoria asignada: {amount}, total usado: {self.used_memory}")
+        return True
+    
+    def free(self, amount: int):
+        self.used_memory -= amount
+        print(f"Memoria liberada: {amount}, total usado: {self.used_memory}")
+
+class IOManager(KernelModule):
+    """I/O exclusivo, simula recurso compartido"""
+    def __init__(self):
+        self.current_pid = None
+    
+    def allocate_io(self, pid: int) -> bool:
+        if self.current_pid is not None:
+            return False
+        self.current_pid = pid
+        print(f"I/O asignado a proceso {pid}")
+        return True
+    
+    def release_io(self, pid: int):
+        if self.current_pid == pid:
+            print(f"I/O liberado por proceso {pid}")
+            self.current_pid = None
+    
+    def execute(self, context: dict):
+        pid = context.get("pid")
+        if pid:
+            print(f"Proceso {pid} usando I/O")
+
+# ------------------------
+# Proto-kernel completo
+# ------------------------
+
+class ProtoKernel:
+    def __init__(self):
+        self.modules = {}
+    
+    def add_module(self, name: str, module: KernelModule):
+        self.modules[name] = module
+    
+    def run_cycles(self, cycles: int = 1):
+        for cycle in range(cycles):
+            print(f"\n=== Ciclo {cycle + 1} ===")
+            context = {
+                "memory_manager": self.modules.get("memory"),
+                "io_manager": self.modules.get("io")
+            }
+            executed = 0
+            if "processes" in self.modules:
+                executed = self.modules["processes"].execute(context)
+            
+            total_processes = len(self.modules["processes"].process_queue) + len(self.modules["processes"].executed_pids)
+            coherence = executed / total_processes if total_processes else 1
+            print(f"Coherencia global de este ciclo: {coherence:.2f}")
+
+# ------------------------
+# Ejemplo de uso avanzado
+# ------------------------
+
+kernel = ProtoKernel()
+
+pm = ProcessManager()
+pm.add_process(pid=1, priority=10, memory_needed=300, io_needed=True)
+pm.add_process(pid=2, priority=8, memory_needed=400, io_needed=True, dependencies=[1])
+pm.add_process(pid=3, priority=6, memory_needed=200)
+pm.add_process(pid=4, priority=7, memory_needed=500, io_needed=True, dependencies=[2,3])
+
+mm = MemoryManager(total_memory=1000)
+io = IOManager()
+
+kernel.add_module("processes", pm)
+kernel.add_module("memory", mm)
+kernel.add_module("io", io)
+
+# Ejecutar kernel durante 5 ciclos
+kernel.run_cycles(cycles=5)
