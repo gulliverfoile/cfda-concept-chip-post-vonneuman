@@ -1,0 +1,119 @@
+==============================================================
+QUÉ CONSTRUIR
+==============================================================
+
+Tipo de programa: [web app / juego / script / CLI / API / librería]
+Objetivo: [una frase. Ej: "un roguelike de gestión por eras con cartas"]
+Alcance: [qué entra y qué NO entra en esta iteración]
+
+Inputs del usuario: [qué introduce o pulsa]
+Outputs esperados: [qué produce o muestra]
+Duración de uso: [5 min / 30 min / indefinido]
+
+
+==============================================================
+FLUJO
+==============================================================
+
+Paso a paso de cómo se usa:
+  1. [...]
+  2. [...]
+  3. [...]
+
+Estados posibles: [inicio / activo / pausa / fin]
+Fin: [cómo termina]
+
+
+==============================================================
+ARQUITECTURA
+==============================================================
+
+Estilo: [hexagonal / MVC / capas / monolito modular / event-driven]
+Capas:
+  - [DOMINIO]        → lógica pura, sin dependencias externas
+  - [APLICACIÓN]     → orquestación, casos de uso, eventos
+  - [INFRAESTRUCTURA]→ IO, UI, persistencia
+
+Comunicación entre capas: [EventBus / callbacks / promesas]
+Estado: [global / inmutable / en un store / en el dominio]
+Persistencia: [ninguna / localStorage / fichero / servidor]
+
+
+==============================================================
+ESTRUCTURA DE FICHEROS
+==============================================================
+
+[Un solo archivo HTML / múltiples módulos / estructura de carpetas]
+
+Nombres: [snake_case / camelCase / PascalCase]
+Idioma del código: [español / inglés]
+
+
+==============================================================
+DOCUMENTACIÓN
+==============================================================
+
+Comentarios en 3 niveles:
+  1. Qué hace la función (breve).
+  2. Por qué existe, qué decisión de diseño representa.
+  3. Relaciones y dependencias: qué lee, qué escribe, quién depende de ella.
+
+Marcar como ajustable cualquier número que sea de balance o configuración.
+JSDoc en funciones públicas.
+
+
+==============================================================
+TESTS
+==============================================================
+
+Tipo: [relaciones críticas / unitarios / integración / ninguno]
+Cubrir concretamente:
+  - [...]
+  - [...]
+  - [...]
+
+Ejecutables: [desde consola con un comando / al abrir el HTML / con framework X]
+Ubicación: [mismo archivo / carpeta tests/]
+
+
+==============================================================
+BUENAS PRÁCTICAS
+==============================================================
+
+  - Funciones puras donde sea posible.
+  - Sin estado global salvo el estrictamente necesario.
+  - Sin efectos secundarios fuera de los puntos declarados.
+  - Nombres descriptivos, sin abreviaturas.
+  - Sin duplicación de lógica.
+  - Sin `any` ni tipos implícitos (si TypeScript).
+  - Errores manejados, no silenciados.
+
+
+==============================================================
+LO QUE NO QUIERO
+==============================================================
+
+  - No añadas features que no he pedido.
+  - No refactorices lo que ya funciona.
+  - No cambies números de balance sin avisar.
+  - No introduzcas dependencias externas sin justificarlo.
+  - No uses [X técnica / framework / patrón] que no venga a cuento.
+  - No te pases de listo añadiendo "mejoras" no solicitadas.
+
+
+==============================================================
+ENTREGABLE
+==============================================================
+
+Formato: [un archivo / varios / diff parcial]
+Extensión aproximada: [máx 500 líneas / lo que haga falta]
+Si algo no cabe, dime qué recortar antes de escribirlo.
+
+
+==============================================================
+ANTES DE ESCRIBIR
+==============================================================
+
+Si algo de lo de arriba es ambiguo, pregúntame antes de escribir.
+Si crees que hay una contradicción, señálala.
+Si el alcance es demasiado grande para un solo entregable, propón dividirlo.
