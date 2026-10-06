@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Simulador electoral · España</title>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #1a2129; --borde: #2d3742;
+    --texto: #e6e6e6; --apagado: #8a95a1; --acento: #4fc3f7;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--texto);
+    font-family: system-ui, -apple-system, sans-serif; font-size: 14px; }
+  header { padding: 12px 20px; border-bottom: 1px solid var(--borde);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 10px; }
+  header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  main { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px;
+    padding: 16px; max-width: 1500px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--borde);
+    border-radius: 8px; padding: 12px; }
+  .panel h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600;
+    color: var(--apagado); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  #mapa { position: relative; width: 100%; background: #12181e;
+    border-radius: 6px; overflow: hidden; }
+  #mapa svg { width: 100%; height: auto; display: block; }
+  #mapa .hex { stroke: #0f1419; stroke-width: 1; cursor: pointer;
+    transition: fill 0.2s, opacity 0.15s; }
+  #mapa .hex:hover { opacity: 0.85; stroke: var(--acento); stroke-width: 2; }
+  #mapa .hex.activa { stroke: var(--acento); stroke-width: 2.5; }
+  #mapa .hex-etiqueta { font-size: 8px; fill: #fff; pointer-events: none;
+    text-anchor: middle; dominant-baseline: middle;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.9); font-weight: 600; }
+  #popup { position: absolute; display: none; background: var(--panel);
+    border: 1px solid var(--borde); border-radius: 6px; padding: 10px 12px;
+    font-size: 12px; pointer-events: none; z-index: 100; max-width: 260px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5); line-height: 1.5; }
+  #popup strong { color: var(--texto); }
+  #zoom-controles { position: absolute; top: 10px; right: 10px;
+    display: flex; flex-direction: column; gap: 4px; z-index: 50; }
+  #zoom-controles button { width: 30px; height: 30px; padding: 0;
+    font-size: 16px; font-weight: 600; background: var(--panel);
+    border: 1px solid var(--borde); border-radius: 4px;
+    color: var(--texto); cursor: pointer; }
+  #zoom-controles button:hover { background: #2d3742; }
+  #leyenda-mapa { position: absolute; bottom: 8px; left: 8px;
+    font-size: 10px; color: var(--apagado); background: rgba(26,33,41,0.85);
+    padding: 4px 8px; border-radius: 4px; }
+
+  #escala-controles { display: flex; gap: 6px; margin-bottom: 8px;
+    font-size: 12px; align-items: center; flex-wrap: wrap; }
+  #escala-controles button { padding: 3px 8px; font-size: 11px;
+    background: #232b34; border: 1px solid var(--borde); color: var(--texto);
+    border-radius: 3px; cursor: pointer; }
+  #escala-controles button.activo { background: var(--acento);
+    border-color: var(--acento); color: #000; font-weight: 600; }
+
+  #hemiciclo { min-height: 280px; }
+  #leyenda { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: 12px; }
+  .leyenda-item { display: flex; align-items: center; gap: 5px;
+    background: #232b34; padding: 3px 8px; border-radius: 4px; }
+  .leyenda-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  #editor { margin-top: 12px; display: none; }
+  #editor.visible { display: block; }
+  .fila-partido { display: grid; grid-template-columns: 1fr 100px; gap: 8px;
+    align-items: center; margin-bottom: 6px; }
+  .fila-partido label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  input[type="number"] { background: #0f1419; border: 1px solid var(--borde);
+    color: var(--texto); padding: 4px 6px; border-radius: 4px; width: 100%; font-size: 13px; }
+  button { background: #2d3742; border: 1px solid #3d4752; color: var(--texto);
+    padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  button:hover { background: #3d4752; }
+  button.primario { background: #1976d2; border-color: #1976d2; }
+  button.primario:hover { background: #1565c0; }
+  select { background: #0f1419; border: 1px solid var(--borde); color: var(--texto);
+    padding: 5px 8px; border-radius: 4px; font-size: 13px; }
+  .controles { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .controles label { font-size: 13px; color: var(--apagado); }
+  #tests { display: none; font-family: ui-monospace, monospace; font-size: 12px; }
+  #tests.visible { display: block; }
+  .test-pass { color: #66bb6a; } .test-fail { color: #ef5350; }
+  #bloques-panel, #afinidades-panel { max-width: 1500px; margin: 0 auto 20px; padding: 0 16px; }
+  .bloques-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+  .bloque-fila { display: grid; grid-template-columns: 1fr 160px; gap: 8px;
+    align-items: center; background: #232b34; padding: 6px 10px; border-radius: 4px; }
+  .bloque-fila label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+  .switch input { cursor: pointer; }
+  .coste { font-size: 12px; color: var(--apagado); margin-top: 8px;
+    padding: 6px 10px; background: #232b34; border-radius: 4px; }
+  .coste strong { color: var(--texto); }
+  .afinidad-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .afinidad-fila { display: grid; grid-template-columns: 1fr auto; gap: 8px;
+    align-items: center; background: #232b34; padding: 6px 10px; border-radius: 4px; }
+  .afinidad-fila label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .afinidad-fila .retirado { color: #ef5350; font-weight: 600; font-size: 11px; }
+  #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+  #modal-overlay.visible { display: flex; }
+  #modal { background: var(--panel); border: 1px solid var(--borde); border-radius: 8px;
+    max-width: 640px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 20px; }
+  #modal h2 { margin-top: 0; color: var(--texto); text-transform: none; letter-spacing: 0; }
+  #modal h3 { font-size: 14px; margin-top: 16px; color: var(--acento); }
+  #modal p, #modal li { font-size: 13px; line-height: 1.5; color: #cfd8dc; }
+  #modal code { background: #0f1419; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .modo-botones { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .modo-botones button.activo { background: #1976d2; border-color: #1976d2; }
+  #matriz-manual { display: none; overflow-x: auto; margin-top: 8px; }
+  #matriz-manual.visible { display: block; }
+  #matriz-manual table { border-collapse: collapse; font-size: 11px; }
+  #matriz-manual th, #matriz-manual td { padding: 3px 5px; border: 1px solid var(--borde); text-align: center; }
+  #matriz-manual th { background: #0f1419; color: var(--apagado); font-weight: 500; }
+  #matriz-manual input { width: 45px; padding: 2px 3px; font-size: 11px;
+    background: #0f1419; border: 1px solid var(--borde); color: var(--texto); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Simulador electoral · España</h1>
+  <div class="controles">
+    <label for="selector-formula">Fórmula:</label>
+    <select id="selector-formula">
+      <option value="dhondt">D'Hondt</option>
+      <option value="sainte">Sainte-Laguë</option>
+      <option value="hare">Hare</option>
+      <option value="droop">Droop</option>
+      <option value="imperiali">Imperiali</option>
+    </select>
+    <button id="btn-reset">Reset</button>
+    <button id="btn-tests">Tests</button>
+    <button id="btn-metodologia">Metodología</button>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Provincias</h2>
+    <div id="escala-controles">
+      <span style="color:var(--apagado);">Tamaño del hexágono:</span>
+      <button data-escala="escanos" class="activo">Escaños</button>
+      <button data-escala="poblacion">Población</button>
+      <button data-escala="fijo">Fijo</button>
+    </div>
+    <div id="mapa">
+      <div id="popup"></div>
+      <div id="zoom-controles">
+        <button data-zoom="in">+</button>
+        <button data-zoom="out">−</button>
+        <button data-zoom="reset">⟲</button>
+      </div>
+      <div id="leyenda-mapa">Click en una provincia para editarla · Rueda del ratón para zoom</div>
+    </div>
+    <div id="editor">
+      <h2 id="editor-titulo" style="margin-top:12px;">Editar</h2>
+      <div id="editor-campos"></div>
+      <div id="editor-coste" class="coste"></div>
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <button id="btn-cerrar">Cerrar</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Hemiciclo</h2>
+    <div id="hemiciclo"></div>
+    <div id="leyenda"></div>
+    <div id="resumen" style="margin-top:10px; font-size:12px; color:var(--apagado);"></div>
+  </section>
+</main>
+
+<section class="panel" id="bloques-panel">
+  <h2>Bloques</h2>
+  <div style="margin-bottom:12px;">
+    <label class="switch">
+      <input type="checkbox" id="toggle-bloques">
+      <span>Agrupar votos por bloque antes de aplicar la fórmula</span>
+    </label>
+    <div style="font-size:12px; color:var(--apagado); margin-top:4px;">
+      Actívalo para simular listas unificadas. Los votos de los partidos del mismo bloque
+      se suman <em>en cada provincia</em> antes del reparto.
+    </div>
+  </div>
+  <div class="bloques-grid" id="bloques-grid"></div>
+</section>
+
+<section class="panel" id="afinidades-panel">
+  <h2>Afinidades y retiradas</h2>
+  <div style="margin-bottom:12px;">
+    <label class="switch">
+      <input type="checkbox" id="toggle-redistribucion">
+      <span>Activar redistribución de votos por afinidades</span>
+    </label>
+    <div style="font-size:12px; color:var(--apagado); margin-top:4px;">
+      Cuando un partido está <em>retirado</em>, sus votos se reparten entre los partidos
+      presentes en cada provincia según la afinidad configurada.
+    </div>
+  </div>
+
+  <div class="modo-botones" id="modo-botones" style="display:none;">
+    <button data-modo="auto">Automático (eje izq-dcha)</button>
+    <button data-modo="manual">Manual (matriz)</button>
+    <button data-modo="random">Aleatorio (con semilla)</button>
+  </div>
+  <div id="matriz-manual"></div>
+
+  <h2 style="margin-top:16px;">Partidos</h2>
+  <div class="afinidad-grid" id="afinidad-grid"></div>
+</section>
+
+<section class="panel" id="tests" style="max-width:1500px; margin: 0 auto 20px;">
+  <h2>Tests</h2>
+  <div id="tests-salida"></div>
+</section>
+
+<div id="modal-overlay">
+  <div id="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 style="margin:0;">Metodología</h2>
+      <button id="btn-cerrar-modal">Cerrar</button>
+    </div>
+    <h3>Reparto de escaños</h3>
+    <p>Los escaños se reparten <strong>por provincia</strong>, no a nivel estatal. En cada
+    circunscripción se aplica el umbral del 3% y luego la fórmula seleccionada
+    (D'Hondt, Sainte-Laguë, Hare, Droop o Imperiali).</p>
+
+    <h3>Mapa hexagonal</h3>
+    <p>Cada provincia es un hexágono colocado en una retícula que recuerda a la geografía
+    española. El tamaño del hexágono puede ser fijo, proporcional a los escaños o
+    proporcional a la población. Canarias, Ceuta y Melilla van en un recuadro aparte.
+    Al pasar el ratón por encima se muestra población, superficie, densidad, escaños
+    y el reparto actual.</p>
+
+    <h3>Bloques</h3>
+    <p>Si activas "agrupar votos por bloque", los votos de los partidos asignados al mismo
+    bloque se suman <em>en cada provincia</em> antes del reparto. Esto simula listas
+    unificadas o coaliciones.</p>
+
+    <h3>Redistribución por afinidades</h3>
+    <p>Cuando un partido está retirado (no se presenta), sus votos en cada provincia se
+    reparten entre los partidos presentes según su afinidad. Hay tres modos:</p>
+    <ul>
+      <li><strong>Automático (eje izq-dcha):</strong> cada partido tiene una posición
+      ideológica de 0 (izquierda) a 100 (derecha). La afinidad entre dos partidos sigue
+      una función gaussiana: <code>exp(-d² / 2σ²)</code>, donde <code>d</code> es la
+      distancia en el eje y <code>σ</code> controla la amplitud (por defecto 25).</li>
+      <li><strong>Manual (matriz):</strong> el usuario define qué porcentaje de los votos
+      del partido retirado va a cada partido receptor.</li>
+      <li><strong>Aleatorio (con semilla):</strong> los votos se reparten aleatoriamente
+      entre los partidos presentes, con una semilla fija para reproducibilidad.</li>
+    </ul>
+    <p><strong>Aviso:</strong> esto es un <em>modelo</em>, no una predicción. No existen
+    datos reales de transferencia de voto a nivel provincial.</p>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   1. EVENT BUS
+   ========================================================= */
+const EventBus = {
+  _listeners: {},
+  on(e, fn) { (this._listeners[e] ||= []).push(fn); },
+  emit(e, d) { (this._listeners[e] || []).forEach(fn => fn(d)); }
+};
+
+/* =========================================================
+   2. CATÁLOGO DE PARTIDOS
+   ========================================================= */
+const PARTIDOS = {
+  'Podemos':   { color: '#8e24aa', posicion: 5  },
+  'Bildu':     { color: '#00acc1', posicion: 8  },
+  'Geroa Bai': { color: '#4caf50', posicion: 10 },
+  'BNG':       { color: '#7cb342', posicion: 12 },
+  'Sumar':     { color: '#d81b60', posicion: 18 },
+  'ERC':       { color: '#fbc02d', posicion: 22 },
+  'CHA':       { color: '#fb8c00', posicion: 28 },
+  'PSOE':      { color: '#e53935', posicion: 35 },
+  'PNV':       { color: '#66bb6a', posicion: 55 },
+  'Junts':     { color: '#00897b', posicion: 65 },
+  'PP':        { color: '#1e88e5', posicion: 78 },
+  'Vox':       { color: '#2e7d32', posicion: 92 }
+};
+
+const BLOQUES_DEF = {
+  'Izquierda': { color: '#e53935' },
+  'Derecha': { color: '#1e88e5' },
+  'Nacionalistas': { color: '#00897b' },
+  'Otros': { color: '#888888' }
+};
+
+const ASIGNACION_DEF = {
+  'PSOE': 'Izquierda', 'Sumar': 'Izquierda', 'Podemos': 'Izquierda', 'CHA': 'Izquierda',
+  'PP': 'Derecha', 'Vox': 'Derecha',
+  'ERC': 'Nacionalistas', 'Bildu': 'Nacionalistas', 'BNG': 'Nacionalistas',
+  'PNV': 'Nacionalistas', 'Junts': 'Nacionalistas', 'Geroa Bai': 'Nacionalistas'
+};
+
+/* =========================================================
+   3. META DE PROVINCIAS
+   ========================================================= */
+const META_PROVINCIAS = {
+  'Cantabria':   { poblacion:   590000, superficie:  5321, fila: 0, col: 5 },
+  'Bizkaia':     { poblacion:  1150000, superficie:  2217, fila: 0, col: 6 },
+  'Gipuzkoa':    { poblacion:   730000, superficie:  1980, fila: 0, col: 7 },
+  'Coruña':      { poblacion:  1120000, superficie:  7950, fila: 1, col: 1 },
+  'Asturias':    { poblacion:  1010000, superficie: 10604, fila: 1, col: 3 },
+  'León':        { poblacion:   450000, superficie: 15581, fila: 1, col: 4 },
+  'Palencia':    { poblacion:   160000, superficie:  8052, fila: 1, col: 5 },
+  'Álava':       { poblacion:   335000, superficie:  3037, fila: 1, col: 6 },
+  'Navarra':     { poblacion:   670000, superficie: 10391, fila: 1, col: 7 },
+  'Huesca':      { poblacion:   225000, superficie: 15636, fila: 1, col: 8 },
+  'Lleida':      { poblacion:   440000, superficie: 12172, fila: 1, col: 9 },
+  'Girona':      { poblacion:   800000, superficie:  5910, fila: 1, col: 10 },
+  'Lugo':        { poblacion:   325000, superficie:  9856, fila: 2, col: 2 },
+  'Zamora':      { poblacion:   165000, superficie: 10561, fila: 2, col: 3 },
+  'Valladolid':  { poblacion:   520000, superficie:  8110, fila: 2, col: 4 },
+  'Burgos':      { poblacion:   355000, superficie: 14292, fila: 2, col: 5 },
+  'Rioja':       { poblacion:   320000, superficie:  5045, fila: 2, col: 6 },
+  'Zaragoza':    { poblacion:   980000, superficie: 17274, fila: 2, col: 7 },
+  'Barcelona':   { poblacion:  5800000, superficie:  7728, fila: 2, col: 9 },
+  'Ourense':     { poblacion:   305000, superficie:  7273, fila: 3, col: 2 },
+  'Salamanca':   { poblacion:   330000, superficie: 12350, fila: 3, col: 3 },
+  'Segovia':     { poblacion:   155000, superficie:  6949, fila: 3, col: 4 },
+  'Soria':       { poblacion:    90000, superficie: 10306, fila: 3, col: 5 },
+  'Guadalajara': { poblacion:   275000, superficie: 12214, fila: 3, col: 6 },
+  'Teruel':      { poblacion:   135000, superficie: 14810, fila: 3, col: 7 },
+  'Tarragona':   { poblacion:   850000, superficie:  6303, fila: 3, col: 9 },
+  'Pontevedra':  { poblacion:   940000, superficie:  4495, fila: 4, col: 1 },
+  'Ávila':       { poblacion:   158000, superficie:  8050, fila: 4, col: 4 },
+  'Madrid':      { poblacion:  6900000, superficie:  8028, fila: 4, col: 5 },
+  'Cuenca':      { poblacion:   195000, superficie: 17141, fila: 4, col: 6 },
+  'Castellón':   { poblacion:   600000, superficie:  6636, fila: 4, col: 8 },
+  'Cáceres':     { poblacion:   390000, superficie: 19868, fila: 5, col: 2 },
+  'Toledo':      { poblacion:   720000, superficie: 15370, fila: 5, col: 4 },
+  'Albacete':    { poblacion:   385000, superficie: 14926, fila: 5, col: 6 },
+  'Valencia':    { poblacion:  2700000, superficie: 10807, fila: 5, col: 8 },
+  'Baleares':    { poblacion:  1200000, superficie:  4992, fila: 5, col: 10 },
+  'Badajoz':     { poblacion:   660000, superficie: 21766, fila: 6, col: 2 },
+  'Ciudad Real': { poblacion:   490000, superficie: 19813, fila: 6, col: 5 },
+  'Alicante':    { poblacion:  2000000, superficie:  5817, fila: 6, col: 8 },
+  'Huelva':      { poblacion:   530000, superficie: 10128, fila: 7, col: 1 },
+  'Sevilla':     { poblacion:  1950000, superficie: 14036, fila: 7, col: 3 },
+  'Córdoba':     { poblacion:   770000, superficie: 13771, fila: 7, col: 4 },
+  'Jaén':        { poblacion:   620000, superficie: 13496, fila: 7, col: 5 },
+  'Murcia':      { poblacion:  1550000, superficie: 11313, fila: 7, col: 8 },
+  'Cádiz':       { poblacion:  1250000, superficie:  7436, fila: 8, col: 2 },
+  'Málaga':      { poblacion:  1750000, superficie:  7306, fila: 8, col: 3 },
+  'Granada':     { poblacion:   930000, superficie: 12647, fila: 8, col: 5 },
+  'Almería':     { poblacion:   750000, superficie:  8774, fila: 8, col: 6 },
+  'Palmas':                 { poblacion: 1150000, superficie: 4066, fila: 11, col: 0 },
+  'Santa Cruz de Tenerife': { poblacion: 1050000, superficie: 3381, fila: 11, col: 1 },
+  'Ceuta':   { poblacion:  83000, superficie:   19, fila: 10, col: 11 },
+  'Melilla': { poblacion:  85000, superficie:   12, fila: 10, col: 12 }
+};
+
+/* =========================================================
+   4. DATOS ELECTORALES (52 circunscripciones)
+   ========================================================= */
+const DATOS_INICIALES = {
+  'Madrid': { escanos: 37, partidos: { PP: 1463000, PSOE: 1003000, Vox: 519000, Sumar: 388000, Podemos: 52000 } },
+  'Barcelona': { escanos: 32, partidos: { PSOE: 1200000, Junts: 440000, ERC: 380000, PP: 340000, Vox: 260000, Sumar: 240000 } },
+  'Valencia': { escanos: 16, partidos: { PP: 481000, PSOE: 459000, Sumar: 241000, Vox: 218000 } },
+  'Alicante': { escanos: 12, partidos: { PP: 420000, PSOE: 350000, Vox: 200000, Sumar: 120000 } },
+  'Sevilla': { escanos: 12, partidos: { PSOE: 400000, PP: 380000, Vox: 180000, Sumar: 130000 } },
+  'Málaga': { escanos: 11, partidos: { PP: 320000, PSOE: 280000, Vox: 180000, Sumar: 110000 } },
+  'Murcia': { escanos: 10, partidos: { PP: 350000, PSOE: 220000, Vox: 180000, Sumar: 70000 } },
+  'Cádiz': { escanos: 9, partidos: { PP: 250000, PSOE: 240000, Vox: 150000, Sumar: 90000 } },
+  'Baleares': { escanos: 8, partidos: { PP: 180000, PSOE: 160000, Sumar: 80000, Vox: 70000 } },
+  'Bizkaia': { escanos: 8, partidos: { PNV: 200000, PSOE: 150000, Bildu: 120000, PP: 80000, Vox: 40000 } },
+  'Coruña': { escanos: 8, partidos: { PP: 250000, PSOE: 180000, BNG: 100000, Vox: 60000 } },
+  'Palmas': { escanos: 8, partidos: { PSOE: 180000, PP: 160000, Vox: 80000, Sumar: 60000 } },
+  'Asturias': { escanos: 7, partidos: { PSOE: 200000, PP: 180000, Vox: 80000, Sumar: 60000 } },
+  'Zaragoza': { escanos: 7, partidos: { PP: 180000, PSOE: 160000, Vox: 90000, Sumar: 60000, CHA: 25000 } },
+  'Granada': { escanos: 7, partidos: { PP: 170000, PSOE: 160000, Vox: 90000, Sumar: 60000 } },
+  'Pontevedra': { escanos: 7, partidos: { PP: 220000, PSOE: 170000, BNG: 90000, Vox: 50000 } },
+  'Santa Cruz de Tenerife': { escanos: 7, partidos: { PSOE: 150000, PP: 140000, Vox: 70000, Sumar: 50000 } },
+  'Córdoba': { escanos: 6, partidos: { PP: 150000, PSOE: 140000, Vox: 80000, Sumar: 50000 } },
+  'Gipuzkoa': { escanos: 6, partidos: { Bildu: 130000, PNV: 100000, PSOE: 80000, PP: 40000 } },
+  'Girona': { escanos: 6, partidos: { Junts: 120000, ERC: 100000, PSOE: 80000, PP: 40000 } },
+  'Tarragona': { escanos: 6, partidos: { PSOE: 120000, ERC: 90000, Junts: 80000, PP: 60000 } },
+  'Almería': { escanos: 6, partidos: { PP: 140000, PSOE: 120000, Vox: 90000, Sumar: 40000 } },
+  'Toledo': { escanos: 6, partidos: { PP: 160000, PSOE: 130000, Vox: 80000, Sumar: 40000 } },
+  'Cantabria': { escanos: 5, partidos: { PP: 130000, PSOE: 110000, Vox: 50000, Sumar: 30000 } },
+  'Castellón': { escanos: 5, partidos: { PP: 130000, PSOE: 120000, Vox: 70000, Sumar: 40000 } },
+  'Ciudad Real': { escanos: 5, partidos: { PP: 130000, PSOE: 120000, Vox: 60000, Sumar: 30000 } },
+  'Badajoz': { escanos: 5, partidos: { PSOE: 150000, PP: 130000, Vox: 60000, Sumar: 30000 } },
+  'Huelva': { escanos: 5, partidos: { PP: 110000, PSOE: 105000, Vox: 60000, Sumar: 30000 } },
+  'Navarra': { escanos: 5, partidos: { Bildu: 90000, PSOE: 80000, PP: 70000, 'Geroa Bai': 30000 } },
+  'Valladolid': { escanos: 5, partidos: { PP: 140000, PSOE: 110000, Vox: 60000, Sumar: 30000 } },
+  'Jaén': { escanos: 5, partidos: { PP: 130000, PSOE: 120000, Vox: 60000, Sumar: 30000 } },
+  'León': { escanos: 4, partidos: { PP: 100000, PSOE: 90000, Vox: 50000, Sumar: 20000 } },
+  'Lleida': { escanos: 4, partidos: { PSOE: 70000, ERC: 60000, Junts: 50000, PP: 40000 } },
+  'Lugo': { escanos: 4, partidos: { PP: 55000, PSOE: 40000, BNG: 25000, Vox: 18000 } },
+  'Rioja': { escanos: 4, partidos: { PP: 80000, PSOE: 70000, Vox: 30000, Sumar: 20000 } },
+  'Salamanca': { escanos: 4, partidos: { PP: 100000, PSOE: 80000, Vox: 40000, Sumar: 20000 } },
+  'Burgos': { escanos: 4, partidos: { PP: 100000, PSOE: 80000, Vox: 40000, Sumar: 20000 } },
+  'Cáceres': { escanos: 4, partidos: { PP: 100000, PSOE: 90000, Vox: 40000, Sumar: 20000 } },
+  'Albacete': { escanos: 4, partidos: { PP: 90000, PSOE: 80000, Vox: 50000, Sumar: 20000 } },
+  'Ourense': { escanos: 4, partidos: { PP: 70000, PSOE: 50000, BNG: 30000, Vox: 20000 } },
+  'Álava': { escanos: 4, partidos: { PNV: 50000, PSOE: 40000, Bildu: 30000, PP: 30000 } },
+  'Ávila': { escanos: 3, partidos: { PP: 50000, PSOE: 30000, Vox: 20000 } },
+  'Guadalajara': { escanos: 3, partidos: { PP: 60000, PSOE: 40000, Vox: 30000 } },
+  'Huesca': { escanos: 3, partidos: { PP: 50000, PSOE: 40000, Vox: 20000 } },
+  'Cuenca': { escanos: 3, partidos: { PP: 50000, PSOE: 45000, Vox: 25000 } },
+  'Palencia': { escanos: 3, partidos: { PP: 50000, PSOE: 40000, Vox: 20000 } },
+  'Segovia': { escanos: 3, partidos: { PP: 50000, PSOE: 35000, Vox: 20000 } },
+  'Teruel': { escanos: 3, partidos: { PP: 35000, PSOE: 30000, Vox: 15000, Sumar: 8000 } },
+  'Zamora': { escanos: 3, partidos: { PP: 50000, PSOE: 35000, Vox: 20000 } },
+  'Soria': { escanos: 2, partidos: { PP: 22000, PSOE: 18000, Vox: 8000 } },
+  'Ceuta': { escanos: 1, partidos: { PP: 15000, PSOE: 10000, Vox: 8000 } },
+  'Melilla': { escanos: 1, partidos: { PP: 12000, PSOE: 8000, Vox: 5000 } }
+};
+
+/* =========================================================
+   5. ESTADO
+   ========================================================= */
+const State = (() => {
+  let _datos = JSON.parse(JSON.stringify(DATOS_INICIALES));
+  let _formula = 'dhondt';
+  let _provinciaActiva = null;
+  let _asignacion = { ...ASIGNACION_DEF };
+  let _modoBloques = false;
+  let _redistribucionActiva = false;
+  let _modoAfinidades = 'auto';
+  let _retirados = new Set();
+  let _matrizManual = {};
+  let _sigma = 25;
+  let _escalaHex = 'escanos';
+  let _zoom = 1;
+
+  return {
+    get datos() { return _datos; },
+    get formula() { return _formula; },
+    get provinciaActiva() { return _provinciaActiva; },
+    get asignacion() { return _asignacion; },
+    get modoBloques() { return _modoBloques; },
+    get redistribucionActiva() { return _redistribucionActiva; },
+    get modoAfinidades() { return _modoAfinidades; },
+    get retirados() { return _retirados; },
+    get matrizManual() { return _matrizManual; },
+    get sigma() { return _sigma; },
+    get bloques() { return BLOQUES_DEF; },
+    get escalaHex() { return _escalaHex; },
+    get zoom() { return _zoom; },
+
+    setFormula(f) { _formula = f; EventBus.emit('change'); },
+    setProvinciaActiva(n) { _provinciaActiva = n; EventBus.emit('change'); },
+    setVotos(p, part, v) {
+      if (!_datos[p]) return;
+      if (v <= 0) delete _datos[p].partidos[part]; else _datos[p].partidos[part] = v;
+      EventBus.emit('change');
+    },
+    addPartido(p, part) {
+      if (!_datos[p]) return;
+      if (!_datos[p].partidos[part]) { _datos[p].partidos[part] = 0; EventBus.emit('change'); }
+    },
+    setAsignacion(p, b) { _asignacion[p] = b; EventBus.emit('change'); },
+    setModoBloques(v) { _modoBloques = !!v; EventBus.emit('change'); },
+    setRedistribucion(v) { _redistribucionActiva = !!v; EventBus.emit('change'); },
+    setModoAfinidades(m) { _modoAfinidades = m; EventBus.emit('change'); },
+    setSigma(s) { _sigma = Math.max(5, Math.min(80, s)); EventBus.emit('change'); },
+    setEscalaHex(e) { _escalaHex = e; EventBus.emit('change'); },
+    setZoom(z) { _zoom = Math.max(0.6, Math.min(3, z)); EventBus.emit('change'); },
+
+    toggleRetirado(p) {
+      if (_retirados.has(p)) _retirados.delete(p);
+      else _retirados.add(p);
+      EventBus.emit('change');
+    },
+
+    setMatrizValor(desde, hacia, valor) {
+      if (!_matrizManual[desde]) _matrizManual[desde] = {};
+      _matrizManual[desde][hacia] = Math.max(0, Math.min(100, valor));
+      EventBus.emit('change');
+    },
+
+    reset() {
+      _datos = JSON.parse(JSON.stringify(DATOS_INICIALES));
+      _formula = 'dhondt'; _provinciaActiva = null;
+      _asignacion = { ...ASIGNACION_DEF }; _modoBloques = false;
+      _redistribucionActiva = false; _modoAfinidades = 'auto';
+      _retirados = new Set(); _matrizManual = {}; _sigma = 25;
+      _escalaHex = 'escanos'; _zoom = 1;
+      EventBus.emit('change');
+    }
+  };
+})();
+
+/* =========================================================
+   6. HELPERS
+   ========================================================= */
+function colorDe(n) {
+  if (PARTIDOS[n]) return PARTIDOS[n].color;
+  if (BLOQUES_DEF[n]) return BLOQUES_DEF[n].color;
+  return '#888';
+}
+function posicionDe(n) {
+  if (PARTIDOS[n]) return PARTIDOS[n].posicion;
+  if (BLOQUES_DEF[n]) {
+    const miembros = Object.keys(State.asignacion).filter(p => State.asignacion[p] === n);
+    if (!miembros.length) return 50;
+    return miembros.reduce((a, p) => a + (PARTIDOS[p]?.posicion ?? 50), 0) / miembros.length;
+  }
+  return 50;
+}
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+  return h;
+}
+function formatearNum(n) {
+  return n.toLocaleString('es-ES');
+}
+
+/* =========================================================
+   7. AFINIDADES
+   ========================================================= */
+function calcularAfinidades(desde, candidatos) {
+  const afin = {};
+  const modo = State.modoAfinidades;
+
+  if (modo === 'manual') {
+    const fila = State.matrizManual[desde] || {};
+    for (const c of candidatos) afin[c] = fila[c] ?? 0;
+    if (Object.values(afin).every(v => v === 0)) {
+      return calcularAfinidadesAuto(desde, candidatos);
+    }
+    const suma = Object.values(afin).reduce((a, b) => a + b, 0);
+    if (suma > 0) for (const c in afin) afin[c] /= suma;
+    return afin;
+
+  } else if (modo === 'random') {
+    const rng = mulberry32(hashStr(desde));
+    for (const c of candidatos) afin[c] = rng();
+    const suma = Object.values(afin).reduce((a, b) => a + b, 0);
+    if (suma > 0) for (const c in afin) afin[c] /= suma;
+    return afin;
+
+  } else {
+    return calcularAfinidadesAuto(desde, candidatos);
+  }
+}
+
+function calcularAfinidadesAuto(desde, candidatos) {
+  const afin = {};
+  const posD = posicionDe(desde);
+  const sigma = State.sigma;
+  for (const c of candidatos) {
+    const posC = posicionDe(c);
+    const d = Math.abs(posD - posC);
+    afin[c] = Math.exp(-(d * d) / (2 * sigma * sigma));
+  }
+  const suma = Object.values(afin).reduce((a, b) => a + b, 0);
+  if (suma > 0) for (const c in afin) afin[c] /= suma;
+  return afin;
+}
+
+function redistribuirVotos(votos) {
+  const resultado = { ...votos };
+  const retiradosAqui = Object.keys(votos).filter(p => State.retirados.has(p));
+  if (!retiradosAqui.length) return resultado;
+  const candidatos = Object.keys(votos).filter(p => !State.retirados.has(p));
+  if (!candidatos.length) return resultado;
+  for (const r of retiradosAqui) {
+    const votosR = resultado[r] || 0;
+    delete resultado[r];
+    const afin = calcularAfinidades(r, candidatos);
+    for (const c of candidatos) resultado[c] = (resultado[c] || 0) + votosR * afin[c];
+  }
+  return resultado;
+}
+
+/* =========================================================
+   8. FÓRMULAS
+   ========================================================= */
+const UMBRAL = 0.03;
+
+function aplicarUmbral(votos) {
+  const total = Object.values(votos).reduce((a, b) => a + b, 0);
+  if (total === 0) return {};
+  const f = {};
+  for (const [p, v] of Object.entries(votos)) if (v / total >= UMBRAL) f[p] = v;
+  return f;
+}
+function repartirPorCocientes(votos, escanos, divisor) {
+  const coc = [];
+  for (const [p, v] of Object.entries(votos))
+    for (let i = 0; i < escanos; i++) coc.push({ partido: p, valor: v / divisor(i) });
+  coc.sort((a, b) => b.valor - a.valor);
+  const res = {};
+  for (let i = 0; i < escanos && i < coc.length; i++)
+    res[coc[i].partido] = (res[coc[i].partido] || 0) + 1;
+  return res;
+}
+function repartirPorResto(votos, escanos, calcCoc) {
+  const total = Object.values(votos).reduce((a, b) => a + b, 0);
+  if (total === 0) return {};
+  const cociente = calcCoc(total, escanos);
+  const res = {}; const restos = []; let asign = 0;
+  for (const [p, v] of Object.entries(votos)) {
+    const base = Math.floor(v / cociente);
+    res[p] = base; asign += base;
+    restos.push({ partido: p, resto: v - base * cociente });
+  }
+  restos.sort((a, b) => b.resto - a.resto);
+  let i = 0;
+  while (asign < escanos && i < restos.length * 2) {
+    res[restos[i % restos.length].partido]++; asign++; i++;
+  }
+  return res;
+}
+const FORMULAS = {
+  dhondt: (v, e) => repartirPorCocientes(v, e, i => i + 1),
+  sainte: (v, e) => repartirPorCocientes(v, e, i => 2 * i + 1),
+  imperiali: (v, e) => repartirPorCocientes(v, e, i => i + 2),
+  hare: (v, e) => repartirPorResto(v, e, (t, n) => t / n),
+  droop: (v, e) => repartirPorResto(v, e, (t, n) => Math.floor(t / (n + 1)) + 1)
+};
+
+function agruparPorBloque(partidos) {
+  const res = {};
+  for (const [p, v] of Object.entries(partidos)) {
+    const b = State.asignacion[p];
+    const destino = b || p;
+    res[destino] = (res[destino] || 0) + v;
+  }
+  return res;
+}
+
+function votosEfectivos(provincia) {
+  let v = { ...State.datos[provincia].partidos };
+  if (State.redistribucionActiva) v = redistribuirVotos(v);
+  if (State.modoBloques) v = agruparPorBloque(v);
+  return v;
+}
+
+function repartirProvincia(nombre, formula) {
+  const prov = State.datos[nombre];
+  if (!prov) return {};
+  const votos = votosEfectivos(nombre);
+  const filtrados = aplicarUmbral(votos);
+  const fn = FORMULAS[formula] || FORMULAS.dhondt;
+  return fn(filtrados, prov.escanos);
+}
+
+function repartirTodo(formula) {
+  const porProvincia = {}; const totales = {}; let totalEscanos = 0;
+  for (const nombre of Object.keys(State.datos)) {
+    const rep = repartirProvincia(nombre, formula);
+    porProvincia[nombre] = rep;
+    for (const [p, n] of Object.entries(rep)) {
+      totales[p] = (totales[p] || 0) + n;
+      totalEscanos += n;
+    }
+  }
+  return { porProvincia, totales, totalEscanos };
+}
+
+function costeUltimoEscanio(nombre, formula) {
+  const prov = State.datos[nombre];
+  if (!prov) return null;
+  const filtrados = aplicarUmbral(votosEfectivos(nombre));
+  const divisor = formula === 'dhondt' ? (i => i + 1)
+                : formula === 'sainte' ? (i => 2 * i + 1)
+                : formula === 'imperiali' ? (i => i + 2) : null;
+  if (divisor) {
+    const coc = [];
+    for (const [p, v] of Object.entries(filtrados))
+      for (let i = 0; i < prov.escanos; i++) coc.push(v / divisor(i));
+    coc.sort((a, b) => b - a);
+    if (coc.length < prov.escanos) return null;
+    return Math.round(coc[prov.escanos - 1]);
+  }
+  const total = Object.values(filtrados).reduce((a, b) => a + b, 0);
+  return Math.round(total / prov.escanos);
+}
+
+/* =========================================================
+   9. TESTS
+   ========================================================= */
+const Tests = (() => {
+  const res = [];
+  function assert(n, c, d = '') { res.push({ nombre: n, ok: !!c, detalle: d }); }
+
+  function ejecutar() {
+    res.length = 0;
+    const r1 = repartirPorCocientes({ A: 100, B: 80, C: 30 }, 3, i => i + 1);
+    assert("D'Hondt 3 escaños", r1.A === 2 && r1.B === 1 && !r1.C, JSON.stringify(r1));
+
+    const r2 = repartirPorCocientes({ A: 100, B: 80, C: 30 }, 3, i => 2 * i + 1);
+    assert("Sainte-Laguë 3 escaños", r2.A === 2 && r2.B === 1, JSON.stringify(r2));
+
+    const r3 = repartirPorCocientes({ A: 500, B: 300, C: 200, D: 50 }, 10, i => i + 1);
+    assert("Suma = total", Object.values(r3).reduce((a, b) => a + b, 0) === 10);
+
+    const f = aplicarUmbral({ A: 97, B: 2, C: 1 });
+    assert("Umbral 3%", !f.B && !f.C && f.A === 97);
+
+    const r4 = repartirPorResto({ A: 50, B: 30, C: 20 }, 4, (t, n) => t / n);
+    assert("Hare 4 escaños", r4.A === 2 && r4.B === 1 && r4.C === 1, JSON.stringify(r4));
+
+    const r5 = repartirPorCocientes({ A: 100 }, 5, i => i + 1);
+    assert("Objeto vacío no peta", Object.keys(repartirPorCocientes({}, 5, i => i + 1)).length === 0);
+    assert("Un partido se lleva todo", r5.A === 5);
+
+    const ag = agruparPorBloque({ PSOE: 100, Sumar: 50, PP: 80 });
+    assert("agruparPorBloque", ag.Izquierda === 150 && ag.Derecha === 80);
+
+    const af = calcularAfinidadesAuto('PSOE', ['Sumar', 'Vox', 'PP']);
+    assert("Afinidad PSOE→Sumar > PSOE→Vox", af.Sumar > af.Vox);
+    assert("Afinidades suman 1", Math.abs(Object.values(af).reduce((a, b) => a + b, 0) - 1) < 0.001);
+
+    const antes = { ...State.datos['Madrid'].partidos };
+    const redist = (() => {
+      State.toggleRetirado('Podemos');
+      const r = votosEfectivos('Madrid');
+      State.retirados.delete('Podemos');
+      return r;
+    })();
+    assert("Redistribución conserva total de votos",
+      Math.abs(Object.values(redist).reduce((a, b) => a + b, 0) -
+               Object.values(antes).reduce((a, b) => a + b, 0)) < 1);
+
+    const tMadrid = repartirProvincia('Madrid', 'dhondt');
+    assert("Madrid reparte 37", Object.values(tMadrid).reduce((a, b) => a + b, 0) === 37);
+    assert("PP gana en Madrid", (tMadrid.PP || 0) > (tMadrid.PSOE || 0));
+
+    const cSoria = costeUltimoEscanio('Soria', 'dhondt');
+    const cMadrid = costeUltimoEscanio('Madrid', 'dhondt');
+    assert("Coste Soria > Coste Madrid", cSoria > cMadrid, `Soria=${cSoria} Madrid=${cMadrid}`);
+
+    const todo = repartirTodo('dhondt');
+    assert("Total de escaños = 350", todo.totalEscanos === 350, `total=${todo.totalEscanos}`);
+
+    return res;
+  }
+
+  function render(c) {
+    const rs = ejecutar();
+    const html = rs.map(r => `<div class="${r.ok ? 'test-pass' : 'test-fail'}">
+      ${r.ok ? '✓' : '✗'} ${r.nombre}
+      ${r.detalle ? `<span style="color:#8a95a1"> · ${r.detalle}</span>` : ''}
+    </div>`).join('');
+    const f = rs.filter(r => !r.ok).length;
+    c.innerHTML = `<div style="margin-bottom:8px;">${rs.length - f}/${rs.length} OK</div>${html}`;
+  }
+  return { ejecutar, render };
+})();
+
+/* =========================================================
+   10. MAPA HEXAGONAL
+   ========================================================= */
+const Mapa = (() => {
+  const contenedor = document.getElementById('mapa');
+  const popup = document.getElementById('popup');
+
+  const ANCHO_COL = 42;
+  const ALTO_FILA = 38;
+  const PADDING = 20;
+
+  function radioHex(nombre) {
+    const meta = META_PROVINCIAS[nombre];
+    const prov = State.datos[nombre];
+    const modo = State.escalaHex;
+    if (modo === 'fijo') return 14;
+    if (modo === 'poblacion') {
+      const pob = meta?.poblacion || 100000;
+      return Math.max(9, Math.min(20, 8 + 1.5 * Math.sqrt(pob / 100000)));
+    }
+    const esc = prov?.escanos || 1;
+    return Math.max(9, Math.min(20, 8 + 1.8 * Math.sqrt(esc)));
+  }
+
+  function posicionHex(nombre) {
+    const meta = META_PROVINCIAS[nombre];
+    if (!meta) return { x: 0, y: 0 };
+    const offset = (meta.fila % 2) ? ANCHO_COL / 2 : 0;
+    return {
+      x: PADDING + meta.col * ANCHO_COL + offset + ANCHO_COL / 2,
+      y: PADDING + meta.fila * ALTO_FILA + ALTO_FILA / 2
+    };
+  }
+
+  function calcularViewBox() {
+    let maxX = 0, maxY = 0;
+    for (const nombre of Object.keys(META_PROVINCIAS)) {
+      const pos = posicionHex(nombre);
+      const r = radioHex(nombre);
+      if (pos.x + r > maxX) maxX = pos.x + r;
+      if (pos.y + r > maxY) maxY = pos.y + r;
+    }
+    return `0 0 ${maxX + PADDING} ${maxY + PADDING}`;
+  }
+
+  function puntosHex(cx, cy, r) {
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const ang = Math.PI / 180 * (60 * i - 30);
+      pts.push(`${(cx + r * Math.cos(ang)).toFixed(1)},${(cy + r * Math.sin(ang)).toFixed(1)}`);
+    }
+    return pts.join(' ');
+  }
+
+  function render() {
+    const viewBox = calcularViewBox();
+    const zoom = State.zoom;
+    const popupRef = document.getElementById('popup');
+
+    const svgViejo = contenedor.querySelector('svg');
+    if (svgViejo) svgViejo.remove();
+
+    let svg = `<svg viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet" style="transition: transform 0.2s; transform-origin: center;">`;
+
+    for (const nombre of Object.keys(State.datos)) {
+      const meta = META_PROVINCIAS[nombre];
+      if (!meta) continue;
+      const pos = posicionHex(nombre);
+      const r = radioHex(nombre);
+
+      const votos = votosEfectivos(nombre);
+      const ganador = Object.entries(votos).sort((a, b) => b[1] - a[1])[0];
+      const fill = ganador ? colorDe(ganador[0]) : '#2d3742';
+
+      const activa = State.provinciaActiva === nombre ? ' activa' : '';
+      svg += `<polygon class="hex${activa}" data-provincia="${nombre}"
+        points="${puntosHex(pos.x, pos.y, r)}"
+        fill="${fill}"/>`;
+
+      if (r >= 12) {
+        const abrev = nombre.length > 10 ? nombre.slice(0, 9) + '.' : nombre;
+        svg += `<text class="hex-etiqueta" x="${pos.x}" y="${pos.y}">${abrev}</text>`;
+      }
+    }
+
+    const lineaY1 = PADDING + 9 * ALTO_FILA + 10;
+    svg += `<line x1="${PADDING + 0.2 * ANCHO_COL}" y1="${lineaY1}"
+      x2="${PADDING + 13.5 * ANCHO_COL}" y2="${lineaY1}"
+      stroke="#2d3742" stroke-width="1" stroke-dasharray="4,3"/>`;
+    svg += `<text x="${PADDING + 0.3 * ANCHO_COL}" y="${lineaY1 - 4}"
+      fill="#8a95a1" font-size="8" font-family="system-ui">Canarias · Ceuta y Melilla</text>`;
+
+    svg += '</svg>';
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = svg;
+    const svgEl = wrapper.firstChild;
+    svgEl.style.transform = `scale(${zoom})`;
+    contenedor.insertBefore(svgEl, popupRef);
+
+    contenedor.querySelectorAll('.hex').forEach(poly => {
+      const nombre = poly.dataset.provincia;
+      poly.addEventListener('click', () => {
+        State.setProvinciaActiva(
+          State.provinciaActiva === nombre ? null : nombre
+        );
+      });
+      poly.addEventListener('mousemove', (e) => mostrarPopup(e, nombre));
+      poly.addEventListener('mouseleave', () => { popup.style.display = 'none'; });
+    });
+  }
+
+  function mostrarPopup(e, nombre) {
+    const prov = State.datos[nombre];
+    const meta = META_PROVINCIAS[nombre];
+    const rep = repartirProvincia(nombre, State.formula);
+    const votos = votosEfectivos(nombre);
+    const total = Object.values(votos).reduce((a, b) => a + b, 0);
+    const topPartidos = Object.entries(votos).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    const densidad = meta ? Math.round(meta.poblacion / meta.superficie) : 0;
+    const coste = costeUltimoEscanio(nombre, State.formula);
+
+    let html = `<strong style="font-size:13px;">${nombre}</strong><br>`;
+    if (meta) {
+      html += `<span style="color:var(--apagado);">Población:</span> ${formatearNum(meta.poblacion)} hab.<br>`;
+      html += `<span style="color:var(--apagado);">Superficie:</span> ${formatearNum(meta.superficie)} km²<br>`;
+      html += `<span style="color:var(--apagado);">Densidad:</span> ${formatearNum(densidad)} hab/km²<br>`;
+    }
+    html += `<span style="color:var(--apagado);">Escaños:</span> ${prov.escanos}<br>`;
+    if (coste != null) {
+      html += `<span style="color:var(--apagado);">Coste último escaño:</span> ~${formatearNum(coste)} votos<br>`;
+    }
+    html += `<hr style="border:none;border-top:1px solid var(--borde);margin:6px 0;">`;
+
+    for (const [p, v] of topPartidos) {
+      const pct = total > 0 ? (v / total * 100).toFixed(1) : '0.0';
+      const esc = rep[p] || 0;
+      html += `<span style="display:inline-block;width:8px;height:8px;background:${colorDe(p)};border-radius:2px;margin-right:5px;vertical-align:middle;"></span>`;
+      html += `${p}: <strong>${pct}%</strong> → ${esc} esc.<br>`;
+    }
+
+    popup.innerHTML = html;
+    popup.style.display = 'block';
+
+    const rect = contenedor.getBoundingClientRect();
+    let leftPos = e.clientX - rect.left + 14;
+    let topPos = e.clientY - rect.top + 14;
+    if (leftPos + 270 > rect.width) leftPos = e.clientX - rect.left - 285;
+    if (topPos + popup.offsetHeight > rect.height) topPos = e.clientY - rect.top - popup.offsetHeight - 10;
+    popup.style.left = Math.max(5, leftPos) + 'px';
+    popup.style.top = Math.max(5, topPos) + 'px';
+  }
+
+  contenedor.addEventListener('wheel', (e) => {
+    if (!e.target.closest('svg')) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    State.setZoom(State.zoom + delta);
+  }, { passive: false });
+
+  EventBus.on('change', render);
+  return { render };
+})();
+
+/* =========================================================
+   11. HEMICICLO
+   ========================================================= */
+const Hemiciclo = (() => {
+  const contenedor = document.getElementById('hemiciclo');
+  const NUM_ARCOS = 8;
+
+  function render() {
+    const { totales } = repartirTodo(State.formula);
+    const w = 520, h = 300;
+    const cx = w / 2, cy = h - 15;
+    const rMin = 55, rMax = 215;
+
+    const radios = [];
+    for (let i = 0; i < NUM_ARCOS; i++)
+      radios.push(rMin + (rMax - rMin) * i / (NUM_ARCOS - 1));
+    const sumaR = radios.reduce((a, b) => a + b, 0);
+    const totalE = Object.values(totales).reduce((a, b) => a + b, 0);
+
+    const porArco = radios.map(r => Math.round(totalE * r / sumaR));
+    let diff = totalE - porArco.reduce((a, b) => a + b, 0);
+    let k = porArco.length - 1;
+    while (diff !== 0 && k >= 0) {
+      const p = Math.sign(diff);
+      porArco[k] += p; diff -= p;
+      k = (k - 1 + porArco.length) % porArco.length;
+    }
+
+    const orden = Object.entries(totales).filter(([, n]) => n > 0)
+      .sort((a, b) => posicionDe(a[0]) - posicionDe(b[0]));
+    const cola = [];
+    for (const [p, n] of orden) for (let i = 0; i < n; i++) cola.push(p);
+
+    const puntos = [];
+    let idx = 0;
+    for (let i = NUM_ARCOS - 1; i >= 0; i--) {
+      const r = radios[i]; const n = porArco[i];
+      if (n === 0) continue;
+      for (let j = 0; j < n; j++) {
+        const theta = Math.PI - Math.PI * (j + 0.5) / n;
+        puntos.push({
+          x: cx + r * Math.cos(theta),
+          y: cy - r * Math.sin(theta),
+          e: cola[idx++] || null
+        });
+      }
+    }
+
+    let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">`;
+    svg += `<line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - rMax - 12}"
+      stroke="#fff" stroke-width="1" stroke-dasharray="3,3" opacity="0.35"/>`;
+    svg += `<text x="${cx + 4}" y="${cy - rMax - 15}" fill="#8a95a1"
+      font-size="10" font-family="system-ui">mayoría 176</text>`;
+    for (const p of puntos) {
+      if (!p.e) continue;
+      svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.8"
+        fill="${colorDe(p.e)}"><title>${p.e}</title></circle>`;
+    }
+    svg += '</svg>';
+    contenedor.innerHTML = svg;
+  }
+
+  EventBus.on('change', render);
+  return { render };
+})();
+
+/* =========================================================
+   12. LEYENDA
+   ========================================================= */
+const Leyenda = (() => {
+  const cont = document.getElementById('leyenda');
+  const resumen = document.getElementById('resumen');
+
+  function render() {
+    const { totales, totalEscanos } = repartirTodo(State.formula);
+    const orden = Object.entries(totales).filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1]);
+    cont.innerHTML = orden.map(([p, n]) =>
+      `<div class="leyenda-item">
+        <div class="leyenda-swatch" style="background:${colorDe(p)}"></div>
+        <span>${p}</span><strong>${n}</strong>
+      </div>`).join('');
+    const modo = State.modoBloques ? 'bloques' : 'partidos';
+    const redist = State.redistribucionActiva ? ' · redistribución ON' : '';
+    resumen.textContent = `Total: ${totalEscanos} escaños · ${State.formula} · ${modo}${redist} · Mayoría: 176`;
+  }
+
+  EventBus.on('change', render);
+  return { render };
+})();
+
+/* =========================================================
+   13. EDITOR
+   ========================================================= */
+const Editor = (() => {
+  const cont = document.getElementById('editor');
+  const titulo = document.getElementById('editor-titulo');
+  const campos = document.getElementById('editor-campos');
+  const costeEl = document.getElementById('editor-coste');
+  let renderizada = null;
+
+  function render() {
+    const nombre = State.provinciaActiva;
+    if (!nombre) { cont.classList.remove('visible'); renderizada = null; return; }
+    cont.classList.add('visible');
+    const prov = State.datos[nombre];
+    const meta = META_PROVINCIAS[nombre];
+
+    if (renderizada === nombre) {
+      titulo.textContent = `${nombre} · ${prov.escanos} escaños`;
+      campos.querySelectorAll('input[data-partido]').forEach(inp => {
+        const a = prov.partidos[inp.dataset.partido] ?? 0;
+        if (inp !== document.activeElement && String(a) !== inp.value) inp.value = a;
+      });
+      coste(nombre, prov);
+      return;
+    }
+
+    renderizada = nombre;
+    let tituloExtra = '';
+    if (meta) {
+      const densidad = Math.round(meta.poblacion / meta.superficie);
+      tituloExtra = ` · ${formatearNum(meta.poblacion)} hab · ${formatearNum(densidad)} hab/km²`;
+    }
+    titulo.textContent = `${nombre} · ${prov.escanos} escaños${tituloExtra}`;
+
+    let html = '';
+    const ps = Object.keys(prov.partidos).sort(
+      (a, b) => (PARTIDOS[a]?.posicion ?? 50) - (PARTIDOS[b]?.posicion ?? 50));
+    for (const p of ps) {
+      const retirado = State.retirados.has(p);
+      html += `<div class="fila-partido" style="${retirado ? 'opacity:0.5' : ''}">
+        <label><span class="leyenda-swatch" style="background:${colorDe(p)}"></span>
+        ${p}${retirado ? ' <em style="color:#ef5350;font-size:10px;">(retirado)</em>' : ''}</label>
+        <input type="number" data-partido="${p}" value="${prov.partidos[p]}" min="0" step="1000">
+      </div>`;
+    }
+    const disp = Object.keys(PARTIDOS).filter(p => !prov.partidos[p]);
+    if (disp.length)
+      html += `<div style="margin-top:10px;"><select id="sel-add">
+        <option value="">+ añadir partido…</option>
+        ${disp.map(p => `<option value="${p}">${p}</option>`).join('')}
+      </select></div>`;
+    campos.innerHTML = html;
+    campos.querySelectorAll('input[type="number"]').forEach(inp => {
+      inp.onchange = () => State.setVotos(nombre, inp.dataset.partido, parseInt(inp.value, 10) || 0);
+    });
+    const sel = campos.querySelector('#sel-add');
+    if (sel) sel.onchange = () => { if (sel.value) State.addPartido(nombre, sel.value); };
+    coste(nombre, prov);
+  }
+
+  function coste(nombre, prov) {
+    const c = costeUltimoEscanio(nombre, State.formula);
+    if (c == null) { costeEl.textContent = ''; return; }
+    const tot = Object.values(prov.partidos).reduce((a, b) => a + b, 0);
+    costeEl.innerHTML = `Un escaño en <strong>${nombre}</strong> cuesta ~<strong>${formatearNum(c)}</strong> votos (total provincial: ${formatearNum(tot)}).`;
+  }
+
+  document.getElementById('btn-cerrar').onclick = () => State.setProvinciaActiva(null);
+  EventBus.on('change', render);
+  return { render };
+})();
+
+/* =========================================================
+   14. BLOQUES
+   ========================================================= */
+const Bloques = (() => {
+  const grid = document.getElementById('bloques-grid');
+  const toggle = document.getElementById('toggle-bloques');
+
+  function render() {
+    toggle.checked = State.modoBloques;
+    grid.innerHTML = Object.keys(PARTIDOS).map(p => {
+      const act = State.asignacion[p] || 'Otros';
+      const ops = Object.keys(BLOQUES_DEF).map(b =>
+        `<option value="${b}" ${b === act ? 'selected' : ''}>${b}</option>`).join('');
+      return `<div class="bloque-fila">
+        <label><span class="leyenda-swatch" style="background:${PARTIDOS[p].color}"></span>${p}</label>
+        <select data-partido="${p}">${ops}</select>
+      </div>`;
+    }).join('');
+    grid.querySelectorAll('select').forEach(s => {
+      s.onchange = () => State.setAsignacion(s.dataset.partido, s.value);
+    });
+  }
+  toggle.onchange = () => State.setModoBloques(toggle.checked);
+  EventBus.on('change', render);
+  return { render };
+})();
+
+/* =========================================================
+   15. AFINIDADES
+   ========================================================= */
+const Afinidades = (() => {
+  const toggle = document.getElementById('toggle-redistribucion');
+  const modoBtns = document.getElementById('modo-botones');
+  const grid = document.getElementById('afinidad-grid');
+  const matriz = document.getElementById('matriz-manual');
+
+  function render() {
+    toggle.checked = State.redistribucionActiva;
+    modoBtns.style.display = State.redistribucionActiva ? 'flex' : 'none';
+
+    modoBtns.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('activo', b.dataset.modo === State.modoAfinidades);
+    });
+
+    grid.innerHTML = Object.keys(PARTIDOS).map(p => {
+      const ret = State.retirados.has(p);
+      return `<div class="afinidad-fila">
+        <label><span class="leyenda-swatch" style="background:${PARTIDOS[p].color}"></span>
+        ${p}${ret ? ' <span class="retirado">RETIRADO</span>' : ''}</label>
+        <label class="switch" style="gap:4px;">
+          <input type="checkbox" data-partido="${p}" ${ret ? 'checked' : ''}>
+          <span style="font-size:11px;color:var(--apagado);">no se presenta</span>
+        </label>
+      </div>`;
+    }).join('');
+    grid.querySelectorAll('input[type="checkbox"]').forEach(c => {
+      c.onchange = () => State.toggleRetirado(c.dataset.partido);
+    });
+
+    if (State.redistribucionActiva && State.modoAfinidades === 'manual') {
+      matriz.classList.add('visible');
+      renderMatriz();
+    } else {
+      matriz.classList.remove('visible');
+    }
+  }
+
+  function renderMatriz() {
+    const retirados = [...State.retirados];
+    const presentes = Object.keys(PARTIDOS).filter(p => !State.retirados.has(p));
+    if (!retirados.length || !presentes.length) {
+      matriz.innerHTML = '<div style="padding:10px;color:var(--apagado);font-size:12px;">Retira algún partido para editar su matriz de transferencia.</div>';
+      return;
+    }
+    let html = '<table><thead><tr><th>Desde \\ Hacia</th>';
+    for (const p of presentes) html += `<th style="background:${PARTIDOS[p].color}22;">${p}</th>`;
+    html += '</tr></thead><tbody>';
+    for (const r of retirados) {
+      html += `<tr><th style="background:${PARTIDOS[r].color}22;">${r}</th>`;
+      for (const p of presentes) {
+        const val = State.matrizManual[r]?.[p] ?? '';
+        html += `<td><input type="number" min="0" max="100" step="1"
+          data-desde="${r}" data-hacia="${p}" value="${val}" placeholder="auto"></td>`;
+      }
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    html += '<div style="font-size:11px;color:var(--apagado);margin-top:6px;">Los valores son porcentajes. Si dejas una celda vacía o toda la fila a 0, se usa el modo automático como fallback.</div>';
+    matriz.innerHTML = html;
+    matriz.querySelectorAll('input').forEach(inp => {
+      inp.onchange = () => {
+        const v = inp.value === '' ? 0 : parseInt(inp.value, 10) || 0;
+        State.setMatrizValor(inp.dataset.desde, inp.dataset.hacia, v);
+      };
+    });
+  }
+
+  toggle.onchange = () => State.setRedistribucion(toggle.checked);
+  modoBtns.querySelectorAll('button').forEach(b => {
+    b.onclick = () => State.setModoAfinidades(b.dataset.modo);
+  });
+
+  EventBus.on('change', render);
+  return { render };
+})();
+
+/* =========================================================
+   16. CONTROLES DE ESCALA Y ZOOM
+   ========================================================= */
+const ControlesEscala = (() => {
+  const botones = document.querySelectorAll('#escala-controles button[data-escala]');
+  botones.forEach(b => {
+    b.onclick = () => State.setEscalaHex(b.dataset.escala);
+  });
+  EventBus.on('change', () => {
+    botones.forEach(b => b.classList.toggle('activo', b.dataset.escala === State.escalaHex));
+  });
+  return {};
+})();
+
+const ControlesZoom = (() => {
+  const botones = document.querySelectorAll('#zoom-controles button');
+  botones.forEach(b => {
+    b.onclick = () => {
+      const z = State.zoom;
+      if (b.dataset.zoom === 'in') State.setZoom(z + 0.2);
+      else if (b.dataset.zoom === 'out') State.setZoom(z - 0.2);
+      else State.setZoom(1);
+    };
+  });
+  return {};
+})();
+
+/* =========================================================
+   17. CONTROLES Y MODAL
+   ========================================================= */
+const Controles = (() => {
+  const selF = document.getElementById('selector-formula');
+  const btnR = document.getElementById('btn-reset');
+  const btnT = document.getElementById('btn-tests');
+  const panelT = document.getElementById('tests');
+  const salT = document.getElementById('tests-salida');
+  const btnM = document.getElementById('btn-metodologia');
+  const overlay = document.getElementById('modal-overlay');
+  const btnCerrarM = document.getElementById('btn-cerrar-modal');
+
+  selF.onchange = () => State.setFormula(selF.value);
+  btnR.onclick = () => { State.reset(); selF.value = State.formula; };
+  btnT.onclick = () => {
+    panelT.classList.toggle('visible');
+    if (panelT.classList.contains('visible')) Tests.render(salT);
+  };
+  btnM.onclick = () => overlay.classList.add('visible');
+  btnCerrarM.onclick = () => overlay.classList.remove('visible');
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('visible'); };
+
+  EventBus.on('change', () => { selF.value = State.formula; });
+  return {};
+})();
+
+/* =========================================================
+   18. INIT
+   ========================================================= */
+(function init() {
+  if (location.search.includes('test=1')) {
+    document.getElementById('tests').classList.add('visible');
+    Tests.render(document.getElementById('tests-salida'));
+  }
+  EventBus.emit('change');
+  console.log('[Simulador] Grid hexagonal activo. 350 escaños en 52 provincias.');
+})();
+</script>
+</body>
+</html>
