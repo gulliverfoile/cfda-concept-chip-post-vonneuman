@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Motor Modular · Engranajes 3D portables</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0a0a1a; color: #e0e0ff; min-height: 100vh; padding: 20px;
+    background-image: radial-gradient(ellipse at center, #1a1a3a 0%, #050510 100%);
+  }
+  h1 { text-align: center; font-size: 1.4rem; margin-bottom: 6px;
+       background: linear-gradient(135deg, #66ddff, #ff66aa, #ffcc00);
+       -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { text-align: center; color: #aabbdd; font-size: 0.85rem; margin-bottom: 20px; }
+  .module {
+    max-width: 1100px; margin: 0 auto 20px;
+    background: rgba(20,20,50,0.85); border: 1px solid rgba(100,100,200,0.3);
+    border-radius: 16px; padding: 20px;
+  }
+  .module h2 { font-size: 1rem; color: #aaccff; margin-bottom: 10px; }
+  .desc { font-size: 0.85rem; color: #8899bb; margin-bottom: 12px; line-height: 1.5; }
+  canvas { width: 100%; height: auto; border-radius: 8px; background: #04040a; display: block; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .controls button {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(150,150,220,0.4);
+    background: rgba(30,30,60,0.9); color: #fff; cursor: pointer; font-size: 0.85rem;
+    font-family: inherit;
+  }
+  .controls button:hover { background: rgba(50,50,90,0.9); }
+  .controls button.active { border-color: #66ddff; background: linear-gradient(135deg,#3a3a7a,#2a2a5a); }
+  .param-group { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .param-group label { flex: 0 0 180px; font-size: 0.85rem; color: #aaccff; }
+  .param-group input[type="range"] { flex: 1; }
+  .param-group span { flex: 0 0 70px; text-align: right; color: #ffcc00; font-family: monospace; font-size: 0.85rem; }
+  .info-line { font-family: 'Courier New', monospace; font-size: 0.75rem; color: #99bbee;
+               margin-top: 8px; background: #0a0a18; padding: 8px; border-radius: 6px; line-height: 1.5; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 750px) { .grid-2 { grid-template-columns: 1fr; } }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem;
+         background: #2a2a5a; color: #99bbee; margin-right: 4px; }
+</style>
+</head>
+<body>
+
+<h1>⚙️ Motor Modular · Engranajes 3D</h1>
+<p class="subtitle">Core portable · Renderer pluggable · IR como contrato</p>
+
+<main id="app"></main>
+
+<script>
+/* ============================================================================
+   CAPA 0 — IR (Representación Intermedia)
+   ============================================================================
+   Esta capa es DATOS PUROS. En C sería un conjunto de `typedef struct`.
+   Nada de métodos, nada de `this`. Todo plano y serializable.
+
+   PORTABLE: el IR es lo único que viaja entre traductor y representador.
+   Si mañana quieres C, esto es un .h con structs. Si quieres Three.js,
+   esto es lo que Three.js leería para construir su escena.
+   ============================================================================ */
+
+const IR_VERSION = "1.0";
+
+// PORTABLE: struct Gear { int id; int teeth; float module; Vec3 pos; ... }
+function makeGear(opts) {
+  return {
+    id: opts.id,
+    kind: 'gear',
+    teeth: opts.teeth ?? 20,
+    module: opts.module ?? 6,      // tamaño del diente (módulo en mm)
+    pos: { x: opts.x ?? 0, y: opts.y ?? 0, z: opts.z ?? 0 },
+    axis: opts.axis ?? 'z',        // eje de rotación: 'z' (plano XY), 'x', 'y'
+    angle: 0,                       // ángulo actual (rad)
+    omega: 0,                       // velocidad angular (rad/s)
+    driven: false,                  // ¿recibe movimiento?
+    motor: !!opts.motor,            // ¿es el motor?
+    color: opts.color ?? '#60a5fa',
+    label: opts.label ?? null,
+  };
+}
+
+function makeIR() {
+  return {
+    version: IR_VERSION,
+    kind: 'scene',
+    nodes: [],
+    edges: [],   // relaciones semánticas (mesh, belt, chain, ...)
+    metadata: {
+      camera: { theta: 0.6, phi: -0.4, dist: 600, target: { x: 0, y: 0, z: 0 } },
+      units: 'pixels',
+    },
+  };
+}
+
+/* ============================================================================
+   CAPA 1 — CORE (Traductor)
+   ============================================================================
+   Funciones puras sobre el IR. Sin DOM, sin canvas, sin GPU.
+   Esto es lo que se porta a C literalmente. ~300 líneas.
+
+   PORTABLE: cada función es una función libre en C. Reciben y devuelven
+   structs. No hay estado global. No hay closures.
+   ============================================================================ */
+
+// --- Helpers de geometría (PORTABLE) ---
+
+function vec3(x, y, z) { return { x, y, z }; }
+
+function v3sub(a, b) { return vec3(a.x-b.x, a.y-b.y, a.z-b.z); }
+function v3dot(a, b) { return a.x*b.x + a.y*b.y + a.z*b.z; }
+function v3len(a) { return Math.hypot(a.x, a.y, a.z); }
+function v3norm(a) { const l = v3len(a) || 1; return vec3(a.x/l, a.y/l, a.z/l); }
+
+function gearRadius(g) { return g.module * g.teeth / 2; }
+
+// --- Detección de engrane (PORTABLE) ---
+// Dos engranajes engranan si:
+//   1) sus ejes son paralelos (o compatibles)
+//   2) sus circunferencias primitivas se tocan
+//   3) están en el mismo plano (mismo z, si axis=z)
+// Simplificamos: solo ejes 'z' (spur gears en el mismo plano XY).
+function gearsMesh(a, b) {
+  if (a.axis !== b.axis) return false;
+  if (a.axis === 'z') {
+    // mismo plano z (con tolerancia)
+    if (Math.abs(a.pos.z - b.pos.z) > a.module) return false;
+    const d = Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y);
+    const sumR = gearRadius(a) + gearRadius(b);
+    // tolerancia = medio módulo (dientes engranan con holgura)
+    return Math.abs(d - sumR) < a.module * 1.2;
+  }
+  return false;
+}
+
+// --- Propagación cinemática (PORTABLE) ---
+// BFS desde el motor. Relación: ω₂ = -ω₁ · Z₁/Z₂
+// PORTABLE: en C esto es un while con una cola circular de enteros.
+function propagate(ir) {
+  for (const g of ir.nodes) { g.omega = 0; g.driven = false; }
+  const motor = ir.nodes.find(g => g.motor);
+  if (!motor) return;
+  motor.omega = 2.0;          // rad/s por defecto (o el que tenga)
+  motor.driven = true;
+  const queue = [motor];
+  const seen = new Set([motor.id]);
+  while (queue.length > 0) {
+    const g = queue.shift();
+    for (const o of ir.nodes) {
+      if (seen.has(o.id)) continue;
+      if (!gearsMesh(g, o)) continue;
+      o.omega = -g.omega * (g.teeth / o.teeth);
+      o.driven = true;
+      seen.add(o.id);
+      queue.push(o);
+    }
+  }
+}
+
+// --- Paso temporal (PORTABLE) ---
+// Integra ángulo a partir de omega. Euler simple.
+function stepIR(ir, dt) {
+  for (const g of ir.nodes) {
+    if (g.driven) g.angle += g.omega * dt;
+    // wrap para no perder precisión
+    if (g.angle > 1e6) g.angle -= Math.floor(g.angle / (2*Math.PI)) * 2*Math.PI;
+  }
+}
+
+// --- Análisis (PORTABLE, útil para mostrar info) ---
+function analyzeIR(ir) {
+  const driven = ir.nodes.filter(g => g.driven);
+  const motor = ir.nodes.find(g => g.motor);
+  const ratios = [];
+  if (motor) {
+    for (const g of driven) {
+      if (g.id === motor.id) continue;
+      ratios.push({
+        id: g.id,
+        ratio: g.teeth / motor.teeth,
+        omega: g.omega,
+        dir: g.omega > 0 ? 'cw' : 'ccw',
+      });
+    }
+  }
+  return {
+    total: ir.nodes.length,
+    driven: driven.length,
+    motor: motor ? motor.id : null,
+    ratios,
+  };
+}
+
+/* ============================================================================
+   CAPA 2 — CÁMARA (PORTABLE)
+   ============================================================================
+   Proyección 3D → 2D. Matemáticas puras. En C es un struct + funciones.
+   ============================================================================ */
+
+function makeCamera(theta, phi, dist, target) {
+  return { theta, phi, dist, target: target || vec3(0,0,0), fov: 700 };
+}
+
+// Proyecta un punto 3D a coordenadas de pantalla. Devuelve null si está detrás.
+function project(cam, p, W, H) {
+  // 1. Trasladar al origen de la cámara
+  let x = p.x - cam.target.x;
+  let y = p.y - cam.target.y;
+  let z = p.z - cam.target.z;
+  // 2. Rotar alrededor de Y (theta)
+  const ct = Math.cos(cam.theta), st = Math.sin(cam.theta);
+  const x1 = ct * x - st * z;
+  const z1 = st * x + ct * z;
+  // 3. Rotar alrededor de X (phi)
+  const cp = Math.cos(cam.phi), sp = Math.sin(cam.phi);
+  const y1 = cp * y - sp * z1;
+  const z2 = sp * y + cp * z1 - cam.dist;
+  if (z2 > -10) return null;   // detrás de la cámara
+  // 4. Proyección perspectiva
+  const k = cam.fov / -z2;
+  return { x: W/2 + x1*k, y: H/2 - y1*k, scale: k, depth: -z2 };
+}
+
+/* ============================================================================
+   CAPA 3 — RENDERER (Representador)
+   ============================================================================
+   Interfaz común: { name, init(canvas), draw(ir, cam, canvas) }
+   Implementaciones concretas: Canvas2D (abajo), WebGL/Three.js (futuro).
+
+   El renderer NO sabe qué es un engranaje. Solo sabe leer el IR y dibujar
+   las primitivas que contiene. Si mañana el IR tiene planetas, el renderer
+   solo necesita saber pintar esferas.
+   ============================================================================ */
+
+const Canvas2DRenderer = {
+  name: 'canvas2d',
+  init(canvas) { /* nada que inicializar */ },
+  draw(ir, cam, canvas) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.fillStyle = '#04040a';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid en el plano XY (z=0)
+    drawGrid(ctx, cam, W, H);
+
+    // Ordenar por profundidad (painter's algorithm)
+    const sorted = [...ir.nodes].sort((a, b) => {
+      const pa = project(cam, a.pos, W, H);
+      const pb = project(cam, b.pos, W, H);
+      if (!pa) return 1;
+      if (!pb) return -1;
+      return pb.depth - pa.depth; // los más lejanos primero
+    });
+
+    for (const node of sorted) {
+      if (node.kind === 'gear') drawGear(ctx, node, cam, W, H);
+    }
+  }
+};
+
+// --- Renderer WebGL (stub, para mostrar dónde iría) ---
+// const WebGLRenderer = {
+//   name: 'webgl',
+//   init(canvas) { this.gl = canvas.getContext('webgl2'); /* compilar shaders */ },
+//   draw(ir, cam, canvas) { /* subir buffers, draw calls */ }
+// };
+
+// --- Renderer Three.js (stub, para mostrar dónde iría) ---
+// const ThreeRenderer = {
+//   name: 'three',
+//   init(canvas) { this.scene = new THREE.Scene(); /* ... */ },
+//   draw(ir, cam, canvas) { /* traducir IR → objetos THREE */ }
+// };
+
+function drawGrid(ctx, cam, W, H) {
+  ctx.strokeStyle = 'rgba(80,80,140,0.2)';
+  ctx.lineWidth = 1;
+  const N = 8, S = 60;
+  for (let i = -N; i <= N; i++) {
+    const a = project(cam, vec3(i*S, -N*S, 0), W, H);
+    const b = project(cam, vec3(i*S,  N*S, 0), W, H);
+    if (a && b) { ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+    const c = project(cam, vec3(-N*S, i*S, 0), W, H);
+    const d = project(cam, vec3( N*S, i*S, 0), W, H);
+    if (c && d) { ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.stroke(); }
+  }
+}
+
+function drawGear(ctx, g, cam, W, H) {
+  const pitch = Math.PI * 2 / g.teeth;
+  const rBase = gearRadius(g) * 0.92;
+  const rTip  = gearRadius(g) * 1.08;
+
+  // Generar contorno de dientes (polígono en el plano XY del engranaje,
+  // luego rotado según el eje del engranaje)
+  const pts = [];
+  for (let i = 0; i < g.teeth; i++) {
+    const a0 = g.angle + i * pitch;
+    pts.push([rBase, a0]);
+    pts.push([rTip,  a0 + 0.15*pitch]);
+    pts.push([rTip,  a0 + 0.35*pitch]);
+    pts.push([rBase, a0 + 0.50*pitch]);
+  }
+
+  // Transformar cada punto (r, a) del plano del engranaje a coordenadas mundo
+  const worldPts = pts.map(([r, a]) => {
+    let lx = Math.cos(a) * r;
+    let ly = Math.sin(a) * r;
+    // según el eje del engranaje, orientamos el plano
+    if (g.axis === 'z') return vec3(g.pos.x + lx, g.pos.y + ly, g.pos.z);
+    if (g.axis === 'x') return vec3(g.pos.x, g.pos.y + lx, g.pos.z + ly);
+    if (g.axis === 'y') return vec3(g.pos.x + lx, g.pos.y, g.pos.z + ly);
+    return g.pos;
+  });
+
+  // Proyectar
+  const screen = worldPts.map(p => project(cam, p, W, H));
+  if (screen.some(s => !s)) return;
+
+  // Dibujar contorno
+  ctx.beginPath();
+  screen.forEach((s, i) => {
+    if (i === 0) ctx.moveTo(s.x, s.y);
+    else ctx.lineTo(s.x, s.y);
+  });
+  ctx.closePath();
+
+  // Estilo según estado
+  ctx.globalAlpha = g.driven ? 1.0 : 0.35;
+  ctx.fillStyle = g.motor ? '#fbbf24' : g.color;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = g.motor ? '#f59e0b' : '#1e293b';
+  ctx.stroke();
+
+  // Eje (círculo pequeño en el centro)
+  const center = project(cam, g.pos, W, H);
+  if (center) {
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, Math.max(2, center.scale * 8), 0, Math.PI * 2);
+    ctx.fillStyle = '#334155';
+    ctx.fill();
+    ctx.strokeStyle = '#0f172a';
+    ctx.stroke();
+  }
+}
+
+/* ============================================================================
+   CAPA 4 — ESCENA (composición de la IR)
+   ============================================================================
+   Aquí se construye el IR concreta. Esto es lo que cambiaría si quieres
+   representar otra cosa (reloj, sistema solar, moléculas, etc.). El core
+   y el renderer no cambian.
+   ============================================================================ */
+
+function buildGearScene() {
+  const ir = makeIR();
+  // Motor
+  ir.nodes.push(makeGear({ id: 'm',  teeth: 16, module: 6, x: -140, y: 0, motor: true, color: '#fbbf24' }));
+  // Tren de engranajes
+  ir.nodes.push(makeGear({ id: 'g1', teeth: 32, module: 6, x:   10, y: 0, color: '#60a5fa' }));
+  ir.nodes.push(makeGear({ id: 'g2', teeth: 16, module: 6, x:  100, y: 0, color: '#f87171' }));
+  ir.nodes.push(makeGear({ id: 'g3', teeth: 24, module: 6, x:  180, y: 0, color: '#34d399' }));
+  // Un engranaje en otra capa (z distinto) - no engrana con los de z=0
+  ir.nodes.push(makeGear({ id: 'g4', teeth: 20, module: 6, x: -140, y: 100, z: 30, color: '#a78bfa' }));
+  // Engranaje aislado (no engrana con nada)
+  ir.nodes.push(makeGear({ id: 'g5', teeth: 40, module: 6, x: -300, y: -100, color: '#fb923c' }));
+
+  // Relaciones semánticas (informativo; el core las deduce geométricamente)
+  for (let i = 0; i < ir.nodes.length - 1; i++) {
+    if (gearsMesh(ir.nodes[i], ir.nodes[i+1])) {
+      ir.edges.push({ from: ir.nodes[i].id, to: ir.nodes[i+1].id, type: 'mesh' });
+    }
+  }
+  return ir;
+}
+
+/* ============================================================================
+   CAPA 5 — UI / ORQUESTACIÓN
+   ============================================================================
+   Conecta el core con el renderer. Gestiona input, animación, controles.
+   Esto NO se porta a C (es específico del navegador).
+   ============================================================================ */
+
+const State = {
+  ir: buildGearScene(),
+  cam: makeCamera(0.6, -0.4, 600, vec3(0, 0, 0)),
+  running: true,
+  renderer: Canvas2DRenderer,
+  lastT: 0,
+  dragging: null,
+  mode: null,
+  lastMouse: { x: 0, y: 0 },
+};
+
+function setupUI(root) {
+  root.innerHTML = `
+    <div class="module">
+      <h2>⚙️ Taller de engranajes 3D</h2>
+      <div class="desc">
+        <span class="tag">CORE</span> Cinemática pura (portable a C).
+        <span class="tag">IR</span> Datos serializables.
+        <span class="tag">RENDER</span> Canvas2D (sustituible por WebGL/Three.js).
+        Arrastra el fondo para orbitar. Rueda para zoom. Arrastra un engranaje para moverlo.
+      </div>
+      <div class="controls">
+        <button id="btn-add">➕ Añadir engranaje</button>
+        <button id="btn-motor">⚡ Marcar como motor</button>
+        <button id="btn-clear">🧹 Limpiar escena</button>
+        <button id="btn-play">⏸ Pausar</button>
+        <button id="btn-3d" class="active">🎥 Vista 3D</button>
+      </div>
+      <div class="param-group">
+        <label>Velocidad motor</label>
+        <input type="range" id="speed" min="0" max="10" step="0.1" value="2">
+        <span id="speed-val">2.0</span>
+      </div>
+      <div class="param-group">
+        <label>Dientes (nuevo engranaje)</label>
+        <input type="range" id="teeth" min="8" max="60" value="20">
+        <span id="teeth-val">20</span>
+      </div>
+      <canvas id="canvas" width="900" height="520" style="cursor:grab; touch-action:none;"></canvas>
+      <div class="info-line" id="info">—</div>
+      <div class="info-line" id="ir-info">—</div>
+    </div>
+  `;
+
+  const canvas = root.querySelector('#canvas');
+  State.renderer.init(canvas);
+
+  // --- Interacción de cámara ---
+  canvas.addEventListener('pointerdown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * canvas.width / rect.width;
+    const my = (e.clientY - rect.top)  * canvas.height / rect.height;
+    // ¿Sobre un engranaje?
+    const hit = pickGear(mx, my, canvas);
+    if (hit) {
+      State.dragging = hit;
+      State.mode = 'drag';
+    } else {
+      State.mode = 'orbit';
+      State.lastMouse = { x: mx, y: my };
+    }
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!State.mode) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * canvas.width / rect.width;
+    const my = (e.clientY - rect.top)  * canvas.height / rect.height;
+    if (State.mode === 'orbit') {
+      State.cam.theta += (mx - State.lastMouse.x) * 0.008;
+      State.cam.phi = Math.max(-1.4, Math.min(1.4,
+        State.cam.phi + (my - State.lastMouse.y) * 0.008));
+      State.lastMouse = { x: mx, y: my };
+    } else if (State.mode === 'drag' && State.dragging) {
+      const p = project(State.cam, State.dragging.pos, canvas.width, canvas.height);
+      if (p) {
+        // Mover en el plano XY del mundo (aproximado)
+        const k = p.scale || 1;
+        const ct = Math.cos(State.cam.theta);
+        const cp = Math.cos(State.cam.phi);
+        if (Math.abs(ct) > 0.01 && Math.abs(cp) > 0.01) {
+          State.dragging.pos.x += (mx - p.x) / (k * ct);
+          State.dragging.pos.y -= (my - p.y) / (k * cp);
+          propagate(State.ir);
+        }
+      }
+    }
+  });
+  const stop = () => { State.mode = null; State.dragging = null; };
+  canvas.addEventListener('pointerup', stop);
+  canvas.addEventListener('pointerleave', stop);
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    State.cam.dist = Math.max(150, Math.min(2500, State.cam.dist * (1 + Math.sign(e.deltaY)*0.1)));
+  }, { passive: false });
+
+  // --- Botones ---
+  root.querySelector('#btn-add').addEventListener('click', () => {
+    const teeth = parseInt(root.querySelector('#teeth').value, 10);
+    const a = Math.random() * Math.PI * 2;
+    const r = 150 + Math.random() * 250;
+    const x = Math.cos(a) * r;
+    const y = Math.sin(a) * r;
+    const id = 'g' + (State.ir.nodes.length + 1);
+    const colors = ['#60a5fa','#f87171','#34d399','#a78bfa','#fb923c','#f472b6'];
+    const g = makeGear({ id, teeth, x, y, color: colors[State.ir.nodes.length % colors.length] });
+    State.ir.nodes.push(g);
+    propagate(State.ir);
+  });
+  root.querySelector('#btn-motor').addEventListener('click', () => {
+    if (!State.dragging) return;
+    for (const g of State.ir.nodes) g.motor = false;
+    State.dragging.motor = true;
+    State.dragging.color = '#fbbf24';
+    propagate(State.ir);
+  });
+  root.querySelector('#btn-clear').addEventListener('click', () => {
+    State.ir.nodes = [];
+    State.ir.edges = [];
+  });
+  root.querySelector('#btn-play').addEventListener('click', (e) => {
+    State.running = !State.running;
+    e.target.textContent = State.running ? '⏸ Pausar' : '▶ Reanudar';
+  });
+  root.querySelector('#btn-3d').addEventListener('click', (e) => {
+    // Alterna entre vista lateral (2D-ish) y vista 3D
+    if (State.cam.phi === -0.4) {
+      State.cam.phi = -1.2;  // casi desde arriba
+      e.target.textContent = '🎥 Vista lateral';
+    } else {
+      State.cam.phi = -0.4;
+      e.target.textContent = '🎥 Vista 3D';
+    }
+  });
+  root.querySelector('#speed').addEventListener('input', (e) => {
+    root.querySelector('#speed-val').textContent = parseFloat(e.target.value).toFixed(1);
+  });
+  root.querySelector('#teeth').addEventListener('input', (e) => {
+    root.querySelector('#teeth-val').textContent = e.target.value;
+  });
+
+  // Estado inicial
+  propagate(State.ir);
+}
+
+function pickGear(sx, sy, canvas) {
+  let best = null, bestDist = 25;
+  for (const g of State.ir.nodes) {
+    const p = project(State.cam, g.pos, canvas.width, canvas.height);
+    if (!p) continue;
+    const d = Math.hypot(p.x - sx, p.y - sy);
+    if (d < bestDist) { bestDist = d; best = g; }
+  }
+  return best;
+}
+
+/* ============================================================================
+   BUCLE PRINCIPAL
+   ============================================================================ */
+
+function loop(ts) {
+  const dt = Math.min(0.05, (ts - State.lastT) / 1000) || 0;
+  State.lastT = ts;
+
+  if (State.running) {
+    // Aplicar velocidad del motor
+    const motor = State.ir.nodes.find(g => g.motor);
+    if (motor) {
+      const speed = parseFloat(document.getElementById('speed').value);
+      motor.omega = motor.omega >= 0 ? speed : -speed;
+    }
+    stepIR(State.ir, dt);
+  }
+
+  const canvas = document.getElementById('canvas');
+  State.renderer.draw(State.ir, State.cam, canvas);
+
+  // Info
+  const a = analyzeIR(State.ir);
+  const info = document.getElementById('info');
+  if (info) {
+    info.textContent = `Engranajes: ${a.total} · movidos: ${a.driven} · motor: ${a.motor ?? 'ninguno'} · renderer: ${State.renderer.name}`;
+  }
+  const irInfo = document.getElementById('ir-info');
+  if (irInfo) {
+    irInfo.textContent = `IR v${State.ir.version} · nodos: ${State.ir.nodes.length} · aristas: ${State.ir.edges.length} · ` +
+      `cámara: θ=${State.cam.theta.toFixed(2)} φ=${State.cam.phi.toFixed(2)} d=${State.cam.dist.toFixed(0)}`;
+  }
+
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener('load', () => {
+  setupUI(document.getElementById('app'));
+  requestAnimationFrame(loop);
+});
+</script>
+</body>
+</html>
