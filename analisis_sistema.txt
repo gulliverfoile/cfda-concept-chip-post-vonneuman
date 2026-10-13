@@ -1,0 +1,284 @@
+CIRCUITO DE ANÁLISIS SISTÉMICO · 8 CAPAS
+Herramienta de análisis con retroalimentación entre capas
+========================================================================
+
+QUÉ ES
+------------------------------------------------------------------------
+Es un archivo HTML autocontenido (un solo archivo, sin dependencias
+externas, sin instalación) que funciona como una herramienta de análisis
+sistémico. Materializa en código el marco teórico de las 8 capas +
+resistencia + falsabilidad que hemos ido construyendo en los documentos.
+
+No es una plantilla estática. Es un circuito operativo: cuando rellenas
+una capa, el sistema te obliga a mirar las demás. La retroalimentación
+entre capas no es una metáfora: está programada.
+
+Funciona en cualquier navegador moderno (Chrome, Firefox, Edge, Safari).
+No necesita internet después de cargarse la primera vez. No envía datos
+a ningún servidor. Todo se queda en tu navegador.
+
+
+QUÉ HACE
+------------------------------------------------------------------------
+
+1. VISUALIZA EL CIRCUITO COMPLETO
+   Muestra las 8 capas + resistencia + falsabilidad como nodos
+   conectados. Puedes hacer clic en cualquier nodo para saltar a esa
+   capa. El circuito se ve como un flujo, no como una lista.
+
+2. PREGUNTAS GUÍA POR CAPA
+   Cada capa tiene entre 4 y 8 preguntas. No son preguntas genéricas:
+   están diseñadas para extraer la información relevante de cada
+   dimensión del análisis. Cada pregunta incluye una pista (hint) que
+   explica qué se busca.
+
+3. CAMPO DE RESPUESTA ABIERTO
+   Cada pregunta tiene un área de texto donde escribes libremente. No
+   hay respuestas correctas ni incorrectas. El sistema no corrige: solo
+   recoge y estructura.
+
+4. INDICADORES Y DATOS
+   Debajo de cada pregunta puedes añadir datos concretos (cifras,
+   casos, fuentes). Se acumulan como etiquetas. Ejemplo: "APM: 26%
+   carrera → 48,3% nombramientos". Estos datos se incorporan
+   automáticamente al análisis final.
+
+5. RETROALIMENTACIÓN AUTOMÁTICA ENTRE CAPAS
+   Cuando rellenas una pregunta, el sistema detecta conexiones con
+   otras capas y te sugiere revisarlas. Ejemplos:
+   - Si rellenas "ficciones legales" (Capa 1), te recuerda revisar
+     "Captura del árbitro" (Capa 3).
+   - Si rellenas "deuda" (Capa 2), te conecta con "Límites materiales"
+     (Capa 7).
+   - Si rellenas "psicología pervertida" (Capa 4), te conecta con
+     "Gestión narrativa" (Capa 5).
+
+6. GUARDADO AUTOMÁTICO
+   Todo se guarda en localStorage del navegador. Puedes cerrar la
+   pestaña y volver: tus respuestas siguen ahí. No hay botón de
+   guardar: se guarda solo mientras escribes.
+
+7. EXPORTACIÓN A MARKDOWN
+   Genera un archivo .md con todas las respuestas e indicadores
+   organizados por capas. Listo para pegar en un documento, un blog o
+   un repositorio.
+
+8. GENERACIÓN DE ANÁLISIS
+   Muestra el progreso por capas (porcentaje de preguntas respondidas),
+   una síntesis de lo desarrollado y las conexiones detectadas entre
+   capas. No es un análisis automático completo: es una compilación
+   estructurada de lo que tú has escrito, con las conexiones que el
+   sistema ha detectado.
+
+9. EJEMPLO PRECARGADO
+   El botón "Cargar ejemplo" rellena todo con el análisis de autónomos,
+   farmacéuticas, justicia y sanidad que hemos ido construyendo en los
+   documentos. Sirve para ver cómo funciona antes de empezar desde cero.
+
+
+CÓMO LO HACE (ARQUITECTURA)
+------------------------------------------------------------------------
+
+ESTRUCTURA DE DATOS
+Cada capa es un objeto con:
+  - id: identificador único
+  - name: nombre visible
+  - color: color para la interfaz
+  - lead: descripción de qué busca esa capa
+  - questions: array de preguntas, cada una con id, label y hint
+
+El estado del análisis es un objeto con:
+  - active: capa actualmente visible
+  - answers: diccionario id_pregunta -> texto
+  - indicators: diccionario id_pregunta -> array de datos
+  - tags: diccionario id_pregunta -> array de etiquetas
+
+PERSISTENCIA
+Todo el estado se serializa a JSON y se guarda en localStorage con la
+clave "circuito_analisis_v1". Al cargar la página, se recupera. No hay
+base de datos, no hay servidor.
+
+RENDERIZADO
+La interfaz se genera dinámicamente con JavaScript. No hay HTML
+predefinido para las preguntas: el script lee el array LAYERS y
+construye el DOM. Esto significa que añadir una capa nueva es tan
+simple como añadir un objeto al array.
+
+RETROALIMENTACIÓN
+La función getFeedback(layer) contiene reglas if-then que detectan
+cuándo una capa tiene contenido relevante y sugieren revisar otras.
+No es un sistema experto: es un conjunto de reglas heurísticas basadas
+en el marco teórico. Se puede ampliar fácilmente.
+
+EXPORTACIÓN
+La función buildMarkdown() recorre LAYERS y construye un string en
+formato Markdown con las respuestas y los indicadores organizados
+jerárquicamente.
+
+ANÁLISIS
+La función openAnalysis() calcula el progreso por capas, extrae las
+respuestas con contenido, detecta conexiones simples entre capas
+(basadas en qué capas tienen contenido) y muestra todo en un modal.
+
+
+LAS 8 CAPAS + RESISTENCIA + FALSABILIDAD
+------------------------------------------------------------------------
+
+CAPA 0 · GENEALOGÍA
+  Pregunta: ¿De dónde viene el mecanismo?
+  Busca: hito de ignición, narrativa fundacional, contrapesos
+  olvidados, manual original.
+
+CAPA 1 · FUNDAMENTO JURÍDICO
+  Pregunta: ¿Qué arquitectura legal hace posible la extracción?
+  Busca: ficciones legales, daños invisibles al derecho, dilución de
+  responsabilidad, cumplimiento formal.
+
+CAPA 2 · EXTRACCIÓN
+  Pregunta: ¿Cómo se extrae valor?
+  Subcapas: temporal (deuda), ecológica, competitiva (dumping),
+  estructural (riesgo), espacial (deslocalización), tecnológica,
+  institucional (convergencia), sectorial (caso concreto).
+
+CAPA 3 · CAPTURA DEL ÁRBITRO
+  Pregunta: ¿Cómo se neutraliza al regulador?
+  Busca: financiación del regulador, puertas giratorias, lobby,
+  captura judicial, captura mediática, captura académica.
+
+CAPA 4 · PRODUCCIÓN DE SUBJETIVIDAD
+  Pregunta: ¿Cómo se produce el sujeto que acepta la extracción?
+  Busca: economía pervertida, antropología pervertida, psicología
+  pervertida, educación normalizadora, redes sociales, usurpación
+  funcional.
+
+CAPA 5 · GESTIÓN NARRATIVA
+  Pregunta: ¿Cómo se neutraliza la resistencia?
+  Busca: falsa equidistancia, lawfare, cooptación de la crítica,
+  cancelación, doble lenguaje, leyenda negra/blanca.
+
+CAPA 6 · CONVERGENCIA INSTITUCIONAL
+  Pregunta: ¿Cómo operan las instituciones sin coordinación central?
+  Busca: actores que convergen, eje presupuestario, cierre del
+  circuito, ausencia de conspiración.
+
+CAPA 7 · LÍMITES MATERIALES Y FRAGILIDAD
+  Pregunta: ¿Qué límites físicos y sistémicos tiene el sistema?
+  Busca: termodinámica, deuda como acelerador, deuda termodinámica
+  (clima), sobrevaloración de activos, pasivos no contabilizados.
+
+CAPA 8 · RESISTENCIA Y CAMBIO
+  Pregunta: ¿Cómo se rompe el circuito?
+  Busca: resistencia contenida, alternativas no mercantiles,
+  arquitectura de contrapesos, condiciones de ruptura.
+
+FALSABILIDAD
+  Pregunta: ¿Qué condiciones refutarían este análisis?
+  Busca: condiciones de falsación, preguntas abiertas.
+  Esta capa es crucial: distingue el marco de una teoría conspirativa.
+  Un marco falsable puede ser contrastado con la realidad.
+
+
+CÓMO USARLO
+------------------------------------------------------------------------
+
+PASO 1: ABRIR
+  Guarda el archivo como circuito_analisis.html y ábrelo con doble clic
+  en cualquier navegador.
+
+PASO 2: EMPEZAR POR UNA CAPA
+  Puedes empezar por donde quieras. El circuito no es lineal. Si estás
+  analizando un caso concreto, quizá quieras empezar por la Capa 2
+  (Extracción) o la Capa 3 (Captura del árbitro). Si quieres entender
+  el origen, empieza por la Capa 0 (Genealogía).
+
+PASO 3: RESPONDER
+  Escribe en las áreas de texto. No hay límite de extensión. Añade
+  datos con el campo de indicadores (Enter para añadir).
+
+PASO 4: SEGUIR LA RETROALIMENTACIÓN
+  Cuando aparezca un aviso de retroalimentación, ve a la capa que te
+  sugiere. El sistema te está diciendo que hay una conexión que no
+  deberías ignorar.
+
+PASO 5: GENERAR ANÁLISIS
+  Cuando tengas suficiente material, pulsa "Generar análisis". Verás
+  el progreso, la síntesis y las conexiones detectadas.
+
+PASO 6: EXPORTAR
+  Pulsa "Exportar Markdown". Obtendrás un archivo .md con todo el
+  análisis estructurado. Puedes copiarlo, descargarlo o pegarlo donde
+  lo necesites.
+
+PASO 7: VACIAR O CARGAR EJEMPLO
+  Si quieres empezar de cero, pulsa "Vaciar". Si quieres ver cómo
+  funciona, pulsa "Cargar ejemplo".
+
+
+QUÉ NO HACE
+------------------------------------------------------------------------
+
+- No genera el análisis por ti. Recoge lo que tú escribes y lo
+  estructura. El pensamiento crítico es tuyo.
+- No valida las respuestas. No hay respuestas correctas.
+- No envía datos a ningún servidor. Todo es local.
+- No predice. No dice qué va a pasar. Describe mecanismos.
+- No es una teoría conspirativa. Es un marco falsable: incluye
+  condiciones que lo refutarían.
+- No sustituye la lectura de los textos. Es una herramienta para
+  organizar el análisis, no un resumen automático.
+
+
+POR QUÉ ESTÁ DISEÑADO ASÍ
+------------------------------------------------------------------------
+
+1. CIRCUITO, NO LISTA
+   El análisis sistémico no es lineal. Las capas se alimentan entre sí.
+   La interfaz refleja esto: el circuito está siempre visible, y la
+   retroalimentación te obliga a mirar las demás capas.
+
+2. PREGUNTAS, NO PLANTILLA
+   Una plantilla te dice qué escribir. Una pregunta te obliga a
+   pensar. Las preguntas están diseñadas para extraer la información
+   relevante sin imponer la respuesta.
+
+3. DATOS, NO OPINIONES
+   El campo de indicadores permite acumular datos concretos. El
+   análisis final cruza respuestas con datos. Esto lo distingue de un
+   ensayo de opinión.
+
+4. FALSABILIDAD INTEGRADA
+   La capa de falsabilidad no es un apéndice. Está en el circuito.
+   Esto significa que el marco se somete a contraste desde el primer
+   momento. Si no puedes definir qué te refutaría, no estás haciendo
+   análisis sistémico: estás haciendo dogma.
+
+5. LOCAL, NO CENTRALIZADO
+   Todo se queda en tu navegador. No hay cuentas, no hay servidores,
+   no hay telemetría. La herramienta es tuya.
+
+
+EXTENSIONES POSIBLES
+------------------------------------------------------------------------
+
+- Añadir más ejemplos precargados (sanidad, justicia, vivienda, IA,
+  crisis climática, extrema derecha).
+- Exportación a PDF.
+- Modo "comparar dos contextos" (análisis A vs. análisis B).
+- Grafo real de conexiones entre capas (no solo reglas if-then).
+- Integración con datos abiertos (AEAT, INE, CGPJ) para precargar
+  indicadores.
+- Versión colaborativa (varios usuarios rellenando capas distintas).
+
+
+NOTA FINAL
+------------------------------------------------------------------------
+
+Esta herramienta no es neutral. Está diseñada desde un marco crítico
+que sostiene que el capitalismo tardío opera mediante mecanismos de
+extracción, producción de subjetividad y gestión narrativa, y que
+estos mecanismos se sostienen sobre una arquitectura jurídica que los
+hace invisibles. Pero el marco es falsable: si los datos muestran lo
+contrario, el marco requiere revisión. La herramienta está diseñada
+para facilitar esa revisión, no para blindar el marco.
+
+El análisis es tuyo. La herramienta solo lo estructura.
