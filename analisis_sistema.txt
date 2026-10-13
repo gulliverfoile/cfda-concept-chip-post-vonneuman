@@ -1,41 +1,46 @@
-CIRCUITO DE ANÁLISIS SISTÉMICO · 8 CAPAS
-Herramienta de análisis con retroalimentación entre capas
 ========================================================================
+CIRCUITO DE ANÁLISIS SISTÉMICO · v2
+Herramienta de análisis con diagnóstico VSM (Beer + Ashby) y tests
+========================================================================
+
 
 QUÉ ES
 ------------------------------------------------------------------------
-Es un archivo HTML autocontenido (un solo archivo, sin dependencias
-externas, sin instalación) que funciona como una herramienta de análisis
-sistémico. Materializa en código el marco teórico de las 8 capas +
-resistencia + falsabilidad que hemos ido construyendo en los documentos.
 
-No es una plantilla estática. Es un circuito operativo: cuando rellenas
-una capa, el sistema te obliga a mirar las demás. La retroalimentación
-entre capas no es una metáfora: está programada.
+Un archivo HTML autocontenido (un solo archivo, sin dependencias
+externas, sin instalación) que funciona como herramienta de análisis
+sistémico. Materializa en código el marco de las 8 capas + resistencia
++ falsabilidad, y añade un diagnóstico automático de viabilidad basado
+en el Modelo de Sistema Viable (VSM) de Stafford Beer y la Ley de
+Variedad Requerida de Ross Ashby.
 
-Funciona en cualquier navegador moderno (Chrome, Firefox, Edge, Safari).
-No necesita internet después de cargarse la primera vez. No envía datos
-a ningún servidor. Todo se queda en tu navegador.
+No es una plantilla estática. Es un circuito operativo con
+retroalimentación entre capas, arquitectura modular por eventos, y
+tests ejecutables sobre las zonas complejas.
+
+Funciona en cualquier navegador moderno (Chrome, Firefox, Edge,
+Safari). No necesita internet después de cargarse la primera vez. No
+envía datos a ningún servidor. Todo se queda en tu navegador
+(localStorage).
 
 
 QUÉ HACE
 ------------------------------------------------------------------------
 
 1. VISUALIZA EL CIRCUITO COMPLETO
-   Muestra las 8 capas + resistencia + falsabilidad como nodos
+   Muestra las 8 capas + resistencia + falsabilidad + VSM como nodos
    conectados. Puedes hacer clic en cualquier nodo para saltar a esa
    capa. El circuito se ve como un flujo, no como una lista.
 
 2. PREGUNTAS GUÍA POR CAPA
-   Cada capa tiene entre 4 y 8 preguntas. No son preguntas genéricas:
-   están diseñadas para extraer la información relevante de cada
-   dimensión del análisis. Cada pregunta incluye una pista (hint) que
-   explica qué se busca.
+   Cada capa tiene entre 4 y 8 preguntas diseñadas para extraer la
+   información relevante de cada dimensión. Cada pregunta incluye una
+   pista que explica qué se busca.
 
 3. CAMPO DE RESPUESTA ABIERTO
    Cada pregunta tiene un área de texto donde escribes libremente. No
-   hay respuestas correctas ni incorrectas. El sistema no corrige: solo
-   recoge y estructura.
+   hay respuestas correctas ni incorrectas. El sistema no corrige:
+   solo recoge y estructura.
 
 4. INDICADORES Y DATOS
    Debajo de cada pregunta puedes añadir datos concretos (cifras,
@@ -53,75 +58,141 @@ QUÉ HACE
    - Si rellenas "psicología pervertida" (Capa 4), te conecta con
      "Gestión narrativa" (Capa 5).
 
-6. GUARDADO AUTOMÁTICO
-   Todo se guarda en localStorage del navegador. Puedes cerrar la
-   pestaña y volver: tus respuestas siguen ahí. No hay botón de
-   guardar: se guarda solo mientras escribes.
+6. DIAGNÓSTICO DE VIABILIDAD VSM (BEER + ASHBY)
+   El sistema INFIERE automáticamente los seis subsistemas del VSM a
+   partir de la densidad de contenido de tus respuestas:
+   - S1 Operaciones (extracción + convergencia)
+   - S2 Coordinación (subjetividad + narrativa)
+   - S3 Control (fundamento jurídico)
+   - S3* Auditoría (INVERTIDO: más captura = menos auditoría)
+   - S4 Inteligencia (monitoreo del entorno)
+   - S5 Política (identidad del sistema)
 
-7. EXPORTACIÓN A MARKDOWN
-   Genera un archivo .md con todas las respuestas e indicadores
-   organizados por capas. Listo para pegar en un documento, un blog o
-   un repositorio.
+   Además calcula:
+   - Variedad de Ashby: sistema vs entorno. Si el entorno tiene más
+     variedad que el sistema, hay déficit.
+   - Algedonia: si el canal de emergencia está abierto o silenciado.
+   - Patologías detectadas: auditoría capturada, presente sobre
+     futuro, identidad como legitimación, déficit de variedad,
+     algedonia silenciada.
+   - Score de viabilidad (0-100) y veredicto textual.
 
-8. GENERACIÓN DE ANÁLISIS
-   Muestra el progreso por capas (porcentaje de preguntas respondidas),
-   una síntesis de lo desarrollado y las conexiones detectadas entre
-   capas. No es un análisis automático completo: es una compilación
-   estructurada de lo que tú has escrito, con las conexiones que el
-   sistema ha detectado.
+7. GUARDADO AUTOMÁTICO
+   Todo se guarda en localStorage. Puedes cerrar la pestaña y volver:
+   tus respuestas siguen ahí. No hay botón de guardar: se guarda solo.
 
-9. EJEMPLO PRECARGADO
-   El botón "Cargar ejemplo" rellena todo con el análisis de autónomos,
-   farmacéuticas, justicia y sanidad que hemos ido construyendo en los
-   documentos. Sirve para ver cómo funciona antes de empezar desde cero.
+8. EXPORTACIÓN A MARKDOWN
+   Genera un archivo .md con todas las respuestas, indicadores y el
+   diagnóstico VSM. Listo para pegar en un documento o repositorio.
+
+9. GENERACIÓN DE ANÁLISIS
+   Muestra el progreso por capas, una síntesis de lo desarrollado y
+   las conexiones detectadas. Incluye el diagnóstico VSM.
+
+10. TESTS EJECUTABLES
+    Un botón ejecuta tests sobre las zonas más complejas (VSM, Ashby,
+    patologías, feedback, export, event bus). Los tests son
+    documentación ejecutable: leerlos explica cómo funciona el sistema.
+
+11. EJEMPLO PRECARGADO
+    El botón "Cargar ejemplo" rellena todo con el análisis de
+    autónomos, farmacéuticas, justicia y sanidad que hemos construido.
+    Sirve para ver cómo funciona antes de empezar desde cero.
 
 
 CÓMO LO HACE (ARQUITECTURA)
 ------------------------------------------------------------------------
 
-ESTRUCTURA DE DATOS
-Cada capa es un objeto con:
-  - id: identificador único
-  - name: nombre visible
-  - color: color para la interfaz
-  - lead: descripción de qué busca esa capa
-  - questions: array de preguntas, cada una con id, label y hint
+DECISIÓN 1: ARQUITECTURA MODULAR POR EVENTOS
+En lugar de que los módulos se llamen entre sí, emiten y escuchan
+eventos a través de un EventBus. Esto desacopla:
+- La UI no sabe del VSM: solo emite "answer:set" y escucha
+  "state:changed".
+- El VSM no sabe de la UI: escucha "vsm:evaluate" y emite
+  "vsm:updated".
+- Los tests pueden suscribirse a eventos sin tocar la UI.
 
-El estado del análisis es un objeto con:
-  - active: capa actualmente visible
-  - answers: diccionario id_pregunta -> texto
-  - indicators: diccionario id_pregunta -> array de datos
-  - tags: diccionario id_pregunta -> array de etiquetas
+Módulos:
+- EventBus: bus de eventos (on/emit).
+- Test: framework minimalista de tests (suite/test/assert).
+- State: estado serializable, única fuente de verdad.
+- VSM: diagnóstico Beer + Ashby (función pura).
+- Feedback: reglas if-then heurísticas.
+- Export: generación de Markdown.
+- UI: renderizado y delegación de eventos.
 
-PERSISTENCIA
-Todo el estado se serializa a JSON y se guarda en localStorage con la
-clave "circuito_analisis_v1". Al cargar la página, se recupera. No hay
-base de datos, no hay servidor.
+DECISIÓN 2: EL VSM SE INFIERE, NO SE PREGUNTA
+El VSM no es una capa más: es el diagnóstico que el sistema hace de
+sí mismo. Si preguntáramos "¿la auditoría está capturada?", el
+usuario podría responder "no" aunque sus respuestas en la Capa 3
+dijeran lo contrario. La inferencia obliga a la coherencia entre lo
+que describes y el diagnóstico.
 
-RENDERIZADO
-La interfaz se genera dinámicamente con JavaScript. No hay HTML
-predefinido para las preguntas: el script lee el array LAYERS y
-construye el DOM. Esto significa que añadir una capa nueva es tan
-simple como añadir un objeto al array.
+El usuario puede revisar el diagnóstico, pero no puede forzarlo sin
+cambiar las respuestas. Esto es coherente con la cibernética de
+segundo orden: el observador (el usuario) puede corregir la
+descripción del sistema, pero la corrección pasa por cambiar la
+descripción, no por negar el diagnóstico.
 
-RETROALIMENTACIÓN
-La función getFeedback(layer) contiene reglas if-then que detectan
-cuándo una capa tiene contenido relevante y sugieren revisar otras.
-No es un sistema experto: es un conjunto de reglas heurísticas basadas
-en el marco teórico. Se puede ampliar fácilmente.
+DECISIÓN 3: S3* ESTÁ INVERTIDO
+En todas las capas, más contenido = más desarrollo. En la Capa 3
+(Captura del árbitro), más contenido = MENOS auditoría independiente.
+Es la única capa donde más = peor. Esto formaliza la patología
+central del capitalismo tardío: el regulador ha sido capturado por el
+regulado.
 
-EXPORTACIÓN
-La función buildMarkdown() recorre LAYERS y construye un string en
-formato Markdown con las respuestas y los indicadores organizados
-jerárquicamente.
+Fórmula: S3* = (1 - densidad_capa_3) * 100
+Si no hay nada en Capa 3, asumimos auditoría intacta (100).
+Si hay captura total, auditoría capturada (0).
 
-ANÁLISIS
-La función openAnalysis() calcula el progreso por capas, extrae las
-respuestas con contenido, detecta conexiones simples entre capas
-(basadas en qué capas tienen contenido) y muestra todo en un modal.
+DECISIÓN 4: VARIEDAD DE ASHBY COMO RATIO SISTEMA/ENTORNO
+La Ley de Variedad Requerida dice que solo la variedad absorbe
+variedad. Si el entorno (límites + resistencia) tiene más variedad
+que el sistema (extracción + convergencia + subjetividad), hay
+déficit.
+
+Fórmula:
+- systemVariety = media(extracción, convergencia, subjetividad)
+- envVariety = media(límites, resistencia)
+- varietyBalance = systemVariety - envVariety
+
+Si varietyBalance < -0.2, hay déficit de variedad.
+
+DECISIÓN 5: SCORE DE VIABILIDAD PONDERADO
+El score final (0-100) pondera las condiciones de Beer:
+- S3* independiente: 30% (la auditoría es la condición de
+  posibilidad).
+- Balance S3-S4: 20% (sin balance, el sistema no se corrige).
+- Variedad: 25% (sin variedad, no hay viabilidad según Ashby).
+- Algedonia: 25% (sin canal de emergencia, la crisis no se detecta).
+
+Veredicto textual:
+- >= 70: Viable (en sentido Beer).
+- 45-69: Viable con patologías.
+- < 45: No viable (patologías críticas).
+
+DECISIÓN 6: TESTS SOBRE LAS ZONAS COMPLEJAS
+Los tests se concentran en la lógica pura (VSM, Ashby, patologías,
+feedback, export, event bus). No testeamos la UI porque es frágil y
+cambia. Sí testeamos la lógica, que es lo que importa.
+
+Los tests son documentación ejecutable: leerlos explica cómo funciona
+el sistema mejor que cualquier comentario. Se ejecutan con un botón,
+no automáticamente, para evitar fallos por condiciones del navegador.
+
+DECISIÓN 7: DATOS SEPARADOS DE LÓGICA
+LAYERS es un array de datos. Añadir una capa nueva es tan simple como
+añadir un objeto al array. La lógica de render, VSM y export lee
+LAYERS y se adapta. Esto permite extender el sistema sin tocar la
+lógica.
+
+DECISIÓN 8: FUNCIÓN PURA PARA EL VSM
+VSM.evaluate(state) es una función pura: recibe un estado y devuelve
+un diagnóstico. No necesita DOM, ni localStorage, ni event bus. Esa
+pureza es lo que hace testeable la lógica compleja.
 
 
-LAS 8 CAPAS + RESISTENCIA + FALSABILIDAD
+LAS 8 CAPAS + RESISTENCIA + FALSABILIDAD + VSM
 ------------------------------------------------------------------------
 
 CAPA 0 · GENEALOGÍA
@@ -131,7 +202,7 @@ CAPA 0 · GENEALOGÍA
 
 CAPA 1 · FUNDAMENTO JURÍDICO
   Pregunta: ¿Qué arquitectura legal hace posible la extracción?
-  Busca: ficciones legales, daños invisibles al derecho, dilución de
+  Busca: ficciones legales, daños invisibles, dilución de
   responsabilidad, cumplimiento formal.
 
 CAPA 2 · EXTRACCIÓN
@@ -143,7 +214,7 @@ CAPA 2 · EXTRACCIÓN
 CAPA 3 · CAPTURA DEL ÁRBITRO
   Pregunta: ¿Cómo se neutraliza al regulador?
   Busca: financiación del regulador, puertas giratorias, lobby,
-  captura judicial, captura mediática, captura académica.
+  captura judicial, mediática, académica.
 
 CAPA 4 · PRODUCCIÓN DE SUBJETIVIDAD
   Pregunta: ¿Cómo se produce el sujeto que acepta la extracción?
@@ -161,7 +232,7 @@ CAPA 6 · CONVERGENCIA INSTITUCIONAL
   Busca: actores que convergen, eje presupuestario, cierre del
   circuito, ausencia de conspiración.
 
-CAPA 7 · LÍMITES MATERIALES Y FRAGILIDAD
+CAPA 7 · LÍMITES MATERIALES
   Pregunta: ¿Qué límites físicos y sistémicos tiene el sistema?
   Busca: termodinámica, deuda como acelerador, deuda termodinámica
   (clima), sobrevaloración de activos, pasivos no contabilizados.
@@ -174,22 +245,53 @@ CAPA 8 · RESISTENCIA Y CAMBIO
 FALSABILIDAD
   Pregunta: ¿Qué condiciones refutarían este análisis?
   Busca: condiciones de falsación, preguntas abiertas.
-  Esta capa es crucial: distingue el marco de una teoría conspirativa.
-  Un marco falsable puede ser contrastado con la realidad.
+  Esta capa distingue el marco de una teoría conspirativa.
+
+VSM (BEER + ASHBY)
+  Diagnóstico inferido, no preguntado.
+  Mide: S1, S2, S3, S3* (invertido), S4, S5, variedad, algedonia,
+  patologías, score de viabilidad.
+
+
+RELACIÓN CON BEER Y ASHBY
+------------------------------------------------------------------------
+
+Beer propone que todo sistema viable necesita cinco funciones
+invariantes (S1-S5) más una sexta de auditoría (S3*). Ashby formula
+la Ley de Variedad Requerida: solo la variedad absorbe variedad.
+
+La matriz de 8 capas puede leerse como un VSM del capitalismo tardío:
+
+  S5 (Política)     → Capa 0 (Genealogía) + Capa 5 (Narrativa)
+  S4 (Inteligencia) → Capa 7 (Límites) + Capa 8 (Resistencia)
+  S3 (Control)      → Capa 1 (Derecho)
+  S3* (Auditoría)   → Capa 3 (Captura) [INVERTIDO]
+  S2 (Coordinación) → Capa 4 (Subjetividad) + Capa 5 (Narrativa)
+  S1 (Operaciones)  → Capa 2 (Extracción) + Capa 6 (Convergencia)
+
+Diagnóstico: el capitalismo tardío NO es viable en el sentido de
+Beer. Ha capturado S3* (la auditoría no audita), ha subordinado S4 a
+S3 (prioriza el presente sobre el futuro) y ha reducido S5 a una
+narrativa legitimadora. La Ley de Ashby lo formaliza: el sistema
+atenúa la variedad del entorno (externaliza costes) y amplifica su
+propia variedad (más mercados, más productos). Pero la variedad del
+entorno no desaparece: se acumula como pasivos no contabilizados.
+Cuando supera la capacidad de absorción del sistema, se produce una
+crisis de variedad.
 
 
 CÓMO USARLO
 ------------------------------------------------------------------------
 
 PASO 1: ABRIR
-  Guarda el archivo como circuito_analisis.html y ábrelo con doble clic
-  en cualquier navegador.
+  Guarda el archivo como circuito_analisis_v2.html y ábrelo con doble
+  clic en cualquier navegador.
 
 PASO 2: EMPEZAR POR UNA CAPA
-  Puedes empezar por donde quieras. El circuito no es lineal. Si estás
-  analizando un caso concreto, quizá quieras empezar por la Capa 2
-  (Extracción) o la Capa 3 (Captura del árbitro). Si quieres entender
-  el origen, empieza por la Capa 0 (Genealogía).
+  Puedes empezar por donde quieras. El circuito no es lineal. Si
+  estás analizando un caso concreto, quizá quieras empezar por la
+  Capa 2 (Extracción) o la Capa 3 (Captura). Si quieres entender el
+  origen, empieza por la Capa 0 (Genealogía).
 
 PASO 3: RESPONDER
   Escribe en las áreas de texto. No hay límite de extensión. Añade
@@ -200,16 +302,24 @@ PASO 4: SEGUIR LA RETROALIMENTACIÓN
   sugiere. El sistema te está diciendo que hay una conexión que no
   deberías ignorar.
 
-PASO 5: GENERAR ANÁLISIS
-  Cuando tengas suficiente material, pulsa "Generar análisis". Verás
-  el progreso, la síntesis y las conexiones detectadas.
+PASO 5: REVISAR EL VSM
+  Cuando tengas suficiente material, ve a la pestaña "Viabilidad VSM".
+  Verás el diagnóstico inferido: subsistemas, variedad, algedonia,
+  patologías, score.
 
-PASO 6: EXPORTAR
-  Pulsa "Exportar Markdown". Obtendrás un archivo .md con todo el
-  análisis estructurado. Puedes copiarlo, descargarlo o pegarlo donde
-  lo necesites.
+PASO 6: GENERAR ANÁLISIS
+  Pulsa "Generar análisis". Verás el progreso, la síntesis, las
+  conexiones detectadas y el diagnóstico VSM.
 
-PASO 7: VACIAR O CARGAR EJEMPLO
+PASO 7: EXPORTAR
+  Pulsa "Exportar MD". Obtendrás un archivo .md con todo el análisis
+  estructurado, incluyendo el diagnóstico VSM.
+
+PASO 8: EJECUTAR TESTS (opcional)
+  Pulsa "Ejecutar tests" para verificar que la lógica del sistema
+  funciona correctamente. Los tests son documentación ejecutable.
+
+PASO 9: VACIAR O CARGAR EJEMPLO
   Si quieres empezar de cero, pulsa "Vaciar". Si quieres ver cómo
   funciona, pulsa "Cargar ejemplo".
 
@@ -225,16 +335,18 @@ QUÉ NO HACE
 - No es una teoría conspirativa. Es un marco falsable: incluye
   condiciones que lo refutarían.
 - No sustituye la lectura de los textos. Es una herramienta para
-  organizar el análisis, no un resumen automático.
+  organizar el análisis.
+- El VSM no es una capa más: es un diagnóstico. No se pregunta, se
+  infiere.
 
 
 POR QUÉ ESTÁ DISEÑADO ASÍ
 ------------------------------------------------------------------------
 
 1. CIRCUITO, NO LISTA
-   El análisis sistémico no es lineal. Las capas se alimentan entre sí.
-   La interfaz refleja esto: el circuito está siempre visible, y la
-   retroalimentación te obliga a mirar las demás capas.
+   El análisis sistémico no es lineal. Las capas se alimentan entre
+   sí. La interfaz refleja esto: el circuito está siempre visible, y
+   la retroalimentación te obliga a mirar las demás capas.
 
 2. PREGUNTAS, NO PLANTILLA
    Una plantilla te dice qué escribir. Una pregunta te obliga a
@@ -243,18 +355,25 @@ POR QUÉ ESTÁ DISEÑADO ASÍ
 
 3. DATOS, NO OPINIONES
    El campo de indicadores permite acumular datos concretos. El
-   análisis final cruza respuestas con datos. Esto lo distingue de un
-   ensayo de opinión.
+   análisis final cruza respuestas con datos.
 
 4. FALSABILIDAD INTEGRADA
    La capa de falsabilidad no es un apéndice. Está en el circuito.
    Esto significa que el marco se somete a contraste desde el primer
-   momento. Si no puedes definir qué te refutaría, no estás haciendo
-   análisis sistémico: estás haciendo dogma.
+   momento.
 
-5. LOCAL, NO CENTRALIZADO
+5. VSM COMO DIAGNÓSTICO, NO COMO CAPA
+   El VSM no describe el sistema: lo juzga. Es la diferencia entre
+   "esto es lo que hay" y "esto es viable o no en el sentido de
+   Beer". Esa distinción es crucial.
+
+6. TESTS COMO DOCUMENTACIÓN
+   Los tests no son un extra: son la explicación ejecutable de la
+   lógica. Leerlos es entender el sistema.
+
+7. LOCAL, NO CENTRALIZADO
    Todo se queda en tu navegador. No hay cuentas, no hay servidores,
-   no hay telemetría. La herramienta es tuya.
+   no hay telemetría.
 
 
 EXTENSIONES POSIBLES
@@ -268,6 +387,14 @@ EXTENSIONES POSIBLES
 - Integración con datos abiertos (AEAT, INE, CGPJ) para precargar
   indicadores.
 - Versión colaborativa (varios usuarios rellenando capas distintas).
+- Cibernética de segundo orden: que el sistema registre cómo cambia
+  el diagnóstico según quién lo mira.
+- Autopoiesis (Maturana/Varela): modelar la clausura operacional del
+  sistema.
+- Teoría de sistemas sociales (Luhmann): los subsistemas como
+  comunicación, no como instituciones.
+- Gobernanza algorítmica (Rouvroy, Zuboff): la dataficación de la
+  subjetividad como capa adicional.
 
 
 NOTA FINAL
@@ -278,7 +405,13 @@ que sostiene que el capitalismo tardío opera mediante mecanismos de
 extracción, producción de subjetividad y gestión narrativa, y que
 estos mecanismos se sostienen sobre una arquitectura jurídica que los
 hace invisibles. Pero el marco es falsable: si los datos muestran lo
-contrario, el marco requiere revisión. La herramienta está diseñada
-para facilitar esa revisión, no para blindar el marco.
+contrario, el marco requiere revisión.
 
-El análisis es tuyo. La herramienta solo lo estructura.
+El VSM de Beer y la Ley de Ashby dan el lenguaje para diagnosticar la
+viabilidad: el capitalismo tardío no es viable en el sentido de Beer
+porque ha capturado sus mecanismos de corrección y ha acumulado un
+déficit de variedad que no puede absorber.
+
+La herramienta está diseñada para facilitar esa revisión, no para
+blindar el marco. El análisis es tuyo. La herramienta solo lo
+estructura.
