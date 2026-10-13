@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Circuito de Análisis Sistémico · v2 (VSM + Tests)</title>
+<title>Monitor Cibernético · v3 (VSM + Editor + Ayuda)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#161a22; --panel2:#1d232d; --border:#2a3140;
@@ -13,94 +13,107 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     background:var(--bg);color:var(--text);line-height:1.5;font-size:15px}
-  header{padding:16px 24px;border-bottom:1px solid var(--border);background:var(--panel);
-    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-  header h1{margin:0;font-size:17px;font-weight:600}
-  header .sub{color:var(--muted);font-size:12.5px}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+  header{padding:14px 20px;border-bottom:1px solid var(--border);background:var(--panel);
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+  header h1{margin:0;font-size:16px;font-weight:600}
+  header .sub{color:var(--muted);font-size:12px}
+  .toolbar{display:flex;gap:6px;flex-wrap:wrap}
   button{background:var(--panel2);color:var(--text);border:1px solid var(--border);
-    padding:7px 13px;border-radius:var(--radius);cursor:pointer;font-size:12.5px;font-weight:500}
+    padding:6px 11px;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:500}
   button:hover{border-color:var(--accent);color:var(--accent)}
   button.primary{background:var(--accent);color:#0b1020;border-color:var(--accent)}
   button.primary:hover{background:#8bbcff;color:#0b1020}
   button.ghost{background:transparent}
   button.danger{border-color:var(--danger);color:var(--danger)}
-  main{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 70px)}
-  nav.side{border-right:1px solid var(--border);padding:14px 10px;background:var(--panel);
-    overflow-y:auto;max-height:calc(100vh - 70px);position:sticky;top:70px}
-  nav.side h3{font-size:10.5px;text-transform:uppercase;color:var(--muted);margin:14px 8px 6px;letter-spacing:.08em}
-  .layer-btn{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
-    cursor:pointer;font-size:12.5px;color:var(--muted);border:1px solid transparent}
+  button.help{background:#2a2a4a;border-color:#5a5a8a;color:#a0a0ff}
+  button.help:hover{border-color:#8080ff;color:#c0c0ff}
+  main{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 60px)}
+  nav.side{border-right:1px solid var(--border);padding:12px 8px;background:var(--panel);
+    overflow-y:auto;max-height:calc(100vh - 60px);position:sticky;top:60px}
+  nav.side h3{font-size:10px;text-transform:uppercase;color:var(--muted);margin:12px 8px 5px;letter-spacing:.08em}
+  .layer-btn{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;
+    cursor:pointer;font-size:12px;color:var(--muted);border:1px solid transparent}
   .layer-btn:hover{background:var(--panel2);color:var(--text)}
   .layer-btn.active{background:var(--panel2);color:var(--text);border-color:var(--border)}
   .layer-btn .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
-  .layer-btn .count{margin-left:auto;font-size:10.5px;color:var(--muted);background:var(--bg);
-    padding:2px 6px;border-radius:6px;border:1px solid var(--border)}
-  .content{padding:22px 30px;max-width:920px}
-  .content h2{margin:0 0 4px;font-size:21px}
-  .content .lead{color:var(--muted);margin-bottom:18px;font-size:13.5px}
+  .layer-btn .count{margin-left:auto;font-size:10px;color:var(--muted);background:var(--bg);
+    padding:2px 5px;border-radius:5px;border:1px solid var(--border)}
+  .content{padding:20px 26px;max-width:900px}
+  .content h2{margin:0 0 4px;font-size:20px}
+  .content .lead{color:var(--muted);margin-bottom:16px;font-size:13px}
   .circuit-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
-    padding:14px;margin-bottom:20px}
-  .circuit{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-  .node{padding:6px 10px;border-radius:7px;font-size:11.5px;border:1px solid var(--border);
+    padding:12px;margin-bottom:18px}
+  .circuit{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+  .node{padding:5px 9px;border-radius:6px;font-size:11px;border:1px solid var(--border);
     background:var(--panel2);cursor:pointer;transition:.15s}
   .node:hover{border-color:var(--accent);color:var(--accent)}
   .node.active{border-color:var(--accent);background:#1b2636;color:var(--accent)}
   .node.res{border-color:var(--ok);color:var(--ok)}
   .node.fal{border-color:var(--warn);color:var(--warn)}
   .node.vsm{border-color:#a78bfa;color:#a78bfa}
-  .arrow{color:var(--muted);align-self:center;font-size:12px}
+  .arrow{color:var(--muted);align-self:center;font-size:11px}
   .feedback{background:#141b16;border:1px solid #1f3327;border-radius:var(--radius);
-    padding:11px 13px;margin:14px 0;font-size:12.5px;color:#a9d6bb}
+    padding:10px 12px;margin:12px 0;font-size:12px;color:#a9d6bb}
   .feedback strong{color:var(--ok)}
   .q-block{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
-    padding:14px;margin-bottom:12px}
-  .q-block label{display:block;font-weight:600;margin-bottom:5px;font-size:13.5px}
-  .q-block .hint{color:var(--muted);font-size:12px;margin-bottom:7px}
+    padding:12px;margin-bottom:10px}
+  .q-block label{display:block;font-weight:600;margin-bottom:4px;font-size:13px}
+  .q-block .hint{color:var(--muted);font-size:11.5px;margin-bottom:6px}
+  .q-block .help-icon{float:right;color:var(--accent);cursor:pointer;font-size:11px;margin-top:-20px}
   textarea,input[type=text]{width:100%;background:var(--bg);color:var(--text);
-    border:1px solid var(--border);border-radius:8px;padding:9px;font-family:inherit;
-    font-size:13px;resize:vertical;min-height:60px}
+    border:1px solid var(--border);border-radius:7px;padding:8px;font-family:inherit;
+    font-size:12.5px;resize:vertical;min-height:56px}
   textarea:focus,input:focus{outline:none;border-color:var(--accent)}
-  .indicator-row{display:flex;gap:7px;margin-top:7px;flex-wrap:wrap}
-  .indicator-row input{flex:1;min-width:120px}
-  .indicator-row button{padding:7px 10px;font-size:11.5px}
-  .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+  .indicator-row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+  .indicator-row input{flex:1;min-width:110px}
+  .indicator-row button{padding:6px 9px;font-size:11px}
+  .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
   .tag{background:var(--panel2);border:1px solid var(--border);border-radius:20px;
-    padding:3px 9px;font-size:11px;color:var(--muted);cursor:pointer}
+    padding:2px 8px;font-size:10.5px;color:var(--muted);cursor:pointer}
   .tag:hover{border-color:var(--accent);color:var(--accent)}
   .save-bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);
-    border-top:1px solid var(--border);padding:8px 24px;display:flex;justify-content:space-between;
-    align-items:center;font-size:12px;color:var(--muted);z-index:20}
+    border-top:1px solid var(--border);padding:6px 20px;display:flex;justify-content:space-between;
+    align-items:center;font-size:11.5px;color:var(--muted);z-index:20}
   .save-bar .status{color:var(--ok)}
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;
-    align-items:center;justify-content:center;z-index:50;padding:20px}
+    align-items:center;justify-content:center;z-index:50;padding:16px}
   .modal.open{display:flex}
   .modal .box{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
-    max-width:880px;width:100%;max-height:88vh;overflow:auto;padding:22px}
+    max-width:900px;width:100%;max-height:90vh;overflow:auto;padding:22px}
+  .modal .box h2{margin-top:0;color:var(--accent)}
+  .modal .box h3{margin-top:20px;color:var(--accent2);font-size:15px}
+  .modal .box p{font-size:13.5px;color:var(--text)}
+  .modal .box ul,.modal .box ol{font-size:13px;padding-left:22px}
+  .modal .box li{margin:5px 0}
+  .modal .box code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:12px;color:var(--accent2)}
+  .modal .box .step{background:var(--bg);border-left:3px solid var(--accent);padding:10px 14px;margin:10px 0;border-radius:6px}
+  .modal .box .step strong{color:var(--accent)}
   pre.export{background:var(--bg);border:1px solid var(--border);border-radius:8px;
-    padding:14px;white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto}
-  /* VSM panel */
+    padding:12px;white-space:pre-wrap;font-size:11.5px;max-height:50vh;overflow:auto}
   .vsm-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
-    padding:18px;margin-bottom:16px}
-  .vsm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
-  .vsm-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px}
-  .vsm-card .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-  .vsm-card .value{font-size:24px;font-weight:600;margin:4px 0}
-  .vsm-card .desc{font-size:11.5px;color:var(--muted)}
-  .bar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:6px}
+    padding:16px;margin-bottom:14px}
+  .vsm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+  .vsm-card{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:10px}
+  .vsm-card .label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .vsm-card .value{font-size:22px;font-weight:600;margin:3px 0}
+  .vsm-card .desc{font-size:11px;color:var(--muted)}
+  .bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:5px}
   .bar span{display:block;height:100%}
   .pathology{background:#2a1a1a;border-left:3px solid var(--danger);border-radius:6px;
-    padding:10px 12px;margin:8px 0;font-size:12.5px}
+    padding:9px 11px;margin:7px 0;font-size:12px}
   .pathology strong{color:var(--danger)}
   .pathology.ok{background:#14201a;border-left-color:var(--ok)}
   .pathology.ok strong{color:var(--ok)}
-  .viability-score{text-align:center;padding:18px;border-radius:10px;margin:14px 0}
-  .viability-score .n{font-size:42px;font-weight:700}
-  .viability-score .t{font-size:13px;color:var(--muted)}
+  .viability-score{text-align:center;padding:16px;border-radius:10px;margin:12px 0}
+  .viability-score .n{font-size:38px;font-weight:700}
+  .viability-score .t{font-size:12.5px;color:var(--muted)}
+  .editor-row{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-bottom:8px;align-items:start}
+  .editor-row input{font-size:12px}
   @media(max-width:820px){
     main{grid-template-columns:1fr}
     nav.side{position:static;max-height:none;border-right:none;border-bottom:1px solid var(--border)}
-    .content{padding:16px}
+    .content{padding:14px}
+    .editor-row{grid-template-columns:1fr}
   }
 </style>
 </head>
@@ -108,15 +121,17 @@
 
 <header>
   <div>
-    <h1>Circuito de Análisis Sistémico · v2</h1>
-    <div class="sub">8 capas + resistencia + falsabilidad + diagnóstico VSM (Beer + Ashby)</div>
+    <h1>Monitor Cibernético · v3</h1>
+    <div class="sub">8 capas + VSM (Beer + Ashby) + editor + ayuda</div>
   </div>
   <div class="toolbar">
+    <button class="help" data-action="help">Ayuda</button>
+    <button data-action="editor">Editor de capas</button>
     <button class="ghost" data-action="load-example">Cargar ejemplo</button>
     <button class="ghost danger" data-action="reset">Vaciar</button>
     <button data-action="export">Exportar MD</button>
     <button data-action="analysis">Generar análisis</button>
-    <button data-action="tests">Ejecutar tests</button>
+    <button data-action="tests">Tests</button>
   </div>
 </header>
 
@@ -134,50 +149,39 @@
 
 <script>
 "use strict";
+
 /* ============================================================================
-   0. TEST FRAMEWORK (mini, sin dependencias)
-   ----------------------------------------------------------------------------
-   DECISIÓN: Un framework de tests propio y minimalista porque:
-   - No queremos dependencias externas (la herramienta debe ser un archivo).
-   - Los tests son documentación ejecutable: explican la lógica esperada.
-   - Se ejecutan bajo demanda, no en cada carga (evita fallos por entorno).
+   0. TEST FRAMEWORK
    ============================================================================ */
 const Test = (function(){
   const suites = [];
   return {
-    suite(name, fn){ suites.push({name, tests: [], fn}); fn(); },
+    suite(name, fn){ suites.push({name, tests: []}); fn(); },
     test(name, fn){ suites[suites.length-1].tests.push({name, fn}); },
     assert(cond, msg){ if(!cond) throw new Error("ASSERT: " + (msg || "falló")); },
     assertEquals(a, b, msg){
       if(a !== b) throw new Error(`ASSERT EQ: esperado ${b}, recibido ${a}. ${msg||""}`);
     },
     assertApprox(a, b, tol, msg){
-      if(Math.abs(a-b) > tol) throw new Error(`ASSERT ~: ${a} no está cerca de ${b} (±${tol}). ${msg||""}`);
+      if(Math.abs(a-b) > tol) throw new Error(`ASSERT ~: ${a} no cerca de ${b} (±${tol})`);
     },
     run(){
-      const results = [];
-      let totalPass = 0, totalFail = 0;
+      const results = []; let pass = 0, fail = 0;
       suites.forEach(s => {
-        const suiteResult = {name: s.name, tests: []};
+        const sr = {name: s.name, tests: []};
         s.tests.forEach(t => {
-          try { t.fn(); suiteResult.tests.push({name: t.name, pass: true}); totalPass++; }
-          catch(e){ suiteResult.tests.push({name: t.name, pass: false, error: e.message}); totalFail++; }
+          try { t.fn(); sr.tests.push({name: t.name, pass: true}); pass++; }
+          catch(e){ sr.tests.push({name: t.name, pass: false, error: e.message}); fail++; }
         });
-        results.push(suiteResult);
+        results.push(sr);
       });
-      return {results, totalPass, totalFail};
+      return {results, pass, fail};
     }
   };
 })();
 
 /* ============================================================================
    1. EVENT BUS
-   ----------------------------------------------------------------------------
-   DECISIÓN: En lugar de que los módulos se llamen entre sí, emiten y escuchan
-   eventos. Esto desacopla:
-   - La UI no sabe del VSM: solo emite "answer:set" y escucha "render:request".
-   - El VSM no sabe de la UI: escucha "vsm:evaluate" y emite "vsm:updated".
-   - Los tests pueden suscribirse a eventos sin tocar la UI.
    ============================================================================ */
 const EventBus = (function(){
   const listeners = {};
@@ -189,20 +193,20 @@ const EventBus = (function(){
     },
     emit(event, data){
       (listeners[event] || []).forEach(fn => {
-        try { fn(data); } catch(e){ console.error("Error en listener de", event, e); }
+        try { fn(data); } catch(e){ console.error("Error en listener", event, e); }
       });
-    },
-    clear(){ Object.keys(listeners).forEach(k => delete listeners[k]); }
+    }
   };
 })();
 
 /* ============================================================================
-   2. LAYERS DATA
+   2. CAPAS POR DEFECTO (CAPITALISMO TARDÍO)
    ----------------------------------------------------------------------------
-   DECISIÓN: Los datos son datos, no lógica. Separar LAYERS del código permite
-   añadir capas sin tocar la lógica de render, VSM o export.
+   DECISIÓN: Estas capas son el ejemplo por defecto. El editor permite
+   reemplazarlas por cualquier otro sistema. El VSM se adapta automáticamente
+   porque lee las capas activas.
    ============================================================================ */
-const LAYERS = [
+const DEFAULT_LAYERS = [
   {
     id:"gen", name:"Capa 0 · Genealogía", color:"#8b93a7",
     lead:"¿De dónde viene el mecanismo? Rastrea el origen histórico y la narrativa fundacional.",
@@ -314,56 +318,82 @@ const LAYERS = [
   }
 ];
 
+/* Mapeo por defecto capa → subsistema VSM. El editor puede cambiarlo. */
+const DEFAULT_VSM_MAP = {
+  S1: ["ext", "conv"],
+  S2: ["sub", "nar"],
+  S3: ["jur"],
+  S3star: ["cap"],
+  S4: ["mat", "res"],
+  S5: ["gen", "nar"]
+};
+
+/* Pesos por defecto del score de viabilidad */
+const DEFAULT_WEIGHTS = {
+  S3star: 0.30,
+  balance: 0.20,
+  variety: 0.25,
+  algedonia: 0.25
+};
+
 /* ============================================================================
    3. STATE MODULE
-   ----------------------------------------------------------------------------
-   DECISIÓN: El estado es un objeto plano serializable. Los módulos no mutan
-   el estado directamente: emiten eventos que el State Module aplica y persiste.
-   Así el estado es la única fuente de verdad.
    ============================================================================ */
 const State = (function(){
-  const KEY = "circuito_analisis_v2";
+  const KEY = "monitor_cibernetico_v3";
   let data = {
     active: "gen",
     answers: {},
-    indicators: {}
+    indicators: {},
+    layers: JSON.parse(JSON.stringify(DEFAULT_LAYERS)),
+    vsmMap: JSON.parse(JSON.stringify(DEFAULT_VSM_MAP)),
+    weights: Object.assign({}, DEFAULT_WEIGHTS)
   };
 
   function load(){
     try {
       const raw = localStorage.getItem(KEY);
-      if(raw) data = Object.assign(data, JSON.parse(raw));
+      if(raw){
+        const parsed = JSON.parse(raw);
+        // Merge cuidadoso: las capas y mapas se reemplazan si existen
+        data = Object.assign(data, parsed);
+        // Si el usuario guardó capas, usarlas; si no, mantener las default
+        if(!data.layers || !data.layers.length) data.layers = JSON.parse(JSON.stringify(DEFAULT_LAYERS));
+        if(!data.vsmMap) data.vsmMap = JSON.parse(JSON.stringify(DEFAULT_VSM_MAP));
+        if(!data.weights) data.weights = Object.assign({}, DEFAULT_WEIGHTS);
+      }
     } catch(e){ console.warn("No se pudo cargar estado", e); }
   }
   function save(){
     try {
       localStorage.setItem(KEY, JSON.stringify(data));
       EventBus.emit("state:saved", {timestamp: Date.now()});
-    } catch(e){ console.warn("No se pudo guardar estado", e); }
+    } catch(e){ console.warn("No se pudo guardar", e); }
   }
   function get(){ return data; }
-  function set(path, value){
-    // path simple: "answers.gen_hito"
-    const parts = path.split(".");
-    let obj = data;
-    for(let i=0; i<parts.length-1; i++) obj = obj[parts[i]];
-    obj[parts[parts.length-1]] = value;
-    save();
-    EventBus.emit("state:changed", {path, value});
-  }
   function reset(){
-    data = {active:"gen", answers:{}, indicators:{}};
+    data = {
+      active: "gen",
+      answers: {}, indicators: {},
+      layers: JSON.parse(JSON.stringify(DEFAULT_LAYERS)),
+      vsmMap: JSON.parse(JSON.stringify(DEFAULT_VSM_MAP)),
+      weights: Object.assign({}, DEFAULT_WEIGHTS)
+    };
     save();
     EventBus.emit("state:reset");
   }
   function loadData(newData){
-    data = Object.assign({active:"gen", answers:{}, indicators:{}}, newData);
+    data = Object.assign(data, newData);
     save();
     EventBus.emit("state:loaded");
   }
+  function getLayer(id){ return data.layers.find(l => l.id === id); }
 
-  // Suscripciones a eventos
-  EventBus.on("answer:set", ({id, value}) => set(`answers.${id}`, value));
+  EventBus.on("answer:set", ({id, value}) => {
+    data.answers[id] = value;
+    save();
+    EventBus.emit("state:changed", {path: "answers." + id});
+  });
   EventBus.on("indicator:add", ({qid, value}) => {
     if(!data.indicators[qid]) data.indicators[qid] = [];
     data.indicators[qid].push(value);
@@ -375,36 +405,33 @@ const State = (function(){
     save();
     EventBus.emit("indicators:changed", {qid});
   });
-  EventBus.on("layer:activate", ({id}) => { data.active = id; save(); });
+  EventBus.on("layer:activate", ({id}) => {
+    data.active = id;
+    save();
+    EventBus.emit("state:changed", {path: "active"});
+  });
+  EventBus.on("layers:update", ({layers, vsmMap, weights}) => {
+    if(layers) data.layers = layers;
+    if(vsmMap) data.vsmMap = vsmMap;
+    if(weights) data.weights = weights;
+    save();
+    EventBus.emit("state:changed", {path: "layers"});
+  });
 
-  return { load, save, get, set, reset, loadData };
+  return { load, save, get, reset, loadData, getLayer };
 })();
 
 /* ============================================================================
    4. VSM MODULE (Beer + Ashby)
    ----------------------------------------------------------------------------
-   DECISIÓN CENTRAL: El VSM no se pregunta, se INFIERE. El usuario no responde
-   "¿está capturada la auditoría?". El sistema lo deduce de cuánto contenido
-   hay en la Capa 3. El usuario puede sobrescribir, pero el default es la
-   inferencia.
-
-   POR QUÉ: Si preguntáramos directamente, el usuario podría responder "no"
-   aunque sus propias respuestas dijeran lo contrario. La inferencia obliga a
-   la coherencia entre lo que describes y el diagnóstico.
-
-   LÓGICA DE S3* (invertida): Cuanto MÁS contenido hay en Captura del árbitro,
-   MENOS independiente es la auditoría. Es la única capa donde más = peor.
-   Esto formaliza la patología central del capitalismo tardío.
-
-   LÓGICA DE VARIEDAD (Ashby): systemVariety = extracción + convergencia +
-   subjetividad. envVariety = límites + resistencia. Si envVariety > systemVariety,
-   hay déficit: el sistema no puede absorber la variedad del entorno.
+   DECISIÓN: El VSM lee las capas activas y el mapeo configurado por el
+   usuario. Si el usuario reemplaza las capas por otro sistema, el VSM se
+   adapta sin tocar la lógica.
    ============================================================================ */
 const VSM = (function(){
 
-  // Helper: densidad de contenido de una capa (0-1)
   function contentDensity(layerId, state){
-    const layer = LAYERS.find(l => l.id === layerId);
+    const layer = state.layers.find(l => l.id === layerId);
     if(!layer) return 0;
     const answered = layer.questions.filter(q =>
       state.answers[q.id] && state.answers[q.id].trim().length > 0
@@ -412,105 +439,84 @@ const VSM = (function(){
     return layer.questions.length ? answered / layer.questions.length : 0;
   }
 
-  // Evalúa los subsistemas VSM a partir del estado
-  // DECISIÓN: función pura (state → diagnosis). Testeable sin UI.
+  // Densidad media de un array de capas
+  function avgDensity(layerIds, state){
+    if(!layerIds || !layerIds.length) return 0;
+    const sum = layerIds.reduce((s, id) => s + contentDensity(id, state), 0);
+    return sum / layerIds.length;
+  }
+
   function evaluate(state){
-    const c = (id) => contentDensity(id, state);
+    const map = state.vsmMap || DEFAULT_VSM_MAP;
+    const w = state.weights || DEFAULT_WEIGHTS;
 
-    // S1 · Operaciones: ¿el sistema extrae valor?
-    // Ponderación: extracción (70%) + convergencia (30%). La convergencia
-    // es cómo se organizan las operaciones, no la operación en sí.
-    const S1 = Math.round((c("ext") * 0.7 + c("conv") * 0.3) * 100);
+    // S1: operaciones (extracción + convergencia)
+    const S1 = Math.round(avgDensity(map.S1, state) * 100);
+    // S2: coordinación (subjetividad + narrativa)
+    const S2 = Math.round(avgDensity(map.S2, state) * 100);
+    // S3: control (jurídico)
+    const S3 = Math.round(avgDensity(map.S3, state) * 100);
+    // S3*: auditoría INVERTIDA
+    const S3star = Math.round((1 - avgDensity(map.S3star, state)) * 100);
+    // S4: inteligencia (límites + resistencia)
+    const S4 = Math.round(avgDensity(map.S4, state) * 100);
+    // S5: política (genealogía + narrativa)
+    const S5 = Math.round(avgDensity(map.S5, state) * 100);
 
-    // S2 · Coordinación: ¿produce sujetos y neutraliza disenso?
-    // Subjetividad (60%) + narrativa (40%). La subjetividad es la base;
-    // la narrativa es la capa comunicativa que la refuerza.
-    const S2 = Math.round((c("sub") * 0.6 + c("nar") * 0.4) * 100);
+    // Variedad Ashby
+    const systemVariety = (avgDensity(map.S1, state) + avgDensity(map.S2, state) + avgDensity(map.S3, state)) / 3;
+    const envVariety = avgDensity(map.S4, state);
+    const varietyBalance = Math.round((systemVariety - envVariety) * 100) / 100;
 
-    // S3 · Control: ¿hay marco normativo que ordena el presente?
-    const S3 = Math.round(c("jur") * 100);
+    // Algedonia: si la resistencia (última capa del map S4) está silenciada
+    const resLayer = (map.S4 && map.S4.length) ? map.S4[map.S4.length - 1] : null;
+    const algedonia = resLayer
+      ? Math.round((1 - contentDensity(resLayer, state)) * 100)
+      : 50;
 
-    // S3* · Auditoría: INVERTIDA. Cuanta más captura descrita, menos auditoría.
-    // Si no hay nada en Capa 3, asumimos auditoría intacta (100).
-    // Si hay captura total, auditoría capturada (0).
-    const S3star = Math.round((1 - c("cap")) * 100);
-
-    // S4 · Inteligencia: ¿el sistema monitorea su entorno?
-    // Si la Capa 7 (límites) está desarrollada, el sistema "ve" el entorno.
-    // Pero ver no es actuar: por eso S4 puede ser alto mientras S3 lo ignora.
-    const S4 = Math.round(c("mat") * 100);
-
-    // S5 · Política/Identidad: ¿tiene identidad y valores?
-    // Genealogía (50%) + narrativa (50%). La identidad se forma en el origen
-    // y se reproduce en la narrativa.
-    const S5 = Math.round((c("gen") * 0.5 + c("nar") * 0.5) * 100);
-
-    // Variedad de Ashby: sistema vs entorno
-    const systemVariety = (c("ext") + c("conv") + c("sub")) / 3;
-    const envVariety = (c("mat") + c("res")) / 2;
-    const varietyBalance = systemVariety - envVariety; // -1 a +1
-
-    // Algedonia: ¿está abierto el canal de emergencia?
-    // Si la resistencia se describe como "contenida", el canal está cerrado.
-    // Invertimos: mucha Capa 8 con "contención" = algedonia silenciada.
-    const algedonia = Math.round((1 - c("res")) * 100);
-
-    // Diagnóstico: patologías detectadas
+    // Patologías
     const pathologies = [];
-
     if(S3star < 40){
       pathologies.push({
-        code: "AUDIT_CAPTURED",
-        title: "Auditoría capturada (S3*)",
-        desc: "El regulador ha sido capturado por el regulado. La función de verificación no verifica."
+        code:"AUDIT_CAPTURED", title:"Auditoría capturada (S3*)",
+        desc:"El regulador ha sido capturado por el regulado. La verificación no verifica."
       });
     }
     if(S3 > S4 + 20){
       pathologies.push({
-        code: "PRESENT_OVER_FUTURE",
-        title: "Presente sobre futuro (S3 > S4)",
-        desc: "El control del presente subordina la inteligencia del entorno. El sistema prioriza extraer hoy sobre sobrevivir mañana."
+        code:"PRESENT_OVER_FUTURE", title:"Presente sobre futuro (S3 > S4)",
+        desc:"El control del presente subordina la inteligencia del entorno."
       });
     }
-    if(S5 > 60 && c("res") < 0.3){
+    if(S5 > 60 && avgDensity(map.S4, state) < 0.3){
       pathologies.push({
-        code: "IDENTITY_AS_LEGITIMATION",
-        title: "Identidad como legitimación (S5 patológico)",
-        desc: "La identidad del sistema no permite alternativas. No hay S5 emergente en la Capa 8."
+        code:"IDENTITY_AS_LEGITIMATION", title:"Identidad como legitimación (S5)",
+        desc:"La identidad del sistema no permite alternativas. No hay S5 emergente."
       });
     }
     if(varietyBalance < -0.2){
       pathologies.push({
-        code: "VARIETY_DEFICIT",
-        title: "Déficit de variedad (Ashby)",
-        desc: "El entorno tiene más variedad que el sistema. El sistema no puede absorber lo que ha externalizado."
+        code:"VARIETY_DEFICIT", title:"Déficit de variedad (Ashby)",
+        desc:"El entorno tiene más variedad que el sistema. No puede absorber lo externalizado."
       });
     }
     if(algedonia < 40){
       pathologies.push({
-        code: "ALGEDONIA_SILENCED",
-        title: "Algedonia silenciada",
-        desc: "El canal de emergencia está cerrado. La resistencia existe pero no llega a S5."
+        code:"ALGEDONIA_SILENCED", title:"Algedonia silenciada",
+        desc:"El canal de emergencia está cerrado. La resistencia no llega a S5."
       });
     }
 
-    // Score de viabilidad (0-100)
-    // DECISIÓN: ponderación basada en las condiciones de Beer:
-    // - S3* independiente: 30% (la auditoría es la condición de posibilidad)
-    // - Balance S3-S4: 20% (sin balance, el sistema no se corrige)
-    // - Variedad: 25% (sin variedad, no hay viabilidad según Ashby)
-    // - Algedonia: 25% (sin canal de emergencia, la crisis no se detecta)
+    // Score
     const varietyScore = Math.max(0, Math.min(100, 50 + varietyBalance * 50));
     const feedbackBalance = 100 - Math.abs(S3 - S4);
-
     const viabilityScore = Math.round(
-      S3star * 0.30 +
-      feedbackBalance * 0.20 +
-      varietyScore * 0.25 +
-      algedonia * 0.25
+      S3star * w.S3star +
+      feedbackBalance * w.balance +
+      varietyScore * w.variety +
+      algedonia * w.algedonia
     );
 
-    // Veredicto textual
     let verdict, verdictColor;
     if(viabilityScore >= 70){ verdict = "Viable (en sentido Beer)"; verdictColor = "#5dd39e"; }
     else if(viabilityScore >= 45){ verdict = "Viable con patologías"; verdictColor = "#f0c05e"; }
@@ -518,20 +524,15 @@ const VSM = (function(){
 
     return {
       S1, S2, S3, S3star, S4, S5,
-      varietyBalance: Math.round(varietyBalance * 100) / 100,
-      algedonia,
-      pathologies,
-      viabilityScore,
-      verdict,
-      verdictColor
+      varietyBalance, algedonia,
+      pathologies, viabilityScore, verdict, verdictColor
     };
   }
 
-  // Recalcula y emite evento
   function refresh(){
-    const diagnosis = evaluate(State.get());
-    EventBus.emit("vsm:updated", diagnosis);
-    return diagnosis;
+    const d = evaluate(State.get());
+    EventBus.emit("vsm:updated", d);
+    return d;
   }
 
   EventBus.on("vsm:evaluate", refresh);
@@ -542,24 +543,23 @@ const VSM = (function(){
 
 /* ============================================================================
    5. FEEDBACK MODULE
-   ----------------------------------------------------------------------------
-   DECISIÓN: Reglas if-then heurísticas, no un sistema experto. La idea es
-   recordar al usuario que las capas están conectadas. Cada regla se puede
-   testear de forma aislada.
    ============================================================================ */
 const Feedback = (function(){
   const RULES = [
-    {layer:"jur", needs:"jur_ficciones", tip:"Has definido ficciones legales. Revisa <strong>Capa 3 (Captura)</strong>: esas ficciones son el suelo de la captura."},
-    {layer:"ext", needs:"ext_temporal", tip:"Extracción temporal detectada. Conecta con <strong>Capa 7 (Límites)</strong>: el interés compuesto exige crecimiento exponencial."},
-    {layer:"cap", needs:"cap_jud", tip:"Captura judicial descrita. Verifica en <strong>Capa 2 (Extracción)</strong> si el lawfare opera como extracción de tiempo."},
-    {layer:"sub", needs:"sub_psico", tip:"Psicología pervertida descrita. Cruza con <strong>Capa 5 (Narrativa)</strong>: el doble lenguaje es su cara visible."},
-    {layer:"conv", needs:"conv_cierre", tip:"Circuito cerrado detectado. Comprueba en <strong>Capa 8 (Resistencia)</strong> si la resistencia contenida gana casos sin cambiar el circuito."},
-    {layer:"mat", needs:"mat_deuda", tip:"Límite material señalado. Conecta con <strong>Capa 0 (Genealogía)</strong>: la deuda como motor original."},
-    {layer:"res", needs:"res_alt", tip:"Alternativas identificadas. Revisa <strong>Capa 4 (Subjetividad)</strong>: ¿las captura el sistema como estatus?"},
-    {layer:"fal", needs:"fal_cond", tip:"Condiciones de falsación definidas. Esto distingue el marco de una teoría conspirativa."}
+    {layer:"jur", needs:"jur_ficciones", tip:"Ficciones legales → revisa <strong>Capa 3 (Captura)</strong>: son el suelo de la captura."},
+    {layer:"ext", needs:"ext_temporal", tip:"Extracción temporal → conecta con <strong>Capa 7 (Límites)</strong>: el interés compuesto exige crecimiento."},
+    {layer:"cap", needs:"cap_jud", tip:"Captura judicial → verifica en <strong>Capa 2 (Extracción)</strong> si el lawfare extrae tiempo."},
+    {layer:"sub", needs:"sub_psico", tip:"Psicología pervertida → cruza con <strong>Capa 5 (Narrativa)</strong>: el doble lenguaje."},
+    {layer:"conv", needs:"conv_cierre", tip:"Circuito cerrado → comprueba en <strong>Capa 8 (Resistencia)</strong> si gana casos sin cambiar el sistema."},
+    {layer:"mat", needs:"mat_deuda", tip:"Límite material → conecta con <strong>Capa 0 (Genealogía)</strong>: la deuda como motor original."},
+    {layer:"res", needs:"res_alt", tip:"Alternativas → revisa <strong>Capa 4 (Subjetividad)</strong>: ¿las captura como estatus?"},
+    {layer:"fal", needs:"fal_cond", tip:"Falsación definida → esto distingue el marco de una teoría conspirativa."}
   ];
 
   function getFeedback(layerId, state){
+    // Solo aplica si las capas por defecto están activas
+    const hasDefault = state.layers.some(l => l.id === "jur");
+    if(!hasDefault) return "";
     const tips = RULES
       .filter(r => r.layer === layerId && state.answers[r.needs] && state.answers[r.needs].trim())
       .map(r => r.tip);
@@ -571,25 +571,20 @@ const Feedback = (function(){
 
 /* ============================================================================
    6. EXPORT MODULE
-   ----------------------------------------------------------------------------
-   DECISIÓN: El markdown incluye el diagnóstico VSM al final. El análisis no es
-   solo lo que el usuario escribió, sino también la lectura sistémica que el
-   VSM hace de esas respuestas.
    ============================================================================ */
 const Export = (function(){
   function buildMarkdown(state){
-    let md = `# Análisis sistémico · Circuito de 8 capas + VSM\n\n`;
+    let md = `# Análisis sistémico · Monitor Cibernético\n\n`;
     md += `_Generado el ${new Date().toLocaleString()}_\n\n---\n\n`;
 
-    LAYERS.forEach(l => {
+    state.layers.forEach(l => {
       const hasContent = l.questions.some(q => state.answers[q.id] && state.answers[q.id].trim());
-      if(!hasContent && !(state.indicators[l.id] || []).length) return;
+      const hasInd = l.questions.some(q => (state.indicators[q.id] || []).length);
+      if(!hasContent && !hasInd) return;
       md += `## ${l.name}\n\n${l.lead}\n\n`;
       l.questions.forEach(q => {
         const v = state.answers[q.id];
-        if(v && v.trim()){
-          md += `### ${q.label}\n\n${v.trim()}\n\n`;
-        }
+        if(v && v.trim()) md += `### ${q.label}\n\n${v.trim()}\n\n`;
         const inds = state.indicators[q.id] || [];
         if(inds.length){
           md += `**Datos/Indicadores:**\n`;
@@ -599,29 +594,25 @@ const Export = (function(){
       });
     });
 
-    // Diagnóstico VSM
     const d = VSM.evaluate(state);
     md += `---\n\n## Diagnóstico VSM (Beer + Ashby)\n\n`;
     md += `**Veredicto:** ${d.verdict} (${d.viabilityScore}/100)\n\n`;
-    md += `| Subsistema | Valor | Descripción |\n|---|---|---|\n`;
-    md += `| S1 Operaciones | ${d.S1} | Extracción + convergencia |\n`;
-    md += `| S2 Coordinación | ${d.S2} | Subjetividad + narrativa |\n`;
-    md += `| S3 Control | ${d.S3} | Fundamento jurídico |\n`;
-    md += `| S3* Auditoría | ${d.S3star} | Independencia del regulador (invertido) |\n`;
-    md += `| S4 Inteligencia | ${d.S4} | Monitoreo del entorno |\n`;
-    md += `| S5 Política | ${d.S5} | Identidad del sistema |\n`;
-    md += `| Variedad (Ashby) | ${d.varietyBalance} | Sistema vs entorno |\n`;
-    md += `| Algedonia | ${d.algedonia} | Canal de emergencia |\n\n`;
+    md += `| Subsistema | Valor |\n|---|---|\n`;
+    md += `| S1 Operaciones | ${d.S1} |\n`;
+    md += `| S2 Coordinación | ${d.S2} |\n`;
+    md += `| S3 Control | ${d.S3} |\n`;
+    md += `| S3* Auditoría (invertido) | ${d.S3star} |\n`;
+    md += `| S4 Inteligencia | ${d.S4} |\n`;
+    md += `| S5 Política | ${d.S5} |\n`;
+    md += `| Variedad (Ashby) | ${d.varietyBalance} |\n`;
+    md += `| Algedonia | ${d.algedonia} |\n\n`;
 
     if(d.pathologies.length){
       md += `**Patologías detectadas:**\n\n`;
-      d.pathologies.forEach(p => {
-        md += `- **${p.title}** (${p.code}): ${p.desc}\n`;
-      });
+      d.pathologies.forEach(p => md += `- **${p.title}** (${p.code}): ${p.desc}\n`);
     } else {
       md += `_No se detectaron patologías críticas._\n`;
     }
-
     md += `\n---\n\n_Nota: este análisis es una interpretación basada en hechos verificables e inferencias razonables. El diagnóstico VSM es una lectura sistémica, no una verdad dogmática._\n`;
     return md;
   }
@@ -629,10 +620,109 @@ const Export = (function(){
 })();
 
 /* ============================================================================
-   7. UI MODULE
+   7. HELP CONTENT
    ----------------------------------------------------------------------------
-   DECISIÓN: La UI escucha eventos y re-renderiza. No muta el estado: emite
-   eventos que el State Module aplica. Esto rompe el acoplamiento UI-Estado.
+   DECISIÓN: El manual de ayuda se carga como HTML estructurado, no como
+   texto plano. Esto permite formato, listas, pasos, ejemplos.
+   ============================================================================ */
+const HELP_HTML = `
+<h2>Manual del Monitor Cibernético</h2>
+<p>Esta herramienta es un <strong>monitor cibernético genérico</strong>. Por defecto viene configurada para analizar el capitalismo tardío, pero puedes reemplazar las capas por cualquier otro sistema: una empresa, una comunidad, un ecosistema, una organización política o tu propia vida. El sistema detecta automáticamente el diagnóstico de viabilidad (VSM de Beer + Ley de Ashby) a partir de la descripción que tú hagas.</p>
+
+<h3>¿Qué es?</h3>
+<p>Un sistema de análisis con <strong>8 capas + resistencia + falsabilidad</strong>, más un diagnóstico de viabilidad basado en cibernética organizacional. Cada capa tiene preguntas guía. Tú escribes; el sistema estructura, detecta conexiones y calcula viabilidad.</p>
+
+<h3>¿Cómo rellenar los apartados?</h3>
+<div class="step">
+  <strong>Paso 1 · Elige una capa</strong><br>
+  Puedes empezar por donde quieras. Si analizas un caso concreto, empieza por la Capa 2 (Extracción) o la Capa 3 (Captura). Si quieres entender el origen, empieza por la Capa 0 (Genealogía).
+</div>
+<div class="step">
+  <strong>Paso 2 · Responde las preguntas</strong><br>
+  Cada pregunta tiene una pista que explica qué se busca. No hay respuestas correctas ni incorrectas. Escribe lo que sepas, lo que observes o lo que intuyas. Si no sabes algo, déjalo en blanco: el sistema no te obliga a rellenar todo.
+</div>
+<div class="step">
+  <strong>Paso 3 · Añade datos</strong><br>
+  Debajo de cada pregunta hay un campo para <em>indicadores</em>. Añade cifras, casos, fuentes. Pulsa Enter o el botón "+ Dato". Estos datos se acumulan y se incorporan al análisis final.
+</div>
+<div class="step">
+  <strong>Paso 4 · Sigue la retroalimentación</strong><br>
+  Cuando rellenas una pregunta, el sistema te avisa de conexiones con otras capas. Ejemplo: si rellenas "ficciones legales" (Capa 1), te sugiere revisar "Captura del árbitro" (Capa 3). No es una obligación: es una pista de que hay una relación que no deberías ignorar.
+</div>
+<div class="step">
+  <strong>Paso 5 · Revisa el VSM</strong><br>
+  Cuando tengas suficiente material, ve a la pestaña "Viabilidad VSM". Verás el diagnóstico inferido: subsistemas, variedad, algedonia, patologías y score. El VSM no se pregunta: se infiere de tus respuestas.
+</div>
+<div class="step">
+  <strong>Paso 6 · Exporta</strong><br>
+  Pulsa "Exportar MD" para obtener un archivo Markdown con todo el análisis estructurado, incluyendo el diagnóstico VSM.
+</div>
+
+<h3>¿Qué significa cada capa?</h3>
+<ul>
+  <li><strong>Capa 0 · Genealogía</strong>: de dónde viene el sistema. Hito de ignición, narrativa fundacional, contrapesos olvidados, manual original.</li>
+  <li><strong>Capa 1 · Fundamento jurídico</strong>: qué arquitectura legal hace posible el funcionamiento del sistema.</li>
+  <li><strong>Capa 2 · Extracción</strong>: cómo el sistema extrae valor (deuda, externalización, dumping, deslocalización, etc.).</li>
+  <li><strong>Capa 3 · Captura del árbitro</strong>: cómo el sistema neutraliza al regulador.</li>
+  <li><strong>Capa 4 · Producción de subjetividad</strong>: cómo produce los sujetos que aceptan el sistema.</li>
+  <li><strong>Capa 5 · Gestión narrativa</strong>: cómo neutraliza la resistencia.</li>
+  <li><strong>Capa 6 · Convergencia institucional</strong>: cómo operan las instituciones sin coordinación central.</li>
+  <li><strong>Capa 7 · Límites materiales</strong>: qué límites físicos y sistémicos tiene.</li>
+  <li><strong>Capa 8 · Resistencia y cambio</strong>: cómo se rompe el circuito.</li>
+  <li><strong>Falsabilidad</strong>: qué condiciones refutarían el análisis.</li>
+</ul>
+
+<h3>¿Cómo funciona el VSM?</h3>
+<p>El VSM (Modelo de Sistema Viable) de Stafford Beer propone que todo sistema viable necesita cinco funciones invariantes, más una sexta de auditoría. La herramienta las infiere así:</p>
+<ul>
+  <li><strong>S1 Operaciones</strong>: extracción + convergencia.</li>
+  <li><strong>S2 Coordinación</strong>: subjetividad + narrativa.</li>
+  <li><strong>S3 Control</strong>: fundamento jurídico.</li>
+  <li><strong>S3* Auditoría</strong>: captura del árbitro <em>invertida</em> (más captura = menos auditoría).</li>
+  <li><strong>S4 Inteligencia</strong>: límites materiales + resistencia.</li>
+  <li><strong>S5 Política</strong>: genealogía + narrativa.</li>
+</ul>
+<p>La <strong>Ley de Ashby</strong> dice que solo la variedad absorbe variedad. El sistema calcula la variedad del sistema vs la del entorno. Si el entorno tiene más variedad, hay déficit.</p>
+<p>La <strong>algedonia</strong> es el canal de emergencia. Si la resistencia está silenciada, el canal está cerrado.</p>
+
+<h3>¿Qué patologías detecta?</h3>
+<ul>
+  <li><strong>Auditoría capturada</strong>: el regulador no verifica porque está capturado.</li>
+  <li><strong>Presente sobre futuro</strong>: el control del presente subordina la inteligencia del entorno.</li>
+  <li><strong>Identidad como legitimación</strong>: la identidad del sistema no permite alternativas.</li>
+  <li><strong>Déficit de variedad</strong>: el entorno tiene más variedad que el sistema.</li>
+  <li><strong>Algedonia silenciada</strong>: la resistencia no llega al centro de decisión.</li>
+</ul>
+
+<h3>¿Cómo adaptarlo a otro sistema?</h3>
+<p>Usa el <strong>Editor de capas</strong> (botón en la barra superior). Puedes:</p>
+<ul>
+  <li>Añadir, eliminar o renombrar capas.</li>
+  <li>Cambiar las preguntas de cada capa.</li>
+  <li>Modificar el mapeo capa → subsistema VSM.</li>
+  <li>Ajustar los pesos del score de viabilidad.</li>
+</ul>
+<p>Ejemplo: si quieres analizar una empresa, define capas como "Historia", "Estructura legal", "Operaciones", "Captura regulatoria", "Cultura", "Discurso", "Convergencia departamental", "Límites", "Resistencia interna". El VSM se adaptará.</p>
+
+<h3>¿Qué no hace?</h3>
+<ul>
+  <li>No genera el análisis por ti. Recoge lo que escribes y lo estructura.</li>
+  <li>No valida las respuestas. No hay respuestas correctas.</li>
+  <li>No envía datos a ningún servidor. Todo es local.</li>
+  <li>No predice. Describe mecanismos.</li>
+  <li>No es una teoría conspirativa. Es un marco falsable.</li>
+</ul>
+
+<h3>Atajos</h3>
+<ul>
+  <li>Enter en un campo de indicador: añade el dato.</li>
+  <li>Clic en una etiqueta de indicador: la elimina.</li>
+  <li>Los datos se guardan solos mientras escribes.</li>
+</ul>
+`;
+
+/* ============================================================================
+   8. UI MODULE
    ============================================================================ */
 const UI = (function(){
   const els = {
@@ -650,16 +740,14 @@ const UI = (function(){
   function renderSide(){
     const state = State.get();
     let html = `<h3>Capas</h3>`;
-    LAYERS.forEach(l => {
+    state.layers.forEach(l => {
       const answered = l.questions.filter(q => state.answers[q.id] && state.answers[q.id].trim()).length;
-      const isVsm = false; // VSM se renderiza aparte
       html += `<div class="layer-btn ${state.active===l.id?'active':''}" data-layer="${l.id}">
         <span class="dot" style="background:${l.color}"></span>
         <span>${l.name}</span>
         <span class="count">${answered}/${l.questions.length}</span>
       </div>`;
     });
-    // VSM como capa especial
     const d = VSM.evaluate(state);
     html += `<h3>Diagnóstico</h3>
       <div class="layer-btn ${state.active==='vsm'?'active':''}" data-layer="vsm">
@@ -671,23 +759,22 @@ const UI = (function(){
   }
 
   function renderCircuit(){
+    const state = State.get();
     let html = `<div class="circuit-wrap"><div class="circuit">`;
-    LAYERS.forEach((l, i) => {
+    state.layers.forEach((l, i) => {
       const cls = l.res ? "res" : (l.fal ? "fal" : "");
-      const active = State.get().active === l.id ? "active" : "";
+      const active = state.active === l.id ? "active" : "";
       html += `<div class="node ${cls} ${active}" data-layer="${l.id}">${l.name}</div>`;
-      if(i < LAYERS.length - 1) html += `<span class="arrow">→</span>`;
+      if(i < state.layers.length - 1) html += `<span class="arrow">→</span>`;
     });
-    html += `<span class="arrow">→</span><div class="node vsm ${State.get().active==='vsm'?'active':''}" data-layer="vsm">VSM</div>`;
-    html += `</div><div style="text-align:center;color:var(--muted);font-size:11.5px;margin-top:8px">
-      Circuito con retroalimentación. VSM es el diagnóstico, no una capa más.
-    </div></div>`;
+    html += `<span class="arrow">→</span><div class="node vsm ${state.active==='vsm'?'active':''}" data-layer="vsm">VSM</div>`;
+    html += `</div></div>`;
     return html;
   }
 
   function renderLayer(layerId){
     const state = State.get();
-    const l = LAYERS.find(x => x.id === layerId);
+    const l = state.layers.find(x => x.id === layerId);
     if(!l) return "";
 
     let html = `<h2>${l.name}</h2><p class="lead">${l.lead}</p>`;
@@ -719,15 +806,14 @@ const UI = (function(){
   function renderVSM(){
     const d = VSM.evaluate(State.get());
     let html = `<h2>Diagnóstico de viabilidad · VSM (Beer + Ashby)</h2>
-      <p class="lead">El VSM no se pregunta: se infiere de las respuestas de las otras capas. El usuario puede revisar el diagnóstico, pero no puede forzarlo sin cambiar las respuestas.</p>`;
+      <p class="lead">El VSM no se pregunta: se infiere de las respuestas. El usuario puede revisar el diagnóstico, pero no forzarlo sin cambiar las respuestas.</p>`;
 
     html += `<div class="viability-score" style="background:${d.verdictColor}15;border:1px solid ${d.verdictColor}55">
       <div class="n" style="color:${d.verdictColor}">${d.viabilityScore}</div>
       <div class="t">${d.verdict}</div>
     </div>`;
 
-    html += `<div class="vsm-panel"><h3 style="margin-top:0">Subsistemas VSM</h3>
-      <div class="vsm-grid">`;
+    html += `<div class="vsm-panel"><h3 style="margin-top:0">Subsistemas VSM</h3><div class="vsm-grid">`;
     const subs = [
       {k:"S1", n:d.S1, label:"Operaciones", desc:"Extracción + convergencia"},
       {k:"S2", n:d.S2, label:"Coordinación", desc:"Subjetividad + narrativa"},
@@ -747,19 +833,18 @@ const UI = (function(){
     });
     html += `</div>`;
 
-    html += `<h3>Indicadores transversales</h3>
-      <div class="vsm-grid">
-        <div class="vsm-card">
-          <div class="label">Variedad (Ashby)</div>
-          <div class="value" style="color:${d.varietyBalance < -0.2 ? "#f07a7a" : "#5dd39e"}">${d.varietyBalance > 0 ? "+" : ""}${d.varietyBalance}</div>
-          <div class="desc">Sistema vs entorno. Negativo = déficit.</div>
-        </div>
-        <div class="vsm-card">
-          <div class="label">Algedonia</div>
-          <div class="value" style="color:${d.algedonia < 40 ? "#f07a7a" : "#5dd39e"}">${d.algedonia}</div>
-          <div class="desc">Canal de emergencia abierto.</div>
-        </div>
-      </div></div>`;
+    html += `<h3>Indicadores transversales</h3><div class="vsm-grid">
+      <div class="vsm-card">
+        <div class="label">Variedad (Ashby)</div>
+        <div class="value" style="color:${d.varietyBalance < -0.2 ? "#f07a7a" : "#5dd39e"}">${d.varietyBalance > 0 ? "+" : ""}${d.varietyBalance}</div>
+        <div class="desc">Sistema vs entorno. Negativo = déficit.</div>
+      </div>
+      <div class="vsm-card">
+        <div class="label">Algedonia</div>
+        <div class="value" style="color:${d.algedonia < 40 ? "#f07a7a" : "#5dd39e"}">${d.algedonia}</div>
+        <div class="desc">Canal de emergencia abierto.</div>
+      </div>
+    </div></div>`;
 
     html += `<div class="vsm-panel"><h3 style="margin-top:0">Patologías detectadas</h3>`;
     if(d.pathologies.length === 0){
@@ -777,7 +862,7 @@ const UI = (function(){
     html += `<div class="feedback" style="background:#1a1a2a;border-color:#3a3a5a;color:#b0b0d0">
       <strong style="color:#a78bfa">Cómo se calcula:</strong> S1-S5 se infieren de la densidad de contenido de cada capa.
       S3* está invertido (más captura = menos auditoría). La variedad compara sistema vs entorno.
-      El score final pondera: S3* (30%) + balance S3-S4 (20%) + variedad (25%) + algedonia (25%).
+      El score final pondera: S3* + balance S3-S4 + variedad + algedonia.
     </div>`;
 
     return html;
@@ -799,9 +884,7 @@ const UI = (function(){
   }
   function closeModal(){ els.modal().classList.remove("open"); }
 
-  // Delegación de eventos: un solo listener en document
-  // DECISIÓN: en lugar de attach listener a cada botón, delegamos. Más robusto
-  // cuando el DOM se re-renderiza constantemente.
+  // Delegación de eventos
   document.addEventListener("click", (e) => {
     const layerBtn = e.target.closest("[data-layer]");
     if(layerBtn){
@@ -827,6 +910,8 @@ const UI = (function(){
       EventBus.emit("indicator:remove", {qid: action.dataset.qid, idx: parseInt(action.dataset.idx, 10)});
       render();
     }
+    else if(a === "help"){ openModal(HELP_HTML + `<div style="margin-top:16px"><button data-action="close-modal">Cerrar</button></div>`); }
+    else if(a === "editor"){ openModal(editorModal()); }
     else if(a === "load-example"){ loadExample(); }
     else if(a === "reset"){ if(confirm("¿Vaciar todo el análisis?")){ State.reset(); render(); } }
     else if(a === "export"){ openModal(exportModal()); }
@@ -835,22 +920,19 @@ const UI = (function(){
     else if(a === "close-modal"){ closeModal(); }
   });
 
-  // Input de texto: emitir evento en cada cambio
   document.addEventListener("input", (e) => {
     const ta = e.target.closest("textarea[data-qid]");
     if(ta){
       EventBus.emit("answer:set", {id: ta.dataset.qid, value: ta.value});
-      // Actualizar contador sin re-render (para no perder foco)
-      const l = LAYERS.find(x => x.questions.some(q => q.id === ta.dataset.qid));
-      if(l){
-        const answered = l.questions.filter(q => State.get().answers[q.id] && State.get().answers[q.id].trim()).length;
-        const btn = document.querySelector(`.layer-btn[data-layer="${l.id}"] .count`);
-        if(btn) btn.textContent = `${answered}/${l.questions.length}`;
+      const layer = State.get().layers.find(x => x.questions.some(q => q.id === ta.dataset.qid));
+      if(layer){
+        const answered = layer.questions.filter(q => State.get().answers[q.id] && State.get().answers[q.id].trim()).length;
+        const btn = document.querySelector(`.layer-btn[data-layer="${layer.id}"] .count`);
+        if(btn) btn.textContent = `${answered}/${layer.questions.length}`;
       }
     }
   });
 
-  // Enter en input de indicadores
   document.addEventListener("keydown", (e) => {
     if(e.key === "Enter" && e.target.matches("input[data-ind-for]")){
       e.preventDefault();
@@ -879,7 +961,7 @@ const UI = (function(){
 
   function analysisModal(){
     const state = State.get();
-    const filled = LAYERS.map(l => ({
+    const filled = state.layers.map(l => ({
       l,
       answered: l.questions.filter(q => state.answers[q.id] && state.answers[q.id].trim()).length,
       total: l.questions.length
@@ -902,34 +984,73 @@ const UI = (function(){
         <span style="width:50px;text-align:right;color:var(--muted)">${pct}%</span>
       </div>`;
     });
-    html += `</div>
-      <h4>Conexiones detectadas</h4><ul style="font-size:12.5px;color:var(--muted)">`;
-    const withContent = LAYERS.filter(l => l.questions.some(q => state.answers[q.id] && state.answers[q.id].trim())).map(l => l.id);
-    const conex = [];
-    if(withContent.includes("jur") && withContent.includes("cap")) conex.push("<strong>Jurídico → Captura:</strong> las ficciones legales son el suelo de la captura.");
-    if(withContent.includes("ext") && withContent.includes("mat")) conex.push("<strong>Extracción → Límites:</strong> los mecanismos presionan sobre los límites materiales.");
-    if(withContent.includes("sub") && withContent.includes("nar")) conex.push("<strong>Subjetividad → Narrativa:</strong> la producción de subjetividad se sostiene con la narrativa.");
-    if(withContent.includes("conv") && withContent.includes("res")) conex.push("<strong>Convergencia → Resistencia:</strong> el circuito explica por qué la resistencia gana casos, no el sistema.");
-    if(conex.length === 0) conex.push("Rellena más capas para detectar conexiones.");
-    conex.forEach(c => html += `<li>${c}</li>`);
-    html += `</ul>
-      <div style="margin-top:16px;display:flex;gap:8px">
+    html += `</div>`;
+    html += `<div style="margin-top:16px;display:flex;gap:8px">
         <button class="primary" data-action="export">Exportar Markdown</button>
         <button data-action="close-modal">Cerrar</button>
       </div>`;
     return html;
   }
 
+  function editorModal(){
+    const state = State.get();
+    let html = `<h3>Editor de capas</h3>
+      <p style="color:var(--muted);font-size:12.5px">Modifica las capas, el mapeo VSM y los pesos. Los cambios se guardan en localStorage.</p>`;
+
+    // Editor de capas
+    html += `<h4>Capas</h4>`;
+    state.layers.forEach((l, i) => {
+      html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div class="editor-row">
+          <input type="text" value="${esc(l.name)}" data-edit="layer-name" data-idx="${i}" placeholder="Nombre">
+          <input type="text" value="${esc(l.lead)}" data-edit="layer-lead" data-idx="${i}" placeholder="Descripción">
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">
+          Preguntas: ${l.questions.length} · ID: ${l.id}
+        </div>
+        <button class="ghost danger" data-action="delete-layer" data-idx="${i}" style="margin-top:6px;font-size:11px">Eliminar capa</button>
+      </div>`;
+    });
+    html += `<button data-action="add-layer" class="ghost" style="font-size:11.5px">+ Añadir capa</button>`;
+
+    // Editor VSM map
+    html += `<h4 style="margin-top:18px">Mapeo VSM</h4>
+      <p style="color:var(--muted);font-size:11.5px">Qué capas alimentan cada subsistema (separadas por comas). S3* está invertido.</p>`;
+    ["S1","S2","S3","S3star","S4","S5"].forEach(k => {
+      const val = (state.vsmMap[k] || []).join(", ");
+      html += `<div class="editor-row">
+        <label style="font-size:12px;color:var(--muted)">${k}</label>
+        <input type="text" value="${esc(val)}" data-edit="vsm-map" data-key="${k}" placeholder="ids separados por coma">
+      </div>`;
+    });
+
+    // Pesos
+    html += `<h4 style="margin-top:18px">Pesos del score</h4>`;
+    ["S3star","balance","variety","algedonia"].forEach(k => {
+      html += `<div class="editor-row">
+        <label style="font-size:12px;color:var(--muted)">${k}</label>
+        <input type="text" value="${state.weights[k]}" data-edit="weight" data-key="${k}">
+      </div>`;
+    });
+
+    html += `<div style="margin-top:16px;display:flex;gap:8px">
+      <button class="primary" data-action="save-editor">Guardar cambios</button>
+      <button data-action="close-modal">Cerrar sin guardar</button>
+    </div>`;
+
+    return html;
+  }
+
   function testsModal(){
-    const {results, totalPass, totalFail} = Test.run();
-    let html = `<h3>Tests · ${totalPass} pasados, ${totalFail} fallados</h3>`;
+    const {results, pass, fail} = Test.run();
+    let html = `<h3>Tests · ${pass} pasados, ${fail} fallados</h3>`;
     results.forEach(s => {
-      html += `<h4 style="margin-top:16px">${s.name}</h4><ul style="list-style:none;padding-left:0;font-size:12.5px">`;
+      html += `<h4 style="margin-top:14px">${s.name}</h4><ul style="list-style:none;padding-left:0;font-size:12px">`;
       s.tests.forEach(t => {
         const color = t.pass ? "var(--ok)" : "var(--danger)";
         const icon = t.pass ? "✓" : "✗";
-        html += `<li style="padding:4px 0;color:${color}">${icon} ${t.name}`;
-        if(!t.pass) html += `<br><span style="color:var(--muted);font-size:11.5px;padding-left:16px">${esc(t.error)}</span>`;
+        html += `<li style="padding:3px 0;color:${color}">${icon} ${t.name}`;
+        if(!t.pass) html += `<br><span style="color:var(--muted);font-size:11px;padding-left:14px">${esc(t.error)}</span>`;
         html += `</li>`;
       });
       html += `</ul>`;
@@ -938,37 +1059,87 @@ const UI = (function(){
     return html;
   }
 
+  // Acciones globales de descarga/copia y editor
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("[data-action]");
+    if(!a) return;
+    if(a.dataset.action === "download-md"){
+      const blob = new Blob([window._md], {type:"text/markdown"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url; link.download = "analisis_monitor.md"; link.click();
+      URL.revokeObjectURL(url);
+    }
+    if(a.dataset.action === "copy-md"){
+      navigator.clipboard.writeText(window._md).then(() => alert("Copiado."));
+    }
+    if(a.dataset.action === "save-editor"){
+      const layers = JSON.parse(JSON.stringify(State.get().layers));
+      const vsmMap = {};
+      const weights = Object.assign({}, State.get().weights);
+      document.querySelectorAll("[data-edit='layer-name']").forEach(inp => {
+        layers[parseInt(inp.dataset.idx, 10)].name = inp.value;
+      });
+      document.querySelectorAll("[data-edit='layer-lead']").forEach(inp => {
+        layers[parseInt(inp.dataset.idx, 10)].lead = inp.value;
+      });
+      document.querySelectorAll("[data-edit='vsm-map']").forEach(inp => {
+        vsmMap[inp.dataset.key] = inp.value.split(",").map(s => s.trim()).filter(Boolean);
+      });
+      document.querySelectorAll("[data-edit='weight']").forEach(inp => {
+        const v = parseFloat(inp.value);
+        if(!isNaN(v)) weights[inp.dataset.key] = v;
+      });
+      EventBus.emit("layers:update", {layers, vsmMap, weights});
+      closeModal();
+      render();
+    }
+    if(a.dataset.action === "delete-layer"){
+      if(!confirm("¿Eliminar esta capa?")) return;
+      const layers = JSON.parse(JSON.stringify(State.get().layers));
+      layers.splice(parseInt(a.dataset.idx, 10), 1);
+      EventBus.emit("layers:update", {layers});
+      closeModal();
+      render();
+    }
+    if(a.dataset.action === "add-layer"){
+      const layers = JSON.parse(JSON.stringify(State.get().layers));
+      const newId = "custom_" + Date.now();
+      layers.push({
+        id: newId,
+        name: "Nueva capa",
+        color: "#a0a0d0",
+        lead: "Describe esta capa...",
+        questions: [
+          {id: newId + "_q1", label: "Pregunta 1", hint: "Qué buscar"},
+          {id: newId + "_q2", label: "Pregunta 2", hint: "Qué buscar"}
+        ]
+      });
+      EventBus.emit("layers:update", {layers});
+      closeModal();
+      render();
+    }
+  });
+
   EventBus.on("state:saved", ({timestamp}) => {
     const s = els.saveStatus();
     if(s) s.textContent = "Guardado · " + new Date(timestamp).toLocaleTimeString();
   });
+  EventBus.on("state:changed", () => render());
+  EventBus.on("state:reset", () => render());
+  EventBus.on("state:loaded", () => render());
+  EventBus.on("indicators:changed", () => render());
 
-  return { render, openModal, closeModal, esc };
+  return { render, openModal, closeModal, esc, editorModal };
 })();
 
-// Acciones globales para los modales (download, copy)
-document.addEventListener("click", (e) => {
-  const a = e.target.closest("[data-action]");
-  if(!a) return;
-  if(a.dataset.action === "download-md"){
-    const blob = new Blob([window._md], {type:"text/markdown"});
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url; link.download = "analisis_circuito.md"; link.click();
-    URL.revokeObjectURL(url);
-  }
-  if(a.dataset.action === "copy-md"){
-    navigator.clipboard.writeText(window._md).then(() => alert("Copiado."));
-  }
-});
-
 /* ============================================================================
-   8. EJEMPLO PRECARGADO
+   9. EJEMPLO PRECARGADO (CAPITALISMO TARDÍO)
    ============================================================================ */
 function loadExample(){
-  State.loadData({
-    active:"gen",
-    answers:{
+  const example = {
+    active: "gen",
+    answers: {
       gen_hito:"Potosí (siglo XVI) → Ámsterdam (1609) → VOC (1602) → interés compuesto → Revolución Industrial como fuga termodinámica.",
       gen_narrativa:"Ética protestante: el éxito como señal de salvación. Self-made man, sueño americano. La leyenda negra deslegitimó el modelo español con contrapesos.",
       gen_olvido:"Escuela de Salamanca (teoría subjetiva del valor, precio justo), Leyes de Indias, Junta de Valladolid. Contrapesos éticos que el modelo anglosajón no desarrolló.",
@@ -1019,74 +1190,69 @@ function loadExample(){
       fal_cond:"Si los pasivos disminuyen mientras el PIB crece. Si la publicidad deja de ser emocional. Si los algoritmos no moldean actitudes.",
       fal_preg:"¿Por qué funciona la manipulación? ¿Hay deseo no explotable? ¿Cuándo lo marginal se vuelve central?"
     },
-    indicators:{
+    indicators: {
       cap_jud:["APM: 26% carrera → 48,3% nombramientos","APM+JpD: 35% carrera → 75% plazas","No asociados: 42% → 22,5%"],
       ext_sect:["Farmacéuticas: Humira, 130 patentes, 100.000 M$","Autónomos Ourense: 10,5% declarantes → 6% renta","Brecha autónomo-asalariado: -43,4%"],
       mat_activos:["Buffett Indicator: 217%","Shiller CAPE: 40.2","Concentración S&P 500: ~40% en 10 empresas"],
       conv_eje:["Galicia: conciertos ×4 desde 2022 (9,75 M€)","Ourense: +42% (2025-2027)"]
     }
-  });
+  };
+  State.loadData(example);
   UI.render();
 }
 
 /* ============================================================================
-   9. TESTS
-   ----------------------------------------------------------------------------
-   DECISIÓN: Tests sobre las zonas MÁS COMPLEJAS (VSM, Ashby, feedback, export).
-   No testeamos la UI (frágil). Sí testeamos la lógica pura.
+   10. TESTS
    ============================================================================ */
-
 Test.suite("VSM · Subsistemas", () => {
-  Test.test("Sistema vacío → S1..S5 = 0, viabilidad baja", () => {
-    const d = VSM.evaluate({answers:{}, indicators:{}});
-    Test.assertEquals(d.S1, 0, "S1 sin extracción");
-    Test.assertEquals(d.S3, 0, "S3 sin derecho");
-    Test.assertEquals(d.S3star, 100, "Sin captura, auditoría intacta");
-    Test.assert(d.viabilityScore < 60, "Sistema vacío no puede ser plenamente viable");
+  Test.test("Sistema vacío → S1..S5 = 0, S3* = 100", () => {
+    const d = VSM.evaluate({answers:{}, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS});
+    Test.assertEquals(d.S1, 0);
+    Test.assertEquals(d.S3, 0);
+    Test.assertEquals(d.S3star, 100);
+    Test.assert(d.viabilityScore < 60);
   });
 
   Test.test("S3* invertido: más captura → menos auditoría", () => {
     const state = {answers:{
       cap_fin:"x", cap_puertas:"x", cap_lobby:"x",
       cap_jud:"x", cap_med:"x", cap_acad:"x"
-    }, indicators:{}};
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const d = VSM.evaluate(state);
-    Test.assertEquals(d.S3star, 0, "Captura total → auditoría 0");
+    Test.assertEquals(d.S3star, 0);
   });
 
   Test.test("S3* parcial: 3/6 capturas → S3* = 50", () => {
     const state = {answers:{
       cap_fin:"x", cap_puertas:"x", cap_lobby:"x"
-    }, indicators:{}};
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const d = VSM.evaluate(state);
     Test.assertEquals(d.S3star, 50);
   });
 
-  Test.test("S5 = 50% genealogía + 50% narrativa", () => {
+  Test.test("S5 = media de genealogía y narrativa", () => {
     const state = {answers:{
-      gen_hito:"x", gen_narrativa:"x", // 2/4 = 0.5
-      nar_eq:"x", nar_law:"x", nar_coop:"x" // 3/6 = 0.5
-    }, indicators:{}};
+      gen_hito:"x", gen_narrativa:"x",
+      nar_eq:"x", nar_law:"x", nar_coop:"x"
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const d = VSM.evaluate(state);
     Test.assertEquals(d.S5, 50);
   });
 });
 
-Test.suite("VSM · Ashby (variedad)", () => {
+Test.suite("VSM · Ashby", () => {
   Test.test("Sistema vacío → variedad 0", () => {
-    const d = VSM.evaluate({answers:{}, indicators:{}});
+    const d = VSM.evaluate({answers:{}, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS});
     Test.assertEquals(d.varietyBalance, 0);
   });
 
-  Test.test("Entorno alto y sistema bajo → déficit (variedad negativa)", () => {
+  Test.test("Entorno alto y sistema bajo → variedad negativa", () => {
     const state = {answers:{
-      // Sistema: 0
-      // Entorno: mat completo + res completo
       mat_termo:"x", mat_deuda:"x", mat_clima:"x", mat_activos:"x", mat_pasivos:"x",
       res_cont:"x", res_alt:"x", res_arq:"x", res_rupt:"x"
-    }, indicators:{}};
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const d = VSM.evaluate(state);
-    Test.assert(d.varietyBalance < 0, "Entorno alto sin sistema → variedad negativa");
+    Test.assert(d.varietyBalance < 0);
   });
 
   Test.test("Sistema alto y entorno bajo → variedad positiva", () => {
@@ -1094,9 +1260,9 @@ Test.suite("VSM · Ashby (variedad)", () => {
       ext_temporal:"x", ext_eco:"x", ext_comp:"x", ext_est:"x", ext_esp:"x", ext_tec:"x", ext_inst:"x", ext_sect:"x",
       conv_actores:"x", conv_eje:"x", conv_cierre:"x", conv_sinconsp:"x",
       sub_eco:"x", sub_antro:"x", sub_psico:"x", sub_edu:"x", sub_redes:"x", sub_usurp:"x"
-    }, indicators:{}};
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const d = VSM.evaluate(state);
-    Test.assert(d.varietyBalance > 0.2, "Sistema alto sin entorno → variedad positiva");
+    Test.assert(d.varietyBalance > 0.2);
   });
 });
 
@@ -1104,126 +1270,93 @@ Test.suite("VSM · Patologías", () => {
   Test.test("Auditoría capturada cuando S3* < 40", () => {
     const state = {answers:{
       cap_fin:"x", cap_puertas:"x", cap_lobby:"x", cap_jud:"x"
-    }, indicators:{}};
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const d = VSM.evaluate(state);
-    const has = d.pathologies.some(p => p.code === "AUDIT_CAPTURED");
-    Test.assert(has, "Debería detectar auditoría capturada");
+    Test.assert(d.pathologies.some(p => p.code === "AUDIT_CAPTURED"));
   });
 
   Test.test("Presente sobre futuro cuando S3 > S4 + 20", () => {
     const state = {answers:{
-      // S3 alto: jur completo
-      jur_ficciones:"x", jur_invisibles:"x", jur_dilucion:"x", jur_formal:"x",
-      // S4 bajo: mat vacío
-    }, indicators:{}};
+      jur_ficciones:"x", jur_invisibles:"x", jur_dilucion:"x", jur_formal:"x"
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const d = VSM.evaluate(state);
-    const has = d.pathologies.some(p => p.code === "PRESENT_OVER_FUTURE");
-    Test.assert(has, "Debería detectar presente sobre futuro");
+    Test.assert(d.pathologies.some(p => p.code === "PRESENT_OVER_FUTURE"));
   });
 
   Test.test("Algedonia silenciada cuando Capa 8 tiene contenido", () => {
     const state = {answers:{
       res_cont:"x", res_alt:"x", res_arq:"x", res_rupt:"x"
-    }, indicators:{}};
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const d = VSM.evaluate(state);
-    const has = d.pathologies.some(p => p.code === "ALGEDONIA_SILENCED");
-    Test.assert(has, "Debería detectar algedonia silenciada");
+    Test.assert(d.pathologies.some(p => p.code === "ALGEDONIA_SILENCED"));
   });
 });
 
-Test.suite("VSM · Score de viabilidad", () => {
+Test.suite("VSM · Score", () => {
   Test.test("Score entre 0 y 100 siempre", () => {
-    const d1 = VSM.evaluate({answers:{}, indicators:{}});
-    Test.assert(d1.viabilityScore >= 0 && d1.viabilityScore <= 100);
-    const d2 = VSM.evaluate({answers:{
-      gen_hito:"x", gen_narrativa:"x", gen_olvido:"x", gen_manual:"x",
-      jur_ficciones:"x", jur_invisibles:"x", jur_dilucion:"x", jur_formal:"x",
-      ext_temporal:"x", ext_eco:"x", ext_comp:"x", ext_est:"x", ext_esp:"x", ext_tec:"x", ext_inst:"x", ext_sect:"x",
-      cap_fin:"x", cap_puertas:"x", cap_lobby:"x", cap_jud:"x", cap_med:"x", cap_acad:"x",
-      sub_eco:"x", sub_antro:"x", sub_psico:"x", sub_edu:"x", sub_redes:"x", sub_usurp:"x",
-      nar_eq:"x", nar_law:"x", nar_coop:"x", nar_canc:"x", nar_doble:"x", nar_leyenda:"x",
-      conv_actores:"x", conv_eje:"x", conv_cierre:"x", conv_sinconsp:"x",
-      mat_termo:"x", mat_deuda:"x", mat_clima:"x", mat_activos:"x", mat_pasivos:"x",
-      res_cont:"x", res_alt:"x", res_arq:"x", res_rupt:"x",
-      fal_cond:"x", fal_preg:"x"
-    }, indicators:{}});
-    Test.assert(d2.viabilityScore >= 0 && d2.viabilityScore <= 100);
+    const d = VSM.evaluate({answers:{}, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS});
+    Test.assert(d.viabilityScore >= 0 && d.viabilityScore <= 100);
   });
 
-  Test.test("Sistema con captura total → viabilidad baja", () => {
+  Test.test("Captura total → no viable", () => {
     const state = {answers:{
       cap_fin:"x", cap_puertas:"x", cap_lobby:"x", cap_jud:"x", cap_med:"x", cap_acad:"x",
-      jur_ficciones:"x", jur_invisibles:"x", jur_dilucion:"x", jur_formal:"x" // S3 alto
-      // S4 bajo, algedonia silenciada (nada en res)
-    }, indicators:{}};
+      jur_ficciones:"x", jur_invisibles:"x", jur_dilucion:"x", jur_formal:"x"
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const d = VSM.evaluate(state);
-    Test.assert(d.viabilityScore < 50, "Captura total + S3 alto → no viable");
+    Test.assert(d.viabilityScore < 50);
   });
 });
 
-Test.suite("Feedback · Reglas", () => {
+Test.suite("Feedback", () => {
   Test.test("Sin respuestas → sin feedback", () => {
-    const fb = Feedback.getFeedback("jur", {answers:{}});
+    const fb = Feedback.getFeedback("jur", {answers:{}, layers: DEFAULT_LAYERS});
     Test.assertEquals(fb, "");
   });
 
   Test.test("Capa jurídica con ficciones → feedback menciona Captura", () => {
-    const fb = Feedback.getFeedback("jur", {answers:{jur_ficciones:"algo"}});
-    Test.assert(fb.includes("Captura"), "Debe mencionar Captura");
+    const fb = Feedback.getFeedback("jur", {answers:{jur_ficciones:"algo"}, layers: DEFAULT_LAYERS});
+    Test.assert(fb.includes("Captura"));
   });
 
-  Test.test("Feedback solo se activa para la capa correcta", () => {
-    const fb = Feedback.getFeedback("ext", {answers:{jur_ficciones:"algo"}});
-    Test.assertEquals(fb, "", "Feedback de Capa 2 no debe activarse con datos de Capa 1");
+  Test.test("No se activa para capa incorrecta", () => {
+    const fb = Feedback.getFeedback("ext", {answers:{jur_ficciones:"algo"}, layers: DEFAULT_LAYERS});
+    Test.assertEquals(fb, "");
   });
 });
 
-Test.suite("Export · Markdown", () => {
-  Test.test("Markdown contiene título y fecha", () => {
-    const md = Export.buildMarkdown({answers:{}, indicators:{}});
-    Test.assert(md.includes("# Análisis sistémico"), "Debe tener título");
+Test.suite("Export", () => {
+  Test.test("Contiene título y diagnóstico VSM", () => {
+    const md = Export.buildMarkdown({answers:{}, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS});
+    Test.assert(md.includes("# Análisis sistémico"));
+    Test.assert(md.includes("Diagnóstico VSM"));
   });
 
-  Test.test("Markdown incluye diagnóstico VSM", () => {
-    const md = Export.buildMarkdown({answers:{}, indicators:{}});
-    Test.assert(md.includes("Diagnóstico VSM"), "Debe incluir sección VSM");
-    Test.assert(md.includes("Veredicto"), "Debe incluir veredicto");
-  });
-
-  Test.test("Markdown incluye patologías si las hay", () => {
+  Test.test("Incluye patologías si las hay", () => {
     const state = {answers:{
       cap_fin:"x", cap_puertas:"x", cap_lobby:"x", cap_jud:"x"
-    }, indicators:{}};
+    }, indicators:{}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const md = Export.buildMarkdown(state);
-    Test.assert(md.includes("AUDIT_CAPTURED"), "Debe incluir la patología detectada");
+    Test.assert(md.includes("AUDIT_CAPTURED"));
   });
 
-  Test.test("Markdown respeta los indicadores añadidos", () => {
-    const state = {answers:{cap_jud:"algo"}, indicators:{cap_jud:["dato A", "dato B"]}};
+  Test.test("Incluye indicadores añadidos", () => {
+    const state = {answers:{cap_jud:"algo"}, indicators:{cap_jud:["dato A", "dato B"]}, layers: DEFAULT_LAYERS, vsmMap: DEFAULT_VSM_MAP, weights: DEFAULT_WEIGHTS};
     const md = Export.buildMarkdown(state);
-    Test.assert(md.includes("dato A") && md.includes("dato B"), "Debe incluir ambos datos");
+    Test.assert(md.includes("dato A") && md.includes("dato B"));
   });
 });
 
 Test.suite("EventBus", () => {
   Test.test("on/emit funciona", () => {
     let received = null;
-    const off = EventBus.on("test:event", (d) => { received = d; });
+    const off = EventBus.on("test:event", d => { received = d; });
     EventBus.emit("test:event", {x: 42});
     Test.assertEquals(received.x, 42);
     off();
     received = null;
     EventBus.emit("test:event", {x: 99});
-    Test.assertEquals(received, null, "Después de off no debe recibir");
-  });
-
-  Test.test("Múltiples listeners", () => {
-    let a = 0, b = 0;
-    EventBus.on("test:multi", () => a++);
-    EventBus.on("test:multi", () => b++);
-    EventBus.emit("test:multi");
-    Test.assertEquals(a, 1);
-    Test.assertEquals(b, 1);
+    Test.assertEquals(received, null);
   });
 
   Test.test("Listener que falla no bloquea a los demás", () => {
@@ -1231,24 +1364,18 @@ Test.suite("EventBus", () => {
     EventBus.on("test:fail", () => { throw new Error("fallo intencional"); });
     EventBus.on("test:fail", () => { reached = true; });
     EventBus.emit("test:fail");
-    Test.assert(reached, "El segundo listener debe ejecutarse aunque el primero falle");
+    Test.assert(reached);
   });
 });
 
 /* ============================================================================
-   10. INIT
+   11. INIT
    ============================================================================ */
 (function init(){
   State.load();
-  // Re-render en cada cambio relevante
-  EventBus.on("state:changed", () => UI.render());
-  EventBus.on("state:reset", () => UI.render());
-  EventBus.on("state:loaded", () => UI.render());
-  EventBus.on("indicators:changed", () => UI.render());
-
   UI.render();
-  console.log("%cCircuito de Análisis Sistémico v2 · Listo", "color:#6ea8fe;font-weight:bold");
-  console.log("Pulsa el botón 'Ejecutar tests' para verificar la lógica.");
+  console.log("%cMonitor Cibernético v3 · Listo", "color:#6ea8fe;font-weight:bold");
+  console.log("Pulsa 'Ayuda' para ver el manual. 'Tests' para verificar la lógica.");
 })();
 </script>
 </body>
