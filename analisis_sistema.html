@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuito de Análisis Sistémico · 8 Capas</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161a22; --panel2:#1d232d; --border:#2a3140;
+    --text:#e6e9ef; --muted:#8b93a7; --accent:#6ea8fe; --accent2:#f0a35e;
+    --ok:#5dd39e; --warn:#f0c05e; --danger:#f07a7a; --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.5;font-size:15px}
+  header{padding:18px 24px;border-bottom:1px solid var(--border);background:var(--panel);
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+  header h1{margin:0;font-size:18px;font-weight:600}
+  header .sub{color:var(--muted);font-size:13px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+  button{background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button.primary{background:var(--accent);color:#0b1020;border-color:var(--accent)}
+  button.primary:hover{background:#8bbcff;color:#0b1020}
+  button.ghost{background:transparent}
+  main{display:grid;grid-template-columns:260px 1fr;gap:0;min-height:calc(100vh - 70px)}
+  nav.side{border-right:1px solid var(--border);padding:16px 10px;background:var(--panel);
+    overflow-y:auto;max-height:calc(100vh - 70px);position:sticky;top:70px}
+  nav.side h3{font-size:11px;text-transform:uppercase;color:var(--muted);margin:14px 8px 6px;letter-spacing:.08em}
+  .layer-btn{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+    cursor:pointer;font-size:13px;color:var(--muted);border:1px solid transparent}
+  .layer-btn:hover{background:var(--panel2);color:var(--text)}
+  .layer-btn.active{background:var(--panel2);color:var(--text);border-color:var(--border)}
+  .layer-btn .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+  .layer-btn .count{margin-left:auto;font-size:11px;color:var(--muted);background:var(--bg);
+    padding:2px 6px;border-radius:6px;border:1px solid var(--border)}
+  .content{padding:24px 32px;max-width:900px}
+  .content h2{margin:0 0 4px;font-size:22px}
+  .content .lead{color:var(--muted);margin-bottom:20px;font-size:14px}
+  .circuit-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;margin-bottom:24px}
+  .circuit{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .node{padding:8px 12px;border-radius:8px;font-size:12px;border:1px solid var(--border);
+    background:var(--panel2);cursor:pointer;transition:.15s}
+  .node:hover{border-color:var(--accent);color:var(--accent)}
+  .node.active{border-color:var(--accent);background:#1b2636;color:var(--accent)}
+  .node.res{border-color:var(--ok);color:var(--ok)}
+  .node.fal{border-color:var(--warn);color:var(--warn)}
+  .arrow{color:var(--muted);align-self:center;font-size:14px}
+  .feedback{background:#141b16;border:1px solid #1f3327;border-radius:var(--radius);
+    padding:12px 14px;margin:16px 0;font-size:13px;color:#a9d6bb}
+  .feedback strong{color:var(--ok)}
+  .q-block{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;margin-bottom:14px}
+  .q-block label{display:block;font-weight:600;margin-bottom:6px;font-size:14px}
+  .q-block .hint{color:var(--muted);font-size:12.5px;margin-bottom:8px}
+  textarea,input[type=text]{width:100%;background:var(--bg);color:var(--text);
+    border:1px solid var(--border);border-radius:8px;padding:10px;font-family:inherit;
+    font-size:13.5px;resize:vertical;min-height:64px}
+  textarea:focus,input:focus{outline:none;border-color:var(--accent)}
+  .indicator-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .indicator-row input{flex:1;min-width:120px}
+  .indicator-row button{padding:8px 10px;font-size:12px}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .tag{background:var(--panel2);border:1px solid var(--border);border-radius:20px;
+    padding:3px 10px;font-size:11.5px;color:var(--muted);cursor:pointer}
+  .tag:hover{border-color:var(--accent);color:var(--accent)}
+  .tag.on{background:#1b2636;border-color:var(--accent);color:var(--accent)}
+  .save-bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);
+    border-top:1px solid var(--border);padding:10px 24px;display:flex;justify-content:space-between;
+    align-items:center;font-size:12.5px;color:var(--muted);z-index:20}
+  .save-bar .status{color:var(--ok)}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;
+    align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal.open{display:flex}
+  .modal .box{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    max-width:800px;width:100%;max-height:85vh;overflow:auto;padding:24px}
+  .modal h3{margin-top:0}
+  pre.export{background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    padding:16px;white-space:pre-wrap;font-size:12.5px;max-height:50vh;overflow:auto}
+  @media(max-width:820px){
+    main{grid-template-columns:1fr}
+    nav.side{position:static;max-height:none;border-right:none;border-bottom:1px solid var(--border)}
+    .content{padding:18px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Circuito de Análisis Sistémico</h1>
+    <div class="sub">8 capas + resistencia + falsabilidad · retroalimentación entre capas</div>
+  </div>
+  <div class="toolbar">
+    <button class="ghost" onclick="loadExample()">Cargar ejemplo</button>
+    <button class="ghost" onclick="resetAll()">Vaciar</button>
+    <button onclick="openExport()">Exportar Markdown</button>
+    <button class="primary" onclick="openAnalysis()">Generar análisis</button>
+  </div>
+</header>
+
+<main>
+  <nav class="side" id="side"></nav>
+  <section class="content" id="content"></section>
+</main>
+
+<div class="save-bar">
+  <span>Los datos se guardan en tu navegador (localStorage).</span>
+  <span class="status" id="saveStatus">—</span>
+</div>
+
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="box" id="modalBox"></div>
+</div>
+
+<script>
+/* ============================================================
+   DEFINICIÓN DE CAPAS Y PREGUNTAS
+   ============================================================ */
+const LAYERS = [
+  {
+    id:"gen", name:"Capa 0 · Genealogía", color:"#8b93a7",
+    lead:"¿De dónde viene el mecanismo? Rastrea el origen histórico y la narrativa fundacional.",
+    questions:[
+      {id:"gen_hito", label:"Hito de ignición", hint:"¿Cuál es el momento histórico en que el mecanismo emerge? (ej. Potosí → Ámsterdam, Revolución Industrial, 1971)"},
+      {id:"gen_narrativa", label:"Narrativa fundacional", hint:"¿Qué relato legitima el origen? (ética protestante, sueño americano, self-made man, leyenda blanca)"},
+      {id:"gen_olvido", label:"Contrapesos olvidados", hint:"¿Qué alternativas existieron y fueron derrotadas o invisibilizadas? (Escuela de Salamanca, Leyes de Indias, cooperativas)"},
+      {id:"gen_manual", label:"Manual original", hint:"¿Hay un proto-caso que sirve de plantilla? (Rockefeller, VOC, Standard Oil)"}
+    ]
+  },
+  {
+    id:"jur", name:"Capa 1 · Fundamento jurídico", color:"#7f9cf5",
+    lead:"¿Qué arquitectura legal hace posible la extracción?",
+    questions:[
+      {id:"jur_ficciones", label:"Ficciones legales", hint:"¿Qué ficciones (propiedad como relación sujeto-cosa, intencionalidad, territorialidad) hacen invisible el daño?"},
+      {id:"jur_invisibles", label:"Daños invisibles al derecho", hint:"¿Qué daños estructurales no caben en las categorías jurídicas actuales?"},
+      {id:"jur_dilucion", label:"Dilución de responsabilidad", hint:"¿Cómo se diluye la culpa? (dolo, desidia, multas como coste, persona jurídica como escudo)"},
+      {id:"jur_formal", label:"Cumplimiento formal", hint:"¿Qué actores cumplen la legalidad formal mientras omiten lo que deberían hacer? (notarios, auditores, reguladores)"}
+    ]
+  },
+  {
+    id:"ext", name:"Capa 2 · Extracción", color:"#f0a35e",
+    lead:"¿Cómo se extrae valor? Marca las subcapas activas y añade indicadores.",
+    questions:[
+      {id:"ext_temporal", label:"Temporal (deuda, interés compuesto)", hint:"¿Hay deuda que transfiere valor del futuro al presente? Indicadores: deuda/PIB, servicio/ingresos."},
+      {id:"ext_eco", label:"Ecológica (externalización ambiental)", hint:"¿Se usan sumideros gratuitos? Indicadores: huella/biocapacidad, emisiones."},
+      {id:"ext_comp", label:"Competitiva (dumping, concentración)", hint:"¿Se opera a pérdidas para monopolizar? Indicadores: cuota de mercado, desaparición de competidores."},
+      {id:"ext_est", label:"Estructural (riesgo financiero)", hint:"¿Se dispersa el riesgo globalmente? Indicadores: titulización, derivados."},
+      {id:"ext_esp", label:"Espacial (deslocalización, vaciamiento)", hint:"¿Se traslada la producción o se vacía un territorio? Indicadores: destrucción de tejido, emigración."},
+      {id:"ext_tec", label:"Tecnológica (captura de innovaciones)", hint:"¿Se bloquean o absorben tecnologías que amenazan el modelo? Indicadores: patentes, lobby regulatorio."},
+      {id:"ext_inst", label:"Institucional (convergencia)", hint:"¿Convergen instituciones sin coordinación central? Indicadores: circuitos que se retroalimentan."},
+      {id:"ext_sect", label:"Sectorial (caso concreto)", hint:"¿Qué sector específico? (farmacéuticas, autónomos, sanidad, vivienda)"}
+    ]
+  },
+  {
+    id:"cap", name:"Capa 3 · Captura del árbitro", color:"#c084fc",
+    lead:"¿Cómo se neutraliza al regulador?",
+    questions:[
+      {id:"cap_fin", label:"Financiación del regulador", hint:"¿El regulador cobra del regulado? (tasas, presupuesto)"},
+      {id:"cap_puertas", label:"Puertas giratorias", hint:"¿Altos cargos pasan a la industria regulada?"},
+      {id:"cap_lobby", label:"Lobby", hint:"¿Cuánto se invierte en influir? ¿Quién redacta las leyes?"},
+      {id:"cap_jud", label:"Captura judicial", hint:"¿Asociaciones, CGPJ, ascensos discrecionales, lawfare? Indicadores: % carrera vs % nombramientos."},
+      {id:"cap_med", label:"Captura mediática", hint:"¿Medios como aparatos de legitimación? ¿Juicios paralelos?"},
+      {id:"cap_acad", label:"Captura académica", hint:"¿Think tanks, cátedras, congresos financiados por la industria?"}
+    ]
+  },
+  {
+    id:"sub", name:"Capa 4 · Producción de subjetividad", color:"#5dd39e",
+    lead:"¿Cómo se produce el sujeto que acepta la extracción?",
+    questions:[
+      {id:"sub_eco", label:"Economía pervertida", hint:"Homo economicus, empresario de sí mismo, crecimiento como bien supremo."},
+      {id:"sub_antro", label:"Antropología pervertida", hint:"Tribus de marca, ritos mercantilizados, mitos, influencers como chamanes, tabúes."},
+      {id:"sub_psico", label:"Psicología pervertida", hint:"Ingeniería del deseo (Bernays → Jobs → algoritmos), estética como tecnología de insatisfacción."},
+      {id:"sub_edu", label:"Educación normalizadora", hint:"Currículo oculto, medicalización de la divergencia, producción de sujetos evaluables."},
+      {id:"sub_redes", label:"Redes sociales", hint:"Scroll infinito, recompensa variable, personalización algorítmica."},
+      {id:"sub_usurp", label:"Usurpación funcional", hint:"¿Qué nichos comunitarios ocupa el mercado? (pertenencia, rito, mito, chamán, tabú)"}
+    ]
+  },
+  {
+    id:"nar", name:"Capa 5 · Gestión narrativa", color:"#f0c05e",
+    lead:"¿Cómo se neutraliza la resistencia?",
+    questions:[
+      {id:"nar_eq", label:"Falsa equidistancia", hint:"¿Se equiparan responsabilidades asimétricas? ¿Se borran asimetrías reales?"},
+      {id:"nar_law", label:"Lawfare", hint:"¿Se usa el aparato judicial para desgastar adversarios?"},
+      {id:"nar_coop", label:"Cooptación de la crítica", hint:"¿Se permite la crítica que no amenaza el modelo? ¿Se convierte en marca?"},
+      {id:"nar_canc", label:"Cancelación", hint:"¿Tabú que expulsa de la tribu? ¿Límites de lo pensable y decible?"},
+      {id:"nar_doble", label:"Doble lenguaje", hint:"Mismos hechos, dos narrativas (corporativa vs. fiscal). ¿Cuáles?"},
+      {id:"nar_leyenda", label:"Leyenda negra/blanca", hint:"¿Operación histórica de producción de subjetividad geopolítica?"}
+    ]
+  },
+  {
+    id:"conv", name:"Capa 6 · Convergencia institucional", color:"#fb7185",
+    lead:"¿Cómo operan las instituciones sin coordinación central?",
+    questions:[
+      {id:"conv_actores", label:"Actores que convergen", hint:"¿Qué instituciones con lógicas propias producen el mismo efecto?"},
+      {id:"conv_eje", label:"Eje presupuestario", hint:"¿Cuál es el flujo de dinero público que cierra el circuito?"},
+      {id:"conv_cierre", label:"Cierre del circuito", hint:"¿Cómo se retroalimenta? (ej. saturación → derivación → infrainversión → más saturación)"},
+      {id:"conv_sinconsp", label:"Sin conspiración", hint:"¿Cada actor actúa racionalmente dentro de sus reglas? ¿El resultado emerge sin que nadie lo quiera?"}
+    ]
+  },
+  {
+    id:"mat", name:"Capa 7 · Límites materiales y fragilidad", color:"#38bdf8",
+    lead:"¿Qué límites físicos y sistémicos tiene el sistema?",
+    questions:[
+      {id:"mat_termo", label:"Termodinámica", hint:"¿El crecimiento depende de recursos finitos? ¿Los sumideros se saturan?"},
+      {id:"mat_deuda", label:"Deuda como acelerador", hint:"¿El interés compuesto exige crecimiento exponencial?"},
+      {id:"mat_clima", label:"Deuda termodinámica", hint:"¿El cambio climático es la factura acumulada?"},
+      {id:"mat_activos", label:"Sobrevaloración de activos", hint:"Indicadores: Buffett Indicator, Shiller CAPE, concentración S&P 500."},
+      {id:"mat_pasivos", label:"Pasivos no contabilizados", hint:"Financieros, productivos, sociales, ecológicos, tecnológicos."}
+    ]
+  },
+  {
+    id:"res", name:"Capa 8 · Resistencia y cambio", color:"#5dd39e", res:true,
+    lead:"¿Cómo se rompe el circuito?",
+    questions:[
+      {id:"res_cont", label:"Resistencia contenida", hint:"¿Tribunales y sindicatos ganan casos pero no cambian el sistema?"},
+      {id:"res_alt", label:"Alternativas no mercantiles", hint:"¿Existen formas de pertenencia, identidad y realización que no pasen por el mercado?"},
+      {id:"res_arq", label:"Arquitectura de contrapesos", hint:"¿Sistema policéntrico (resiliente) o monocéntrico (frágil)?"},
+      {id:"res_rupt", label:"Condiciones de ruptura", hint:"Crisis económica real + crisis ecológica visible + crisis de sentido + alternativa organizada."}
+    ]
+  },
+  {
+    id:"fal", name:"Falsabilidad", color:"#f0c05e", fal:true,
+    lead:"¿Qué condiciones refutarían este análisis?",
+    questions:[
+      {id:"fal_cond", label:"Condiciones de falsación", hint:"¿Qué observarías si el marco fuera incorrecto? (ej. pasivos disminuyen, publicidad no emocional, algoritmos neutrales)"},
+      {id:"fal_preg", label:"Preguntas abiertas", hint:"¿Qué no puede responder este marco? ¿Qué excede su alcance?"}
+    ]
+  }
+];
+
+/* ============================================================
+   ESTADO Y PERSISTENCIA
+   ============================================================ */
+const STORAGE_KEY = "circuito_analisis_v1";
+let state = {
+  active: "gen",
+  answers: {},      // id -> texto
+  indicators: {},   // id -> [valores]
+  tags: {}          // id -> [tags activos]
+};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) state = Object.assign(state, JSON.parse(raw));
+  }catch(e){}
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const s = document.getElementById("saveStatus");
+  s.textContent = "Guardado · " + new Date().toLocaleTimeString();
+}
+function resetAll(){
+  if(!confirm("¿Vaciar todo el análisis?")) return;
+  state = {active:"gen", answers:{}, indicators:{}, tags:{}};
+  saveState(); render();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  renderSide();
+  renderCircuit();
+  renderContent();
+}
+
+function renderSide(){
+  const side = document.getElementById("side");
+  let html = `<h3>Capas</h3>`;
+  LAYERS.forEach(l=>{
+    const answered = l.questions.filter(q=>state.answers[q.id] && state.answers[q.id].trim()).length;
+    html += `<div class="layer-btn ${state.active===l.id?'active':''}" onclick="setActive('${l.id}')">
+      <span class="dot" style="background:${l.color}"></span>
+      <span>${l.name}</span>
+      <span class="count">${answered}/${l.questions.length}</span>
+    </div>`;
+  });
+  side.innerHTML = html;
+}
+
+function setActive(id){
+  state.active = id; saveState(); render();
+}
+
+function renderCircuit(){
+  const cont = document.getElementById("content");
+  // El circuito se renderiza dentro del contenido
+  // (se llama desde renderContent para tener el wrapper)
+}
+
+function renderContent(){
+  const l = LAYERS.find(x=>x.id===state.active);
+  const c = document.getElementById("content");
+
+  let html = `<h2>${l.name}</h2>
+    <p class="lead">${l.lead}</p>`;
+
+  // Circuito visual
+  html += `<div class="circuit-wrap">
+    <div class="circuit">`;
+  LAYERS.forEach((x,i)=>{
+    const cls = x.res?"res":(x.fal?"fal":"");
+    html += `<div class="node ${cls} ${state.active===x.id?'active':''}" onclick="setActive('${x.id}')">${x.name}</div>`;
+    if(i<LAYERS.length-1) html += `<span class="arrow">→</span>`;
+  });
+  html += `</div>
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:10px">
+      Circuito con retroalimentación: cada capa alimenta a las demás. No es lineal.
+    </div>
+  </div>`;
+
+  // Retroalimentación: sugerencias basadas en lo ya rellenado
+  const fb = getFeedback(l);
+  if(fb) html += `<div class="feedback">${fb}</div>`;
+
+  // Preguntas
+  l.questions.forEach(q=>{
+    const val = state.answers[q.id] || "";
+    html += `<div class="q-block">
+      <label for="${q.id}">${q.label}</label>
+      <div class="hint">${q.hint}</div>
+      <textarea id="${q.id}" oninput="setAnswer('${q.id}', this.value)" placeholder="Escribe aquí...">${escapeHtml(val)}</textarea>
+      <div class="indicator-row">
+        <input type="text" id="ind_${q.id}" placeholder="Añadir indicador/dato y pulsar Enter" onkeydown="if(event.key==='Enter'){addIndicator('${q.id}');}">
+        <button onclick="addIndicator('${q.id}')">+ Dato</button>
+      </div>
+      <div class="tags" id="tags_${q.id}">`;
+    (state.indicators[q.id]||[]).forEach((v,i)=>{
+      html += `<span class="tag" onclick="removeIndicator('${q.id}',${i})" title="Clic para eliminar">${escapeHtml(v)} ✕</span>`;
+    });
+    html += `</div></div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+
+function setAnswer(id, val){
+  state.answers[id] = val;
+  saveState();
+  // Actualizar contador del sidebar sin re-render completo (para no perder foco)
+  const l = LAYERS.find(x=>x.questions.some(q=>q.id===id));
+  if(l){
+    const answered = l.questions.filter(q=>state.answers[q.id] && state.answers[q.id].trim()).length;
+    const btn = [...document.querySelectorAll(".layer-btn")].find(b=>b.textContent.includes(l.name));
+    if(btn) btn.querySelector(".count").textContent = `${answered}/${l.questions.length}`;
+  }
+}
+
+function addIndicator(qid){
+  const input = document.getElementById("ind_"+qid);
+  const v = input.value.trim();
+  if(!v) return;
+  if(!state.indicators[qid]) state.indicators[qid] = [];
+  state.indicators[qid].push(v);
+  input.value = "";
+  saveState(); renderContent();
+}
+
+function removeIndicator(qid, idx){
+  state.indicators[qid].splice(idx,1);
+  saveState(); renderContent();
+}
+
+/* ============================================================
+   RETROALIMENTACIÓN ENTRE CAPAS
+   ============================================================ */
+function getFeedback(layer){
+  const a = state.answers;
+  const tips = [];
+  const has = id => a[id] && a[id].trim().length > 0;
+
+  // Reglas de retroalimentación
+  if(layer.id==="jur" && has("jur_ficciones"))
+    tips.push("Has definido ficciones legales. Revisa <strong>Capa 3 (Captura del árbitro)</strong>: esas ficciones suelen ser el suelo que hace posible la captura.");
+  if(layer.id==="ext" && has("ext_temporal"))
+    tips.push("Has identificado extracción temporal. Conecta con <strong>Capa 7 (Límites materiales)</strong>: el interés compuesto exige crecimiento exponencial.");
+  if(layer.id==="cap" && has("cap_jud"))
+    tips.push("Has descrito captura judicial. Verifica en <strong>Capa 2 (Extracción)</strong> si el lawfare opera como mecanismo de extracción de tiempo y desgaste.");
+  if(layer.id==="sub" && has("sub_psico"))
+    tips.push("Has descrito psicología pervertida. Cruza con <strong>Capa 5 (Gestión narrativa)</strong>: el doble lenguaje es la cara visible de esa producción de subjetividad.");
+  if(layer.id==="conv" && has("conv_cierre"))
+    tips.push("Has cerrado un circuito. Comprueba en <strong>Capa 8 (Resistencia)</strong> si la resistencia contenida gana casos pero no cambia el circuito.");
+  if(layer.id==="mat" && has("mat_deuda"))
+    tips.push("Has señalado el límite material. Conecta con <strong>Capa 0 (Genealogía)</strong>: la deuda como motor original (Potosí → Ámsterdam → interés compuesto).");
+  if(layer.id==="res" && has("res_alt"))
+    tips.push("Has identificado alternativas. Revisa <strong>Capa 4 (Subjetividad)</strong>: ¿el sistema las captura y las convierte en estatus?");
+  if(layer.id==="fal" && has("fal_cond"))
+    tips.push("Has definido condiciones de falsación. Este es el criterio que distingue el marco de una teoría conspirativa.");
+
+  if(tips.length===0) return "";
+  return "<strong>Retroalimentación:</strong><br>· " + tips.join("<br>· ");
+}
+
+/* ============================================================
+   EXPORTAR MARKDOWN
+   ============================================================ */
+function buildMarkdown(){
+  let md = `# Análisis sistémico · Circuito de 8 capas\n\n`;
+  md += `_Generado el ${new Date().toLocaleString()}_\n\n---\n\n`;
+  LAYERS.forEach(l=>{
+    md += `## ${l.name}\n\n`;
+    md += `${l.lead}\n\n`;
+    l.questions.forEach(q=>{
+      const v = state.answers[q.id];
+      if(v && v.trim()){
+        md += `### ${q.label}\n\n${v.trim()}\n\n`;
+      }
+      const inds = state.indicators[q.id] || [];
+      if(inds.length){
+        md += `**Datos/Indicadores:**\n`;
+        inds.forEach(i=> md += `- ${i}\n`);
+        md += `\n`;
+      }
+    });
+  });
+  md += `---\n\n_Nota: este análisis es una interpretación basada en hechos verificables e inferencias razonables. Se ofrece como herramienta de debate, no como verdad dogmática._\n`;
+  return md;
+}
+
+function openExport(){
+  const md = buildMarkdown();
+  const box = document.getElementById("modalBox");
+  box.innerHTML = `<h3>Exportar análisis</h3>
+    <p style="color:var(--muted);font-size:13px">Copia el texto o descárgalo como .md</p>
+    <pre class="export">${escapeHtml(md)}</pre>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="primary" onclick="downloadMd()">Descargar .md</button>
+      <button onclick="copyMd()">Copiar</button>
+      <button onclick="closeModal()">Cerrar</button>
+    </div>`;
+  document.getElementById("modal").classList.add("open");
+  window._md = md;
+}
+
+function downloadMd(){
+  const blob = new Blob([window._md], {type:"text/markdown"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "analisis_circuito.md";
+  a.click();
+}
+function copyMd(){
+  navigator.clipboard.writeText(window._md);
+  alert("Copiado al portapapeles.");
+}
+
+/* ============================================================
+   GENERAR ANÁLISIS (síntesis automática)
+   ============================================================ */
+function openAnalysis(){
+  const filled = LAYERS.map(l=>({
+    l,
+    answered: l.questions.filter(q=>state.answers[q.id] && state.answers[q.id].trim()).length,
+    total: l.questions.length,
+    inds: l.questions.reduce((s,q)=>s+(state.indicators[q.id]||[]).length,0)
+  }));
+  const totalAns = filled.reduce((s,x)=>s+x.answered,0);
+  const totalQ = filled.reduce((s,x)=>s+x.total,0);
+  const totalInd = filled.reduce((s,x)=>s+x.inds,0);
+
+  let html = `<h3>Análisis generado</h3>
+    <p style="color:var(--muted);font-size:13px">
+      Progreso: ${totalAns}/${totalQ} preguntas respondidas · ${totalInd} datos/indicadores.
+    </p>
+    <div style="margin:16px 0">`;
+  filled.forEach(x=>{
+    const pct = Math.round(x.answered/x.total*100);
+    const color = pct===100?"var(--ok)":(pct>0?"var(--warn)":"var(--muted)");
+    html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px">
+      <span style="width:220px;color:${x.l.color}">${x.l.name}</span>
+      <span style="flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden">
+        <span style="display:block;height:100%;width:${pct}%;background:${color}"></span>
+      </span>
+      <span style="width:60px;text-align:right;color:var(--muted)">${pct}%</span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // Síntesis por capas con contenido
+  html += `<h4 style="margin-top:24px">Síntesis</h4>`;
+  LAYERS.forEach(l=>{
+    const vals = l.questions.filter(q=>state.answers[q.id] && state.answers[q.id].trim());
+    if(vals.length===0) return;
+    html += `<div style="margin:14px 0;padding:12px;background:var(--bg);border-left:3px solid ${l.color};border-radius:6px">
+      <strong style="color:${l.color}">${l.name}</strong><br>
+      <span style="font-size:13px;color:var(--muted)">${vals.length} punto(s) desarrollado(s).</span>
+      <ul style="margin:8px 0 0;padding-left:20px;font-size:13px">`;
+    vals.forEach(q=>{
+      html += `<li><strong>${q.label}:</strong> ${escapeHtml(state.answers[q.id]).slice(0,140)}${state.answers[q.id].length>140?"…":""}</li>`;
+    });
+    html += `</ul></div>`;
+  });
+
+  // Retroalimentación global
+  html += `<h4 style="margin-top:24px">Conexiones detectadas</h4>
+    <ul style="font-size:13px;color:var(--muted)">`;
+  let conexiones = 0;
+  LAYERS.forEach(l=>{
+    l.questions.forEach(q=>{
+      if(state.answers[q.id] && state.answers[q.id].trim()){
+        const fb = getFeedback({id:q.id.split("_")[0]});
+        // Simplificado: solo mostramos si hay capas con contenido en extremos del circuito
+      }
+    });
+  });
+  // Conexiones simples basadas en capas con contenido
+  const conContenido = LAYERS.filter(l=>l.questions.some(q=>state.answers[q.id] && state.answers[q.id].trim())).map(l=>l.id);
+  if(conContenido.includes("jur") && conContenido.includes("cap"))
+    { html += `<li><strong>Jurídico → Captura:</strong> las ficciones legales de la Capa 1 suelen ser el suelo que permite la captura de la Capa 3.</li>`; conexiones++; }
+  if(conContenido.includes("ext") && conContenido.includes("mat"))
+    { html += `<li><strong>Extracción → Límites:</strong> los mecanismos de extracción presionan sobre los límites materiales de la Capa 7.</li>`; conexiones++; }
+  if(conContenido.includes("sub") && conContenido.includes("nar"))
+    { html += `<li><strong>Subjetividad → Narrativa:</strong> la producción de subjetividad (Capa 4) se sostiene con la gestión narrativa (Capa 5).</li>`; conexiones++; }
+  if(conContenido.includes("conv") && conContenido.includes("res"))
+    { html += `<li><strong>Convergencia → Resistencia:</strong> el circuito de la Capa 6 explica por qué la resistencia de la Capa 8 gana casos pero no cambia el sistema.</li>`; conexiones++; }
+  if(conexiones===0) html += `<li>Rellena más capas para detectar conexiones.</li>`;
+  html += `</ul>`;
+
+  html += `<div style="margin-top:20px;display:flex;gap:8px">
+    <button class="primary" onclick="openExport()">Exportar Markdown</button>
+    <button onclick="closeModal()">Cerrar</button>
+  </div>`;
+
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").classList.add("open");
+}
+
+function closeModal(){
+  document.getElementById("modal").classList.remove("open");
+}
+
+/* ============================================================
+   EJEMPLO PRECARGADO
+   ============================================================ */
+function loadExample(){
+  state.answers = {
+    gen_hito: "Potosí (siglo XVI) → Ámsterdam (1609, Banco) → VOC (1602) → interés compuesto → Revolución Industrial como fuga termodinámica. La deuda como motor original.",
+    gen_narrativa: "Ética protestante (Weber): el éxito económico como señal de salvación. Self-made man, sueño americano. La leyenda negra deslegitimó el modelo español con contrapesos y legitimó el modelo inglés sin ellos.",
+    gen_olvido: "Escuela de Salamanca (teoría subjetiva del valor, precio justo), Leyes de Indias, Junta de Valladolid, Protector de Indios. Contrapesos éticos institucionalizados que el modelo anglosajón no desarrolló.",
+    gen_manual: "Rockefeller y la Standard Oil: dumping, captura regulatoria, envenenamiento rentable (plomo en gasolina), externalización de costes, violencia disciplinaria, control de infraestructura.",
+
+    jur_ficciones: "Propiedad como relación sujeto-cosa (abstrae la relación social). Intencionalidad como requisito de responsabilidad. Territorialidad estatal (el capital se mueve, la ley no). Persona jurídica como escudo.",
+    jur_invisibles: "Daños estructurales sin autor individual: cambio climático, desigualdad masiva, crisis hipotecaria, crisis de opioides. Causalidad circular, responsabilidad dispersa.",
+    jur_dilucion: "Dolo eventual y culpa como parches. Desidia normalizada (notarios que cumplen formalmente). Multas como coste de operación (Purdue: fracción de beneficios). Persona jurídica como blindaje.",
+    jur_formal: "Notarios en la crisis hipotecaria de 2008: verificaban la identidad y la legalidad formal, no advertían sobre cláusulas abusivas. Auditores que firman balances fraudulentos. Reguladores que no regulan.",
+
+    ext_temporal: "Deuda pública y privada. Interés compuesto exige crecimiento exponencial. Haití: pagó a Francia entre 1825 y 1947 el equivalente a miles de millones por el 'reconocimiento' de su independencia.",
+    ext_eco: "Externalización de costes ambientales: atmósfera y océanos como sumideros gratuitos. Cambio climático como factura acumulada.",
+    ext_comp: "Dumping: Amazon, Uber, plataformas operan años a pérdidas para monopolizar. Shein: vestido a 3€ eliminando competencia.",
+    ext_est: "Globalización del riesgo financiero post-1971: titulización, derivados. El daño se atomiza; ningún Estado asume responsabilidad total.",
+    ext_esp: "Deslocalización: destrucción del tejido industrial en el centro, inserción subordinada en la periferia. Galicia: vaciamiento territorial (textil, lácteo, banca, energía).",
+    ext_tec: "Captura arquitectónica (Android), absorción corporativa (IBM-Red Hat), bloqueo regulatorio (impuesto al sol), absorción por escala (Amazon).",
+    ext_inst: "Circuito de la baja: mutuas → INSS → sanidad → privados. Farmacéuticas: Estado financia I+D → empresa gestiona demanda crónica → deslocaliza ensayos → captura regulador.",
+    ext_sect: "Farmacéuticas: 4 mecanismos (riesgo fundacional externalizado, demanda inelástica, deslocalización del daño, captura del árbitro). Autónomos: renta baja estructural, no problema fiscal.",
+
+    cap_fin: "EMA y FDA se financian con tasas de las farmacéuticas. El regulador cobra del regulado.",
+    cap_puertas: "Altos cargos de agencias reguladoras pasan a consultoras que asesoran a la industria. Defensor del Pueblo Europeo documentó que la EMA no aplicaba restricciones suficientes.",
+    cap_lobby: "36 millones de euros anuales en Bruselas. El sector que más invierte. Equipos legales participan en la redacción de leyes.",
+    cap_jud: "CGPJ colonizado. APM: 26% de la carrera → 48,3% de nombramientos discrecionales. APM+JpD: 35% carrera → 75% plazas disputadas. No asociados: 42% carrera → 22,5% nombramientos. Capilaridad: el poder real está en las subcúpulas (presidencias de TSJ, Audiencias).",
+    cap_med: "Medios como aparatos de legitimación. Juicios paralelos: filtraciones, titulares condenatorios antes de sentencia. La presunción de inocencia erosionada.",
+    cap_acad: "Think tanks financiados por la industria. Cátedras, congresos, publicaciones. Asociaciones de pacientes financiadas por farmacéuticas.",
+
+    sub_eco: "Homo economicus, empresario de sí mismo. La vida como inversión. Crecimiento del PIB como bien supremo.",
+    sub_antro: "Tribus de marca (Apple, Nike, Harley). Ritos mercantilizados (primer móvil, hipoteca, unboxing). Mitos (Steve Jobs en el garaje, sueño americano). Influencers como nuevos chamanes. Cancelación como tabú.",
+    sub_psico: "Bernays: antorchas de la libertad (tabaco femenino), desayuno americano. Jobs: 'la gente no sabe lo que quiere hasta que se lo enseñas'. Algoritmos: anticipan el deseo. Estética: Disney, Marilyn, filtros de Instagram.",
+    sub_edu: "Escuela como institución disciplinaria: horarios, jerarquías, exámenes, castigos. Currículo oculto: puntualidad, obediencia, competitividad, individualismo. Medicalización del TDAH.",
+    sub_redes: "Scroll infinito, recompensa variable, personalización algorítmica. Estudio Nature (2026): el algoritmo de X moldea actitudes políticas. Science (2025): pequeñas variaciones en el feed alteran la polarización afectiva.",
+    sub_usurp: "El mercado ocupa nichos comunitarios: pertenencia (tribus de marca), rito (consumo), mito (sueño americano), chamán (influencers), tabú (cancelación).",
+
+    nar_eq: "Falsa equidistancia: 'todos son iguales', 'las dos Españas', 'los extremos se tocan'. Borra asimetrías reales: origen franquista vs. oposición democrática; Gürtel vs. ERE; lawfare estructural vs. coyuntural.",
+    nar_law: "Uso del aparato judicial para desgastar adversarios. Caso Neurona: 3 años de instrucción, filtraciones sistemáticas, archivado sin culpables. El objetivo no era condenar, sino infligir daño reputacional irreversible.",
+    nar_coop: "El sistema tolera críticas superficiales que no cuestionan sus fundamentos. Byung-Chul Han: crítica sintomática. La disidencia se convierte en marca.",
+    nar_canc: "Cultura de la cancelación como tabú. Lo políticamente correcto marca los límites de lo pensable. Las marcas imponen tabúes.",
+    nar_doble: "Meta: 'conexión social' vs. 'extracción de atención'. Farmacéuticas: 'innovación' vs. 'gestión de enfermedades crónicas'. Autónomos: 'asfixia fiscal' vs. 'baja renta estructural'.",
+    nar_leyenda: "Leyenda negra: operación de producción de subjetividad geopolítica. La Brevísima relación de Las Casas, crítica interna, convertida en arma externa. Legitimó el modelo inglés sin contrapesos.",
+
+    conv_actores: "Sanidad: mutuas, INSS, administración sanitaria, centros privados concertados. Farmacéuticas: Estado, empresa, regulador, asociaciones de pacientes.",
+    conv_eje: "Sanidad: flujo de dinero público hacia conciertos privados (9,75 M€ en Galicia en 4 años). Farmacéuticas: gasto público en medicamentos crónicos.",
+    conv_cierre: "Sanidad: saturación → derivación a privados → infrainversión → más saturación. Farmacéuticas: Estado financia I+D → empresa gestiona crónica → deslocaliza ensayos → captura regulador → más gasto público.",
+    conv_sinconsp: "No hay conspiración. Cada actor persigue su incentivo. La mutua reduce bajas para ganar margen. El INSS restringe para cumplir objetivos. La sanidad deriva para reducir listas. El privado retiene lo rentable. El resultado extractivo emerge sin que nadie lo quiera.",
+
+    mat_termo: "La economía es un sistema abierto dentro de un sistema cerrado. Exporta entropía al entorno. Los sumideros (atmósfera, océanos) son finitos.",
+    mat_deuda: "El interés compuesto exige crecimiento exponencial. En un planeta finito, ese crecimiento se logra externalizando costes: más extracción, más contaminación.",
+    mat_clima: "El cambio climático es la factura termodinámica acumulada por dos siglos de usar energía fósil como si fuera infinita.",
+    mat_activos: "Buffett Indicator: 217% (rango normal 70-140%). Shiller CAPE: 40.2 (media ~17). Concentración S&P 500: 10 empresas ~40%. Buybacks masivos. A partir de 2028, los boomers empiezan a vender.",
+    mat_pasivos: "Financieros (deuda/PIB), productivos (tejido destruido), sociales (Gini, movilidad), ecológicos (huella/biocapacidad), tecnológicos (dependencia de patentes).",
+
+    res_cont: "Tribunales corrigen resoluciones del INSS. Sindicatos denuncian conciertos opacos. Médicos de familia se organizan. Pero ganan casos, no el sistema. La captura opera en red; la resistencia, en el caso individual.",
+    res_alt: "Cooperativas (Mondragón), comunidades zapatistas, redes de apoyo mutuo. Son reales pero marginales. El anticonsumismo se convierte en estética. El anarquismo, en posición de mercado.",
+    res_arq: "Sistemas policéntricos (feminismo, Revolución Americana temprana): resilientes. Sistemas monocéntricos (nazismo, estalinismo): eficaces a corto plazo, frágiles a largo plazo.",
+    res_rupt: "Crisis económica real + crisis ecológica visible + crisis de sentido + alternativa organizada no mercantil. Ninguna ha coincidido a escala global todavía.",
+
+    fal_cond: "Si los pasivos no contabilizados disminuyen mientras el PIB crece. Si la publicidad deja de ser emocional. Si las marcas no generan identidad. Si la educación no produce individuos competitivos. Si los algoritmos no moldean actitudes. Si emerge resistencia no capturada.",
+    fal_preg: "¿Por qué funciona la manipulación? ¿Hay deseo no explotable? ¿Cuándo lo marginal se vuelve central? ¿Son las élites producto del sistema o agentes conscientes? ¿Qué tipo de subjetividad e instituciones podrían sostener una vida no basada en la extracción?"
+  };
+  state.indicators = {
+    cap_jud: ["APM: 26% carrera → 48,3% nombramientos", "APM+JpD: 35% carrera → 75% plazas", "No asociados: 42% carrera → 22,5% nombramientos"],
+    ext_sect: ["Farmacéuticas: Humira, 130 patentes adicionales, 100.000 M$", "Farmacéuticas: India 2005-2012, 2.600 muertes en ensayos", "Autónomos Ourense: 10,5% declarantes → 6% renta", "Autónomos: brecha -43,4% vs asalariados"],
+    mat_activos: ["Buffett Indicator: 217%", "Shiller CAPE: 40.2", "Concentración S&P 500: ~40% en 10 empresas"],
+    conv_eje: ["Galicia: conciertos sanitarios ×4 desde 2022 (9,75 M€)", "Ourense: concierto sanitario +42% (2025-2027)"]
+  };
+  saveState(); render();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+loadState();
+render();
+</script>
+</body>
+</html>
