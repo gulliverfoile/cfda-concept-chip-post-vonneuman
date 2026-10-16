@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fusión v1.4 · Simulador + Monitor + Backtest + Frenos + Intensidad Carbono</title>
+<style>
+  :root{
+    --bg:#050510; --panel:rgba(20,20,40,0.92); --panel2:rgba(30,30,55,0.9);
+    --border:#00ffff; --text:#e0f0ff; --muted:#6080a0;
+    --ok:#30d060; --warn:#f0c040; --bad:#f04040;
+    --gaia:#3fb950; --eco:#d29922; --capt:#c084fc; --subj:#58a6ff;
+    --jur:#f472b6; --vsm:#a78bfa; --adapt:#fb7185; --backtest:#38bdf8;
+    --freno:#a3e635; --carbono:#fb923c;
+    --rigor-alto:#30d060; --rigor-medio:#f0c040; --rigor-bajo:#f04040;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(ellipse at center,#101025 0%,#050510 100%);
+    color:var(--text);font-family:'Courier New',monospace;min-height:100vh;
+    padding:16px;overflow-x:hidden;font-size:13px}
+  header{text-align:center;margin-bottom:16px;padding:10px;border-bottom:1px solid var(--border)}
+  header h1{font-size:1.3rem;color:var(--border);text-shadow:0 0 12px rgba(0,255,255,0.5);margin-bottom:4px}
+  header p{color:var(--muted);font-size:0.75rem}
+  header .tabs{display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  header .tabs button{background:transparent;color:var(--border);border:1px solid var(--border);
+    padding:4px 12px;border-radius:14px;font-family:inherit;font-size:0.7rem;
+    font-weight:bold;cursor:pointer;letter-spacing:1px;transition:all 0.15s}
+  header .tabs button.active{background:var(--border);color:#000}
+  header .tabs button:hover:not(.active){background:rgba(0,255,255,0.15)}
+
+  .layout{display:grid;grid-template-columns:1fr 380px;gap:16px;max-width:1500px;margin:0 auto}
+  @media (max-width:1050px){.layout{grid-template-columns:1fr}}
+  .left-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+  .scene{perspective:1200px;height:420px;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.3);border-radius:10px;border:1px solid rgba(0,255,255,0.2);
+    overflow:hidden;position:relative}
+  .cube{width:210px;height:210px;position:relative;transform-style:preserve-3d;transition:transform 0.6s ease-out}
+  .face{position:absolute;width:210px;height:210px;background:rgba(10,15,30,0.95);
+    border:2px solid;display:flex;flex-direction:column;padding:8px;font-size:10px;
+    overflow:hidden;backface-visibility:hidden}
+  .face-title{font-weight:bold;font-size:11px;text-align:center;padding-bottom:3px;
+    border-bottom:1px solid currentColor;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px}
+  .face-big{font-size:22px;font-weight:bold;text-align:center;margin:4px 0;font-variant-numeric:tabular-nums}
+  .face-row{display:flex;justify-content:space-between;font-size:9px;padding:1px 0;color:#b0c8e0}
+  .face-row span:last-child{color:#fff;font-weight:bold}
+  .f-gaia{transform:translateZ(105px)}
+  .f-eco{transform:rotateY(90deg) translateZ(105px)}
+  .f-capt{transform:rotateY(180deg) translateZ(105px)}
+  .f-subj{transform:rotateY(-90deg) translateZ(105px)}
+  .f-jur{transform:rotateX(90deg) translateZ(105px)}
+  .f-alert{transform:rotateX(-90deg) translateZ(105px)}
+
+  .snap-bar{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+    display:flex;gap:6px;background:rgba(0,0,0,0.7);padding:6px 10px;border-radius:20px;
+    border:1px solid rgba(0,255,255,0.3);z-index:10;flex-wrap:wrap;justify-content:center}
+  .snap-btn{background:transparent;color:var(--border);border:1px solid rgba(0,255,255,0.4);
+    padding:4px 10px;border-radius:12px;font-family:inherit;font-size:0.65rem;
+    font-weight:bold;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+  .snap-btn:hover{background:rgba(0,255,255,0.2)}
+  .snap-btn.active{background:var(--border);color:#000}
+
+  .cards-panel{background:var(--panel);border:1px solid rgba(0,255,255,0.3);border-radius:10px;padding:14px}
+  .cards-panel h2{color:var(--border);font-size:0.8rem;margin-bottom:10px;letter-spacing:2px;
+    border-bottom:1px solid rgba(0,255,255,0.2);padding-bottom:6px;
+    display:flex;justify-content:space-between;align-items:center}
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .info-card{background:rgba(0,0,0,0.4);border:1px solid;border-radius:8px;padding:10px;
+    font-size:0.7rem;cursor:pointer;transition:all 0.15s;position:relative}
+  .info-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,255,255,0.2)}
+  .info-card-title{font-weight:bold;font-size:0.8rem;text-align:center;padding-bottom:4px;
+    border-bottom:1px solid currentColor;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;
+    display:flex;justify-content:center;align-items:center;gap:6px}
+  .info-card-big{font-size:1.5rem;font-weight:bold;text-align:center;margin:4px 0;font-variant-numeric:tabular-nums}
+  .info-card-row{display:flex;justify-content:space-between;padding:1px 0;color:#b0c8e0}
+  .info-card-row span:last-child{color:#fff;font-weight:bold}
+
+  aside.controls{background:var(--panel);border:2px solid var(--border);border-radius:10px;
+    padding:16px;box-shadow:0 0 20px rgba(0,255,255,0.15);align-self:start;
+    position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto}
+  aside.controls h2{color:var(--border);font-size:0.9rem;margin-bottom:14px;padding-bottom:8px;
+    border-bottom:1px solid rgba(0,255,255,0.3);letter-spacing:2px}
+  aside.controls h3{color:var(--muted);font-size:0.7rem;text-transform:uppercase;
+    letter-spacing:1px;margin:14px 0 8px}
+  aside.controls h3.freno{color:var(--freno)}
+  aside.controls h3.carbono{color:var(--carbono)}
+  .ctrl-row{display:flex;flex-direction:column;margin-bottom:10px}
+  .ctrl-row label{font-size:0.72rem;color:var(--muted);margin-bottom:3px;display:flex;justify-content:space-between}
+  .ctrl-row label span:last-child{color:var(--border);font-weight:bold}
+  .ctrl-row.freno label span:last-child{color:var(--freno)}
+  .ctrl-row.carbono label span:last-child{color:var(--carbono)}
+  .ctrl-row .explica{font-size:0.65rem;color:#556;margin-top:2px;line-height:1.4}
+  .ctrl-row input[type=range]{width:100%;accent-color:var(--border);cursor:pointer}
+  .ctrl-row.freno input[type=range]{accent-color:var(--freno)}
+  .ctrl-row.carbono input[type=range]{accent-color:var(--carbono)}
+  .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .btn{background:transparent;color:var(--border);border:1px solid var(--border);padding:8px;
+    border-radius:6px;font-family:inherit;font-size:0.72rem;font-weight:bold;
+    cursor:pointer;transition:all 0.15s;letter-spacing:1px}
+  .btn:hover{background:rgba(0,255,255,0.15);box-shadow:0 0 10px rgba(0,255,255,0.4)}
+  .btn.full{grid-column:1/-1}
+  .btn.danger{color:var(--bad);border-color:var(--bad)}
+  .btn.danger:hover{background:rgba(240,64,64,0.15)}
+  .btn.adapt{color:var(--adapt);border-color:var(--adapt)}
+  .btn.adapt:hover{background:rgba(251,113,133,0.15)}
+  .btn.backtest{color:var(--backtest);border-color:var(--backtest)}
+  .btn.backtest:hover{background:rgba(56,189,248,0.15)}
+  .btn.freno{color:var(--freno);border-color:var(--freno)}
+  .btn.freno:hover{background:rgba(163,230,53,0.15)}
+  .btn.carbono{color:var(--carbono);border-color:var(--carbono)}
+  .btn.carbono:hover{background:rgba(251,146,60,0.15)}
+
+  .log-panel{max-width:1500px;margin:16px auto 0;background:var(--panel);
+    border:1px solid rgba(0,255,255,0.3);border-radius:10px;padding:16px}
+  .log-panel h2{color:var(--border);font-size:0.85rem;margin-bottom:10px;letter-spacing:2px}
+  .log-scroll{max-height:200px;overflow-y:auto;font-size:0.7rem}
+  .log-line{padding:3px 0;border-bottom:1px dotted rgba(0,255,255,0.1);color:#b0c8e0;
+    display:flex;justify-content:space-between;gap:12px}
+  .log-line .flags{color:var(--warn);font-weight:bold}
+
+  .tests-out{background:rgba(0,0,0,0.5);padding:10px;border-radius:6px;font-size:0.7rem;
+    color:#80ff80;max-height:300px;overflow-y:auto;white-space:pre-wrap;margin-top:8px;
+    display:none;line-height:1.4}
+  .tests-out.visible{display:block}
+  .tests-out .fail{color:var(--bad)}
+
+  .editor-panel{background:var(--panel);border:1px solid rgba(0,255,255,0.3);border-radius:10px;
+    padding:14px;margin-top:16px}
+  .editor-panel h2{color:var(--border);font-size:0.8rem;margin-bottom:10px;letter-spacing:2px}
+  .editor-row{display:grid;grid-template-columns:1fr 2fr auto;gap:8px;margin-bottom:6px;align-items:center}
+  .editor-row label{font-size:0.7rem;color:var(--muted)}
+  .editor-row input[type=range]{width:100%;accent-color:var(--border)}
+  .editor-row input[type=text]{background:rgba(0,0,0,0.4);color:var(--text);
+    border:1px solid rgba(0,255,255,0.3);border-radius:4px;padding:4px 6px;
+    font-family:inherit;font-size:0.7rem;width:100%}
+  .editor-row .val{color:var(--border);font-weight:bold;font-size:0.72rem;min-width:40px;text-align:right}
+
+  .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:0.6rem;
+    font-weight:bold;text-transform:uppercase;letter-spacing:0.5px}
+  .badge.ok{background:rgba(48,208,96,0.2);color:var(--ok)}
+  .badge.warn{background:rgba(240,192,64,0.2);color:var(--warn)}
+  .badge.bad{background:rgba(240,64,64,0.2);color:var(--bad)}
+  .badge.degraded{background:rgba(251,113,133,0.2);color:var(--adapt)}
+
+  .rigor{display:inline-block;padding:0px 5px;border-radius:3px;font-size:0.55rem;
+    font-weight:bold;letter-spacing:0.5px;margin-left:4px;vertical-align:middle;
+    border:1px solid;cursor:help}
+  .rigor.alto{color:var(--rigor-alto);border-color:var(--rigor-alto);background:rgba(48,208,96,0.1)}
+  .rigor.medio{color:var(--rigor-medio);border-color:var(--rigor-medio);background:rgba(240,192,64,0.1)}
+  .rigor.bajo{color:var(--rigor-bajo);border-color:var(--rigor-bajo);background:rgba(240,64,64,0.1)}
+
+  .hidden{display:none !important}
+
+  .backtest-panel{background:var(--panel);border:1px solid rgba(56,189,248,0.3);
+    border-radius:10px;padding:14px}
+  .backtest-panel h2{color:var(--backtest);font-size:0.9rem;margin-bottom:10px;
+    letter-spacing:2px;border-bottom:1px solid rgba(56,189,248,0.2);padding-bottom:6px}
+  .backtest-panel h3{color:var(--muted);font-size:0.75rem;text-transform:uppercase;
+    letter-spacing:1px;margin:14px 0 8px}
+  .backtest-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0}
+  .backtest-card{background:rgba(0,0,0,0.4);border:1px solid rgba(56,189,248,0.3);
+    border-radius:8px;padding:10px;font-size:0.72rem}
+  .backtest-card .label{color:var(--muted);font-size:0.65rem;text-transform:uppercase;margin-bottom:4px}
+  .backtest-card .val{font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums}
+  .backtest-chart{background:rgba(0,0,0,0.4);border-radius:8px;padding:12px;margin:12px 0}
+  .backtest-chart svg{width:100%;height:auto;display:block}
+  .backtest-chart .axis{stroke:rgba(255,255,255,0.15);stroke-width:1}
+  .backtest-chart .grid{stroke:rgba(255,255,255,0.05);stroke-width:0.5}
+  .backtest-chart .line-sim{fill:none;stroke:#38bdf8;stroke-width:2}
+  .backtest-chart .line-real{fill:none;stroke:#f0c040;stroke-width:2;stroke-dasharray:4,3}
+  .backtest-chart .label{fill:#6080a0;font-size:9px;font-family:monospace}
+  .backtest-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:0.7rem}
+  .backtest-legend span{display:flex;align-items:center;gap:5px;color:var(--muted)}
+  .backtest-legend .sw{width:16px;height:2px}
+  .backtest-error{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;
+    font-weight:bold;margin-left:6px}
+  .backtest-error.ok{background:rgba(48,208,96,0.15);color:var(--ok)}
+  .backtest-error.warn{background:rgba(240,192,64,0.15);color:var(--warn)}
+  .backtest-error.bad{background:rgba(240,64,64,0.15);color:var(--bad)}
+
+  .carbono-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:0.6rem;
+    background:rgba(251,146,60,0.15);color:var(--carbono);font-weight:bold;margin-left:4px}
+
+  /* Modal de bienvenida */
+  .welcome-modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;
+    align-items:center;justify-content:center;z-index:100;padding:20px}
+  .welcome-modal.open{display:flex}
+  .welcome-modal .box{background:var(--panel);border:2px solid var(--border);border-radius:14px;
+    max-width:800px;width:100%;max-height:90vh;overflow-y:auto;padding:28px;
+    box-shadow:0 0 40px rgba(0,255,255,0.3)}
+  .welcome-modal h2{color:var(--border);font-size:1.4rem;margin-bottom:12px;text-align:center}
+  .welcome-modal h3{color:var(--text);font-size:1rem;margin:18px 0 8px;
+    border-bottom:1px solid rgba(0,255,255,0.2);padding-bottom:4px}
+  .welcome-modal p{font-size:0.85rem;line-height:1.7;color:#b0c8e0;margin-bottom:8px}
+  .welcome-modal ul{margin-left:22px;font-size:0.85rem;line-height:1.8;color:#b0c8e0}
+  .welcome-modal li{margin-bottom:6px}
+  .welcome-modal .step{background:rgba(0,0,0,0.4);border-left:3px solid var(--border);
+    padding:10px 14px;margin:10px 0;border-radius:6px;font-size:0.82rem;line-height:1.6;color:#b0c8e0}
+  .welcome-modal .step strong{color:var(--border)}
+  .welcome-modal .aviso{background:rgba(240,64,64,0.1);border-left:3px solid var(--bad);
+    padding:10px 14px;margin:14px 0;border-radius:6px;font-size:0.82rem;line-height:1.6;color:#b0c8e0}
+  .welcome-modal .cerrar{display:block;margin:20px auto 0;padding:10px 30px;
+    background:var(--border);color:#000;border:none;border-radius:8px;
+    font-family:inherit;font-size:0.9rem;font-weight:bold;cursor:pointer;letter-spacing:1px}
+  .welcome-modal .cerrar:hover{background:#8bbcff}
+
+  /* Contenido de ayuda global */
+  .help-content{font-size:0.78rem;line-height:1.8;color:#b0c8e0}
+  .help-content h3{color:var(--border);font-size:0.9rem;margin:18px 0 8px;
+    border-bottom:1px solid rgba(0,255,255,0.2);padding-bottom:4px}
+  .help-content h4{color:var(--text);font-size:0.8rem;margin:12px 0 6px}
+  .help-content p{margin-bottom:8px}
+  .help-content ul,.help-content ol{margin-left:22px;margin-bottom:10px}
+  .help-content li{margin-bottom:4px}
+  .help-content code{background:rgba(0,0,0,0.5);padding:1px 5px;border-radius:3px;
+    font-size:0.75rem;color:var(--carbono)}
+  .help-content .box{background:rgba(0,0,0,0.4);border-left:3px solid var(--border);
+    padding:10px 14px;margin:10px 0;border-radius:6px}
+</style>
+</head>
+<body>
+
+<!-- MODAL DE BIENVENIDA (primera visita) -->
+<div class="welcome-modal" id="welcomeModal">
+  <div class="box">
+    <h2>◈ Bienvenido a Fusión v1.4</h2>
+    <p>Esta es una herramienta experimental para <strong>pensar sistemas complejos</strong>. No es un modelo validado, no predice el futuro, no reemplaza a nadie. Es un andamio conceptual para estructurar el análisis.</p>
+
+    <h3>¿Qué es?</h3>
+    <p>Tiene cuatro módulos que trabajan juntos:</p>
+    <ul>
+      <li><strong>Simulador:</strong> 4 capas acopladas (Gaia, Economía, Captura, Subjetividad) + 3 poderes + 5 frenos. Produce datos turno a turno.</li>
+      <li><strong>Monitor VSM:</strong> Diagnóstico de viabilidad basado en el Modelo de Sistema Viable de Stafford Beer y la Ley de Variedad de Ashby.</li>
+      <li><strong>Frenos:</strong> Los 5 bucles negativos que impiden que el sistema colapse siempre. Parametrizables de 0 (sin freno) a 2 (freno fuerte).</li>
+      <li><strong>Backtest:</strong> Comparación con datos históricos de España 1500–1700. Solo población, no temperatura (el modelo no captura climas pre-industriales).</li>
+    </ul>
+
+    <h3>¿Cómo se usa?</h3>
+    <div class="step"><strong>1.</strong> Ajusta los sliders del panel derecho. Cada uno tiene un tooltip que explica qué hace.</div>
+    <div class="step"><strong>2.</strong> Pulsa <code>▶ +1</code> para avanzar un turno. O <code>+10</code>, <code>+50</code> para más.</div>
+    <div class="step"><strong>3.</strong> Mira el cubo 3D. Cada cara es una capa. Pulsa los botones inferiores para rotar.</div>
+    <div class="step"><strong>4.</strong> Mira las tarjetas de datos. Tienen un badge de rigor: 🟢 sólido, 🟡 plausible, 🔴 especulativo.</div>
+    <div class="step"><strong>5.</strong> Cambia a la pestaña <strong>Monitor VSM</strong> para ver el diagnóstico completo. O <strong>Backtest</strong> para comparar con la historia.</div>
+
+    <h3>Los badges de rigor</h3>
+    <p>🟢 <strong>Alto:</strong> dato objetivo, verificable.</p>
+    <p>🟡 <strong>Medio:</strong> marco sólido, traducción especulativa.</p>
+    <p>🔴 <strong>Bajo:</strong> métrica subjetiva, no validada empíricamente.</p>
+
+    <div class="aviso">
+      <strong>Aviso epistemológico:</strong> esto es una idea experimental. Los datos históricos son aproximados. Los frenos son parametrizables, no calibrados. Las métricas de subjetividad son especulativas. Su valor está en estructurar el análisis, no en predecir la realidad.
+    </div>
+
+    <button class="cerrar" id="btnCerrarWelcome">Entendido, vamos allá</button>
+  </div>
+</div>
+
+<header>
+  <h1>◈ Fusión v1.4 · Simulador + Monitor + Backtest + Frenos + Intensidad Carbono</h1>
+  <p>4 capas + 3 poderes + 5 frenos + intensidad de carbono parametrizable → Adaptador → VSM · Backtest histórico</p>
+  <div class="tabs">
+    <button class="active" data-view="sim">Simulador</button>
+    <button data-view="vsm">Monitor VSM</button>
+    <button data-view="frenos">Frenos</button>
+    <button data-view="backtest">Backtest</button>
+    <button data-view="editor">Editor</button>
+    <button data-view="help">Ayuda</button>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="left-col">
+
+    <!-- VISTA SIMULADOR -->
+    <div id="view-sim">
+      <div class="scene">
+        <div class="cube" id="cube">
+          <div class="face f-gaia" id="face-gaia">
+            <div class="face-title">🌍 Gaia</div>
+            <div class="face-big" id="gaia-temp">0.00°</div>
+            <div class="face-row"><span>Permafrost</span><span id="gaia-perma">100%</span></div>
+            <div class="face-row"><span>Albedo</span><span id="gaia-albedo">1.000</span></div>
+            <div class="face-row"><span>CO₂</span><span id="gaia-co2">280</span></div>
+            <div class="face-row"><span>Metano</span><span id="gaia-metano">0.0</span></div>
+          </div>
+          <div class="face f-eco" id="face-eco">
+            <div class="face-title">⚙️ Economía</div>
+            <div class="face-big" id="eco-recursos">1000</div>
+            <div class="face-row"><span>Capital</span><span id="eco-capital">10.0</span></div>
+            <div class="face-row"><span>Producción</span><span id="eco-prod">0.0</span></div>
+            <div class="face-row"><span>EROI eco</span><span id="eco-eroi">20.0</span></div>
+            <div class="face-row"><span>Población</span><span id="eco-pob">100</span></div>
+          </div>
+          <div class="face f-capt" id="face-capt">
+            <div class="face-title">🪙 Captura</div>
+            <div class="face-big" id="capt-peaje">0.20</div>
+            <div class="face-row"><span>Filtro info</span><span id="capt-filtro">0.30</span></div>
+            <div class="face-row"><span>Narrativa</span><span id="capt-narr">50</span></div>
+            <div class="face-row"><span>Coste perp.</span><span id="capt-coste">0</span></div>
+            <div class="face-row"><span>Estado</span><span id="capt-estado">activa</span></div>
+          </div>
+          <div class="face f-subj" id="face-subj">
+            <div class="face-title">🧠 Subjetividad</div>
+            <div class="face-big" id="subj-burnout">10</div>
+            <div class="face-row"><span>Confianza</span><span id="subj-conf">60</span></div>
+            <div class="face-row"><span>Sentido</span><span id="subj-sent">50</span></div>
+            <div class="face-row"><span>Atención</span><span id="subj-atn">70</span></div>
+            <div class="face-row"><span>Bienestar</span><span id="subj-bien">55</span></div>
+          </div>
+          <div class="face f-jur" id="face-jur">
+            <div class="face-title">⚖️ Poderes</div>
+            <div class="face-big" id="jur-media">0.30</div>
+            <div class="face-row"><span>Judicial</span><span id="jur-jud">0.30</span></div>
+            <div class="face-row"><span>Legislativo</span><span id="jur-leg">0.30</span></div>
+            <div class="face-row"><span>Ejecutivo</span><span id="jur-eje">0.30</span></div>
+            <div class="face-row"><span>S3* Auditoría</span><span id="jur-s3star">70</span></div>
+          </div>
+          <div class="face f-alert" id="face-alert">
+            <div class="face-title">⚠️ Alertas</div>
+            <div id="alert-list" style="font-size:10px;line-height:1.7">
+              <div style="color:#6080a0">— sin alertas —</div>
+            </div>
+          </div>
+        </div>
+        <div class="snap-bar">
+          <button class="snap-btn active" data-snap="gaia">🌍 Gaia</button>
+          <button class="snap-btn" data-snap="eco">⚙️ Eco</button>
+          <button class="snap-btn" data-snap="capt">🪙 Capt</button>
+          <button class="snap-btn" data-snap="subj">🧠 Subj</button>
+          <button class="snap-btn" data-snap="jur">⚖️ Poderes</button>
+          <button class="snap-btn" data-snap="alert">⚠️ Alert</button>
+        </div>
+      </div>
+
+      <div class="cards-panel" style="margin-top:16px">
+        <h2>
+          <span>📊 LECTURA DE DATOS</span>
+          <span style="font-size:0.6rem;color:var(--muted);font-weight:400">
+            🔴 especulativo · 🟡 plausible · 🟢 sólido
+          </span>
+        </h2>
+        <div class="cards-grid" id="cards-grid"></div>
+      </div>
+    </div>
+
+    <!-- VISTA VSM -->
+    <div id="view-vsm" class="hidden">
+      <div class="cards-panel">
+        <h2>◈ DIAGNÓSTICO VSM (Beer + Ashby)</h2>
+        <div id="vsm-detalle"></div>
+      </div>
+    </div>
+
+    <!-- VISTA FRENOS -->
+    <div id="view-frenos" class="hidden">
+      <div class="cards-panel">
+        <h2>🛑 FRENOS DEL SISTEMA</h2>
+        <p style="color:var(--muted);font-size:0.72rem;margin-bottom:10px">
+          Los frenos son bucles negativos que impiden el colapso infinito.
+          A 0 = sin freno. A 1 = freno normal. A 2 = freno fuerte.
+        </p>
+        <div id="frenos-detalle"></div>
+      </div>
+    </div>
+
+    <!-- VISTA BACKTEST -->
+    <div id="view-backtest" class="hidden">
+      <div class="backtest-panel">
+        <h2>📉 BACKTEST · España 1500–1700</h2>
+        <p style="color:var(--muted);font-size:0.72rem;margin-bottom:10px">
+          Con <strong style="color:var(--carbono)">intensidadCarbono = 0</strong> (economía pre-industrial, biomasa), 
+          el modelo NO emite CO₂ neto. <strong>Este backtest NO compara temperatura</strong> porque el modelo 
+          no captura climas pre-industriales. Se enfoca en lo que SÍ puede capturar: población, recursos, poderes.
+        </p>
+        <div id="backtest-content"></div>
+      </div>
+    </div>
+
+    <!-- VISTA EDITOR -->
+    <div id="view-editor" class="hidden">
+      <div class="editor-panel">
+        <h2>⚙️ EDITOR DEL ADAPTADOR ENACTIVO</h2>
+        <p style="color:var(--muted);font-size:0.72rem;margin-bottom:10px">
+          El adaptador traduce el estado del Simulador a capas del Monitor.
+        </p>
+        <h3 style="color:var(--muted);font-size:0.7rem;text-transform:uppercase;margin:10px 0 8px">
+          Poderes (capa jurídica)
+        </h3>
+        <div id="editor-poderes"></div>
+        <h3 style="color:var(--muted);font-size:0.7rem;text-transform:uppercase;margin:14px 0 8px">
+          Pesos del Adaptador
+        </h3>
+        <div id="editor-rows"></div>
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn" id="btn-editor-reset">↺ Valores por defecto</button>
+          <button class="btn full" id="btn-editor-save">💾 Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA AYUDA -->
+    <div id="view-help" class="hidden">
+      <div class="cards-panel">
+        <h2>❓ AYUDA COMPLETA</h2>
+        <div class="help-content" id="help-content"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <aside class="controls">
+    <h2>⚙ CONTROL</h2>
+    <h3 class="carbono">🔥 Intensidad de Carbono</h3>
+    <div id="controles-carbono"></div>
+
+    <h3>Simulador</h3>
+    <div id="controles-sim"></div>
+
+    <h3 class="freno">🛑 Frenos</h3>
+    <div id="controles-frenos"></div>
+
+    <h3>Adaptador Enactivo</h3>
+    <div id="controles-adapt"></div>
+
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn" id="btn-1">▶ +1</button>
+      <button class="btn" id="btn-10">⏩ +10</button>
+      <button class="btn" id="btn-50">⏭ +50</button>
+      <button class="btn danger" id="btn-reset">↺ Reset</button>
+      <button class="btn full" id="btn-autorot">🔄 Auto-rotar</button>
+      <button class="btn full backtest" id="btn-backtest">📉 Ejecutar Backtest</button>
+      <button class="btn full carbono" id="btn-preset-preind">🏛️ Preset: Pre-industrial (carbono=0)</button>
+      <button class="btn full carbono" id="btn-preset-fosil">🏭 Preset: Fósil (carbono=1)</button>
+      <button class="btn full freno" id="btn-preset-sin-frenos">💥 Preset: Sin frenos</button>
+      <button class="btn full freno" id="btn-preset-equilibrio">⚖️ Preset: Equilibrio</button>
+      <button class="btn full" id="btn-ver-ayuda">❓ Ver ayuda completa</button>
+      <button class="btn full" id="btn-tests">🧪 Tests</button>
+    </div>
+    <div class="tests-out" id="tests-out"></div>
+  </aside>
+</div>
+
+<div class="log-panel">
+  <h2>📜 REGISTRO DE TURNOS</h2>
+  <div class="log-scroll" id="log"></div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================================
+   0. UTILIDADES
+   ============================================================================ */
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const umbral = (x,t,w=0.2) => clamp((x-t+w)/(2*w), 0, 1);
+const fmt = (n,d=2) => Number(n).toFixed(d);
+const pct = n => (n*100).toFixed(1) + '%';
+const safe = (v, fallback=0) => (isFinite(v) ? v : fallback);
+
+/* ============================================================================
+   1. EVENTBUS
+   ============================================================================ */
+const EventBus = (() => {
+  const listeners = {};
+  return {
+    on(ev, fn) {
+      if (!listeners[ev]) listeners[ev] = [];
+      listeners[ev].push(fn);
+      return () => { listeners[ev] = listeners[ev].filter(f => f !== fn); };
+    },
+    emit(ev, data) {
+      (listeners[ev] || []).forEach(fn => {
+        try { fn(data); } catch(e) { console.error('[bus:'+ev+']', e); }
+      });
+    }
+  };
+})();
+
+/* ============================================================================
+   2. ESTADO
+   ============================================================================ */
+const State = (() => {
+  const KEY = 'fusion_v14_state';
+  const WELCOME_KEY = 'fusion_v14_welcome_seen';
+
+  function estadoInicial() {
+    return {
+      turno: 0,
+      gaia:      { temperatura:0, albedo:1, permafrost:100, co2:280, metano:0, colapso:false, nubes:0 },
+      economia:  { capital:10, recursos:1000, produccion:0, poblacion:100, costeExtraccion:1, eroiEconomico:20, _extraccion:0 },
+      captura:   { control:{ recursos:0.5, energia:0.5, alimentos:0.5, informacion:0.5 }, filtroInfo:0.3, narrativa:50, peaje:0.25, costePerpetuacion:0, agotada:false, resistencia:0 },
+      subj:      { burnout:10, confianza:60, sentido:50, atencion:70, recuperacion:0 },
+      poderes:   { judicial:0.30, legislativo:0.30, ejecutivo:0.30 },
+      log: [],
+    };
+  }
+
+  let data = estadoInicial();
+  let params = {
+    intensidadCarbono: 1.0,
+    emisionesPorTurno: 5,
+    controlInicial: 0.5,
+    cargaLaboral: 0.5,
+    umbralPerma: 2.0,
+    umbralRunaway: 3.0,
+    umbralAviso: 1.5,
+    frenoNubes: 1.0,
+    frenoResistencia: 1.0,
+    frenoRecuperacion: 1.0,
+    frenoPoderes: 1.0,
+    frenoEscasez: 1.0,
+  };
+  let adaptParams = {
+    pesoCapital: 0.4, pesoRecursos: 0.3, pesoConfianza: 0.3,
+    pesoFiltro: 0.5, pesoTemperatura: 0.5,
+    pesoJudicial: 0.4, pesoLegislativo: 0.3, pesoEjecutivo: 0.3,
+    umbralScore: 0.15, umbralCritico: 0.05, factorCompletitud: 0.6,
+  };
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        data = Object.assign(estadoInicial(), p.data || {});
+        if (!data.poderes) data.poderes = { judicial:0.3, legislativo:0.3, ejecutivo:0.3 };
+        if (!data.gaia.nubes) data.gaia.nubes = 0;
+        params = Object.assign(params, p.params || {});
+        adaptParams = Object.assign(adaptParams, p.adaptParams || {});
+      }
+    } catch(e) { console.warn('No se pudo cargar', e); }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ data, params, adaptParams })); }
+    catch(e) { console.warn('No se pudo guardar', e); }
+  }
+  function reset() {
+    data = estadoInicial();
+    save();
+    EventBus.emit('state:reset');
+    EventBus.emit('state:changed');
+  }
+  function welcomeSeen() {
+    try { return localStorage.getItem(WELCOME_KEY) === '1'; }
+    catch(e) { return false; }
+  }
+  function marcarWelcomeVisto() {
+    try { localStorage.setItem(WELCOME_KEY, '1'); }
+    catch(e) {}
+  }
+
+  return {
+    get data() { return data; },
+    get params() { return params; },
+    get adaptParams() { return adaptParams; },
+    load, save, reset, welcomeSeen, marcarWelcomeVisto,
+    setParam(k, v) { params[k] = v; save(); EventBus.emit('state:changed'); },
+    setAdaptParam(k, v) { adaptParams[k] = v; save(); EventBus.emit('state:changed'); },
+    setPoder(k, v) { data.poderes[k] = clamp(v, 0, 1); save(); EventBus.emit('state:changed'); },
+    step() { stepMotor(); EventBus.emit('state:changed'); },
+    stepN(n) { for (let i=0;i<n;i++) stepMotor(); EventBus.emit('state:changed'); },
+    pushLog(entry) { data.log.push(entry); if (data.log.length > 200) data.log.shift(); },
+    snapshot() { return JSON.parse(JSON.stringify(data)); },
+    aplicarPreset(nombre) {
+      if (nombre === 'sin-frenos') {
+        params.frenoNubes = 0; params.frenoResistencia = 0;
+        params.frenoRecuperacion = 0; params.frenoPoderes = 0; params.frenoEscasez = 0;
+      } else if (nombre === 'equilibrio') {
+        params.frenoNubes = 1; params.frenoResistencia = 1;
+        params.frenoRecuperacion = 1; params.frenoPoderes = 1; params.frenoEscasez = 1;
+      } else if (nombre === 'preindustrial') {
+        params.intensidadCarbono = 0;
+      } else if (nombre === 'fosil') {
+        params.intensidadCarbono = 1;
+      }
+      save();
+      EventBus.emit('state:changed');
+    }
+  };
+})();
+
+/* ============================================================================
+   3. SIMULADOR
+   ============================================================================ */
+
+// ---------- CAPA GAIA (con equilibrio natural del CO₂) ----------
+function stepGaia(g, emisiones, params) {
+  const n = { ...g };
+  
+  // Equilibrio natural del CO2: la absorción es proporcional a la diferencia con 280 ppm
+  // Si CO2 > 280, el sistema absorbe. Si CO2 < 280, el sistema emite (respiración).
+  const co2Equilibrio = 280;
+  const absorcion = (g.co2 - co2Equilibrio) * 0.1;
+  n.co2 = g.co2 + emisiones * 1.0 - absorcion;
+  
+  const permaLibre = 100 - g.permafrost;
+  n.metano = g.metano + permaLibre * 0.02;
+  const forzamiento = (n.co2 - 280) * 0.015 + n.metano * 0.05;
+
+  // FRENO 1: termostato de nubes
+  const fNubes = params.frenoNubes;
+  const evaporacion = clamp(g.temperatura * 0.15 * fNubes, 0, 1.5);
+  const nubes = evaporacion * 0.6;
+  const albedoNubes = nubes * 0.25;
+  const invernaderoNubes = nubes * 0.15;
+  n.nubes = nubes;
+
+  n.albedo = clamp(1 - g.temperatura * 0.03 + albedoNubes, 0.55, 1.0);
+  const retroAlbedo = (1 - n.albedo) * 0.4;
+  n.temperatura = g.temperatura + forzamiento + retroAlbedo - invernaderoNubes;
+  n.temperatura = clamp(n.temperatura, -5, 8);
+
+  const factorPerma = umbral(n.temperatura, params.umbralPerma, 0.2);
+  n.permafrost = clamp(g.permafrost - factorPerma * 3, 0, 100);
+  if (n.temperatura >= params.umbralRunaway) n.colapso = true;
+  return n;
+}
+
+function eroiEcologico(g, energia) {
+  if (energia <= 0) return 0;
+  const tempAcotada = clamp(g.temperatura, 0, 5);
+  const dano = Math.pow(tempAcotada, 2) * 10;
+  return clamp((energia - dano) / energia, -10, 1);
+}
+
+// ---------- CAPA ECONOMÍA (con freno demográfico) ----------
+function stepEconomia(e, g, c, s, params) {
+  const n = { ...e };
+  const factorSubjetivo = (1 - s.burnout/100) * (0.5 + s.confianza/200);
+  const productividadBruta = e.capital * factorSubjetivo * (1 + params.cargaLaboral);
+  const productividadPercibida = productividadBruta * (1 - c.filtroInfo) + c.narrativa * c.filtroInfo * 0.1;
+  n.costeExtraccion = 1 + Math.pow(1000 / Math.max(e.recursos, 1), 2) * 0.1;
+  const extraccion = Math.min(e.capital * 2, e.recursos, productividadPercibida / n.costeExtraccion);
+  n._extraccion = extraccion;
+  n.recursos = Math.max(0, e.recursos - extraccion);
+  n.eroiEconomico = Math.max(0.5, 20 / n.costeExtraccion);
+
+  // FRENO 2: escasez
+  const fEscasez = params.frenoEscasez;
+  const escasez = 1 - (e.recursos / 1000);
+  const penalizacionEscasez = 1 - escasez * 0.5 * fEscasez;
+
+  n.produccion = extraccion * n.eroiEconomico * 0.1 * Math.max(0.1, penalizacionEscasez);
+  const peaje = n.produccion * c.peaje;
+  const reinversion = (n.produccion - peaje) * 0.2;
+  n.capital = e.capital + reinversion - e.capital * 0.05;
+  const danoEcologico = Math.pow(clamp(g.temperatura, 0, 5), 2) * 0.5;
+  
+  // FRENO DEMOGRÁFICO: si los recursos per cápita son bajos, la población declina
+  const recursosPerCapita = e.recursos / Math.max(e.poblacion, 1);
+  const frenoDemografico = recursosPerCapita < 5 ? (5 - recursosPerCapita) * 0.15 : 0;
+  
+  n.poblacion = clamp(e.poblacion + n.produccion * 0.01 - danoEcologico - frenoDemografico, 0, 10000);
+  return n;
+}
+
+// ---------- EMISIONES CON INTENSIDAD DE CARBONO ----------
+function emisionesEconomia(e, params) {
+  // La emisión depende del TIPO de energía, no del capital en abstracto.
+  // intensidadCarbono = 0 → pre-industrial (biomasa, cero neto)
+  // intensidadCarbono = 1 → fósil (petróleo, gas)
+  // intensidadCarbono = 2 → fósil extremo (arenas bituminosas)
+  const intensidad = clamp(params.intensidadCarbono, 0, 2);
+  return e._extraccion * 0.1 * intensidad + params.emisionesPorTurno * 0.5 * intensidad;
+}
+
+// ---------- CAPA CAPTURA ----------
+function stepCaptura(c, e, g, poderes, s, params) {
+  const n = { ...c, control: { ...c.control } };
+  const poderMedio = (poderes.judicial + poderes.legislativo + poderes.ejecutivo) / 3;
+  const factorCaptura = 1 + (1 - poderMedio) * 0.5;
+
+  const fResist = params.frenoResistencia;
+  const resistencia = (s.burnout / 100) * (1 - c.filtroInfo);
+  const factorResistencia = 1 - resistencia * 0.4 * fResist;
+  n.resistencia = resistencia;
+
+  for (const k in n.control) {
+    n.control[k] = clamp(
+      n.control[k] + n.control[k] * 0.02 * factorCaptura * Math.max(0.3, factorResistencia),
+      0, 1
+    );
+  }
+  const controlMedio = Object.values(n.control).reduce((a,b)=>a+b,0) / 4;
+  n.peaje = clamp(controlMedio * 0.5, 0, 0.8);
+  n.filtroInfo = clamp(n.control.informacion * 0.8, 0, 0.9);
+  const presionEcologica = umbral(g.temperatura, params.umbralAviso, 0.2);
+  n.narrativa = clamp(n.narrativa * 0.9 + presionEcologica * 60 + 10, 0, 100);
+  n.costePerpetuacion = presionEcologica * 100 + n.narrativa * 0.5;
+  if (n.costePerpetuacion > e.produccion * 2 + 20) n.agotada = true;
+  return n;
+}
+
+// ---------- CAPA SUBJETIVIDAD ----------
+function stepSubjetividad(s, e, c, params) {
+  const n = { ...s };
+  const carga = Math.sqrt(e.capital) * 1.0 * (1 + params.cargaLaboral);
+  const alivio = s.sentido * 0.08;
+
+  const fRecup = params.frenoRecuperacion;
+  const recuperacion = s.burnout > 50 ? s.burnout * 0.04 * fRecup : 0;
+  n.recuperacion = recuperacion;
+
+  n.burnout = clamp(s.burnout + carga - alivio - recuperacion, 0, 100);
+  const transparencia = 1 - c.filtroInfo;
+  n.confianza = clamp(s.confianza * 0.95 + transparencia * 20, 0, 100);
+  const produccionLibre = e.produccion * (1 - c.peaje);
+  n.sentido = clamp(s.sentido * 0.9 + produccionLibre * 0.05 - n.burnout * 0.05, 0, 100);
+  n.atencion = clamp(s.atencion * 0.95 + (1 - c.control.informacion) * 20, 0, 100);
+  return n;
+}
+
+function bienestar(s) {
+  return (100 - s.burnout + s.confianza + s.sentido + s.atencion) / 4;
+}
+
+// ---------- FRENO 5: presión sobre poderes ----------
+function stepPoderes(poderes, captura, subj, params) {
+  const fPoderes = params.frenoPoderes;
+  const presionCaptura = captura.filtroInfo * 0.003 * fPoderes;
+  const presionResistencia = (subj.burnout / 100) * (1 - captura.filtroInfo) * 0.005 * fPoderes;
+  const n = { ...poderes };
+  ['judicial','legislativo','ejecutivo'].forEach(k => {
+    n[k] = clamp(n[k] - presionCaptura + presionResistencia, 0.05, 1);
+  });
+  return n;
+}
+
+// ---------- MOTOR ----------
+function stepMotor() {
+  const d = State.data;
+  const p = State.params;
+
+  if (d.gaia.colapso && d.turno > 0 && (d.colapsoContador || 0) >= 5) {
+    State.pushLog({ turno: d.turno, flags: ['SISTEMA_CONGELADO'], temp: safe(d.gaia.temperatura), burnout: safe(d.subj.burnout), co2: safe(d.gaia.co2), recursos: safe(d.economia.recursos), eroiEco: safe(d.economia.eroiEconomico), eroiEcol: 0, peaje: safe(d.captura.peaje), nubes: safe(d.gaia.nubes), resistencia: safe(d.captura.resistencia), recuperacion: safe(d.subj.recuperacion), intensidad: safe(p.intensidadCarbono) });
+    return;
+  }
+
+  d.turno++;
+  d.subj      = stepSubjetividad(d.subj, d.economia, d.captura, p);
+  d.economia  = stepEconomia(d.economia, d.gaia, d.captura, d.subj, p);
+  d.captura   = stepCaptura(d.captura, d.economia, d.gaia, d.poderes, d.subj, p);
+  const emis  = emisionesEconomia(d.economia, p);
+  d.gaia      = stepGaia(d.gaia, emis, p);
+  d.poderes   = stepPoderes(d.poderes, d.captura, d.subj, p);
+
+  if (d.gaia.colapso) d.colapsoContador = (d.colapsoContador || 0) + 1;
+
+  State.pushLog({
+    turno: d.turno,
+    temp: safe(+d.gaia.temperatura.toFixed(2)),
+    co2: safe(+d.gaia.co2.toFixed(0)),
+    recursos: safe(+d.economia.recursos.toFixed(0)),
+    eroiEco: safe(+d.economia.eroiEconomico.toFixed(2)),
+    eroiEcol: safe(+eroiEcologico(d.gaia, d.economia._extraccion).toFixed(2)),
+    peaje: safe(+d.captura.peaje.toFixed(2)),
+    burnout: safe(+d.subj.burnout.toFixed(0)),
+    nubes: safe(+d.gaia.nubes.toFixed(2)),
+    resistencia: safe(+d.captura.resistencia.toFixed(2)),
+    recuperacion: safe(+d.subj.recuperacion.toFixed(2)),
+    intensidad: safe(+p.intensidadCarbono.toFixed(2)),
+    flags: [
+      d.gaia.colapso ? 'COLAPSO_GAIA' : null,
+      d.captura.agotada ? 'CAPTURA_AGOTADA' : null,
+      (d.poderes.judicial < 0.1 && d.poderes.legislativo < 0.1 && d.poderes.ejecutivo < 0.1) ? 'PODERES_CAPTURADOS' : null,
+    ].filter(Boolean),
+  });
+  State.save();
+}
+
+/* ============================================================================
+   4. ADAPTADOR ENACTIVO
+   ============================================================================ */
+const Adaptador = (() => {
+  function traducir() {
+    const d = State.data;
+    const g = d.gaia, e = d.economia, c = d.captura, s = d.subj, p = d.poderes;
+    const poderMedio = (p.judicial + p.legislativo + p.ejecutivo) / 3;
+
+    const densidades = {
+      limites:      clamp(1 - safe(g.temperatura) / 3, 0, 1),
+      extraccion:   clamp((e.capital / 50) * (e.recursos / 1000), 0, 1),
+      captura:      clamp(c.filtroInfo, 0, 1),
+      subjetividad: clamp((s.confianza / 100) * (1 - s.burnout / 100), 0, 1),
+      convergencia: clamp((c.narrativa / 100) * c.filtroInfo, 0, 1),
+      resistencia:  clamp((s.sentido / 100) * (1 - s.burnout / 100), 0, 1),
+      juridico:     clamp(poderMedio, 0, 1),
+      genealogia:   0,
+    };
+    const degradadas = ['genealogia'];
+    const totalCapas = Object.keys(densidades).length;
+    const conDatos = totalCapas - degradadas.length;
+    const completitud = conDatos / totalCapas;
+    return { densidades, degradadas, completitud, poderMedio };
+  }
+
+  function aplicarAlMonitor() {
+    const { densidades, degradadas, completitud, poderMedio } = traducir();
+    const S1 = Math.round(((densidades.extraccion + densidades.convergencia) / 2) * 100);
+    const S2 = Math.round(((densidades.subjetividad + densidades.convergencia) / 2) * 100);
+    const S3 = Math.round(densidades.juridico * 100);
+    const S3star = Math.round((1 - densidades.captura) * 100);
+    const S4 = Math.round(((densidades.limites + densidades.resistencia) / 2) * 100);
+    const S5 = Math.round(((densidades.genealogia + densidades.convergencia) / 2) * 100);
+    const systemVariety = (S1 + S2 + S3) / 300;
+    const envVariety = S4 / 100;
+    const varietyBalance = Math.round((systemVariety - envVariety) * 100) / 100;
+    const algedonia = Math.round((1 - densidades.resistencia) * 100);
+
+    const pathologies = [];
+    if (completitud >= 0.1) {
+      if (S3star < 40) pathologies.push({ code:'AUDIT_CAPTURED', title:'Auditoría capturada', desc:'El regulador ha sido capturado. S3* bajo.' });
+      if (S3 < 30) pathologies.push({ code:'PODERES_CAPTURADOS', title:'Poderes capturados', desc:'Los tres poderes están por debajo del 30%.' });
+      if (S3 > S4 + 20) pathologies.push({ code:'PRESENT_OVER_FUTURE', title:'Presente sobre futuro', desc:'El control subordina la inteligencia.' });
+      if (varietyBalance < -0.2) pathologies.push({ code:'VARIETY_DEFICIT', title:'Déficit de variedad', desc:'El entorno tiene más variedad que el sistema.' });
+      if (algedonia < 40) pathologies.push({ code:'ALGEDONIA_SILENCED', title:'Algedonia silenciada', desc:'La resistencia no llega a S5.' });
+    }
+
+    const w = { S3star: 0.25, balance: 0.15, variety: 0.20, algedonia: 0.20, poderes: 0.20 };
+    const varietyScore = Math.max(0, Math.min(100, 50 + varietyBalance * 50));
+    const feedbackBalance = 100 - Math.abs(S3 - S4);
+    const poderesScore = poderMedio * 100;
+    const baseScore = Math.round(
+      S3star * w.S3star + feedbackBalance * w.balance +
+      varietyScore * w.variety + algedonia * w.algedonia + poderesScore * w.poderes
+    );
+
+    if (completitud < 0.1) {
+      return { S1, S2, S3, S3star, S4, S5, varietyBalance, algedonia, pathologies: [],
+        viabilityScore: null, verdict: 'Sin datos suficientes', verdictColor: '#8b93a7',
+        completitud, baseScore, degradadas, poderMedio };
+    }
+    const viabilityScore = Math.round(baseScore * (0.4 + 0.6 * completitud));
+    let verdict, verdictColor;
+    if (viabilityScore >= 70) { verdict = 'Viable'; verdictColor = '#30d060'; }
+    else if (viabilityScore >= 45) { verdict = 'Viable con patologías'; verdictColor = '#f0c040'; }
+    else { verdict = 'No viable'; verdictColor = '#f04040'; }
+    return { S1, S2, S3, S3star, S4, S5, varietyBalance, algedonia, pathologies,
+      viabilityScore, verdict, verdictColor, completitud, baseScore, degradadas, poderMedio };
+  }
+  return { traducir, aplicarAlMonitor };
+})();
+
+/* ============================================================================
+   5. BACKTEST · España 1500–1700 (SIN GAIA)
+   ============================================================================ */
+const Backtest = (() => {
+  const DATOS_REALES = {
+    años: [1500, 1520, 1540, 1560, 1580, 1600, 1620, 1640, 1660, 1680, 1700],
+    poblacion: [100, 115, 130, 145, 155, 150, 145, 140, 135, 138, 140],
+    plata: [10, 30, 60, 90, 100, 85, 60, 40, 25, 15, 10],
+    conflictos: [0, 0, 1, 1, 2, 3, 5, 8, 5, 3, 2],
+    bancarrotas: [0, 0, 0, 0, 1, 2, 3, 5, 5, 5, 5],
+  };
+  const CONFIG = {
+    añoInicio: 1500,
+    añoFin: 1700,
+    turnosPorAño: 2,
+  };
+
+  function estadoHistoricoInicial() {
+    return {
+      turno: 0,
+      gaia:      { temperatura:-0.5, albedo:1.0, permafrost:100, co2:280, metano:0, colapso:false, nubes:0 },
+      economia:  { capital:15, recursos:1200, produccion:0, poblacion:100, costeExtraccion:1, eroiEconomico:20, _extraccion:0 },
+      captura:   { control:{ recursos:0.4, energia:0.4, alimentos:0.4, informacion:0.3 }, filtroInfo:0.25, narrativa:40, peaje:0.2, costePerpetuacion:0, agotada:false, resistencia:0 },
+      subj:      { burnout:20, confianza:70, sentido:60, atencion:75, recuperacion:0 },
+      poderes:   { judicial:0.5, legislativo:0.5, ejecutivo:0.5 },
+    };
+  }
+
+  function simular(nTurnos, params) {
+    let estado = estadoHistoricoInicial();
+    const serie = [];
+
+    for (let i = 0; i < nTurnos; i++) {
+      if (i > 160) {
+        estado.poderes.judicial    = Math.max(0.15, estado.poderes.judicial - 0.0008);
+        estado.poderes.legislativo = Math.max(0.15, estado.poderes.legislativo - 0.0008);
+        estado.poderes.ejecutivo   = Math.max(0.15, estado.poderes.ejecutivo - 0.0008);
+      }
+      estado.turno++;
+      estado.subj      = stepSubjetividad(estado.subj, estado.economia, estado.captura, params);
+      estado.economia  = stepEconomia(estado.economia, estado.gaia, estado.captura, estado.subj, params);
+      estado.captura   = stepCaptura(estado.captura, estado.economia, estado.gaia, estado.poderes, estado.subj, params);
+      const emis       = emisionesEconomia(estado.economia, params);
+      estado.gaia      = stepGaia(estado.gaia, emis, params);
+      estado.poderes   = stepPoderes(estado.poderes, estado.captura, estado.subj, params);
+
+      serie.push({
+        turno: i,
+        poblacion: safe(estado.economia.poblacion),
+        recursos: safe(estado.economia.recursos),
+        capital: safe(estado.economia.capital),
+        temperatura: safe(estado.gaia.temperatura),
+        co2: safe(estado.gaia.co2),
+        filtro: safe(estado.captura.filtroInfo),
+        burnout: safe(estado.subj.burnout),
+        poderMedio: safe((estado.poderes.judicial + estado.poderes.legislativo + estado.poderes.ejecutivo) / 3),
+      });
+    }
+    return serie;
+  }
+
+  function calcularError(simulada, real) {
+    const n = Math.min(simulada.length, real.length);
+    if (n === 0) return { mae: 0, rmse: 0, correlacion: 0 };
+    const simLimpia = simulada.slice(0, n).map(v => safe(v, 0));
+    const realLimpia = real.slice(0, n).map(v => safe(v, 0));
+    const simMax = Math.max(...simLimpia, 1);
+    const realMax = Math.max(...realLimpia, 1);
+    const simNorm = [], realNorm = [];
+    let sumaAbs = 0, sumaCuad = 0;
+    for (let i = 0; i < n; i++) {
+      const s = (simLimpia[i] / simMax) * 100;
+      const r = (realLimpia[i] / realMax) * 100;
+      simNorm.push(s); realNorm.push(r);
+      sumaAbs += Math.abs(s - r);
+      sumaCuad += Math.pow(s - r, 2);
+    }
+    const mae = safe(sumaAbs / n);
+    const rmse = safe(Math.sqrt(sumaCuad / n));
+    const meanS = simNorm.reduce((a,b)=>a+b,0) / n;
+    const meanR = realNorm.reduce((a,b)=>a+b,0) / n;
+    let num = 0, denS = 0, denR = 0;
+    for (let i = 0; i < n; i++) {
+      num += (simNorm[i] - meanS) * (realNorm[i] - meanR);
+      denS += Math.pow(simNorm[i] - meanS, 2);
+      denR += Math.pow(realNorm[i] - meanR, 2);
+    }
+    const correlacion = safe((denS > 0 && denR > 0) ? num / Math.sqrt(denS * denR) : 0);
+    return { mae, rmse, correlacion };
+  }
+
+  function analizarPatron(serie) {
+    const pobInicial = serie[0].poblacion;
+    const pobMax = Math.max(...serie.map(s => s.poblacion));
+    const turnoPico = serie.findIndex(s => s.poblacion === pobMax);
+    const pobFinal = serie[serie.length - 1].poblacion;
+    const declive = (pobMax - pobFinal) / pobMax;
+
+    return {
+      pobInicial, pobMax, turnoPico, pobFinal,
+      declive: safe(declive),
+      fase: declive < 0.1 ? 'estable' : declive < 0.3 ? 'estancamiento' : 'crisis',
+    };
+  }
+
+  function ejecutar() {
+    // Parámetros históricos: intensidadCarbono = 0 (pre-industrial)
+    const params = { 
+      ...State.params, 
+      emisionesPorTurno: 0,
+      intensidadCarbono: 0,
+      cargaLaboral: 0.3 
+    };
+    const nTurnos = (CONFIG.añoFin - CONFIG.añoInicio) * CONFIG.turnosPorAño;
+    const serie = simular(nTurnos, params);
+    const añosReales = DATOS_REALES.años;
+
+    const simPorAño = añosReales.map(año => {
+      const turno = (año - CONFIG.añoInicio) * CONFIG.turnosPorAño;
+      const s = serie[Math.min(turno, serie.length - 1)];
+      return s || serie[serie.length - 1];
+    });
+
+    const pobSimRaw = simPorAño.map(s => safe(s.poblacion, 1));
+    const pobSim = pobSimRaw.map(p => safe((p / pobSimRaw[0]) * 100, 0));
+
+    const errorPob = calcularError(pobSim, DATOS_REALES.poblacion);
+    const patron = analizarPatron(serie);
+
+    return {
+      serie, simPorAño, pobSim, errorPob,
+      patron,
+      datosReales: DATOS_REALES, años: añosReales,
+    };
+  }
+
+  return { ejecutar, DATOS_REALES, CONFIG };
+})();
+
+/* ============================================================================
+   6. UI · RENDER
+   ============================================================================ */
+const UI = (() => {
+  function esc(s) { return String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+  function setFaceColor(id, color) {
+    const f = document.getElementById(id);
+    if (!f) return;
+    f.style.borderColor = color;
+    const t = f.querySelector('.face-title');
+    if (t) t.style.color = color;
+  }
+  function rigorBadge(nivel, tooltip) {
+    const map = { alto: '🟢', medio: '🟡', bajo: '🔴' };
+    return `<span class="rigor ${nivel}" title="${esc(tooltip)}">${map[nivel]}</span>`;
+  }
+
+  function renderCubo() {
+    const d = State.data;
+    const g = d.gaia, e = d.economia, c = d.captura, s = d.subj, p = d.poderes;
+
+    document.getElementById('gaia-temp').textContent = fmt(safe(g.temperatura)) + '°';
+    document.getElementById('gaia-perma').textContent = fmt(safe(g.permafrost),1) + '%';
+    document.getElementById('gaia-albedo').textContent = fmt(safe(g.albedo),3);
+    document.getElementById('gaia-co2').textContent = fmt(safe(g.co2),0);
+    document.getElementById('gaia-metano').textContent = fmt(safe(g.metano),1);
+    const gaiaColor = g.temperatura < 1.5 ? 'var(--ok)' : g.temperatura < 2.5 ? 'var(--warn)' : 'var(--bad)';
+    setFaceColor('face-gaia', gaiaColor);
+    document.getElementById('gaia-temp').style.color = gaiaColor;
+
+    document.getElementById('eco-recursos').textContent = fmt(safe(e.recursos),0);
+    document.getElementById('eco-capital').textContent = fmt(safe(e.capital),1);
+    document.getElementById('eco-prod').textContent = fmt(safe(e.produccion),1);
+    document.getElementById('eco-eroi').textContent = fmt(safe(e.eroiEconomico));
+    document.getElementById('eco-pob').textContent = fmt(safe(e.poblacion),0);
+    const ecoColor = e.recursos > 500 ? 'var(--ok)' : e.recursos > 200 ? 'var(--warn)' : 'var(--bad)';
+    setFaceColor('face-eco', ecoColor);
+    document.getElementById('eco-recursos').style.color = ecoColor;
+
+    document.getElementById('capt-peaje').textContent = fmt(safe(c.peaje));
+    document.getElementById('capt-filtro').textContent = fmt(safe(c.filtroInfo));
+    document.getElementById('capt-narr').textContent = fmt(safe(c.narrativa),0);
+    document.getElementById('capt-coste').textContent = fmt(safe(c.costePerpetuacion),0);
+    document.getElementById('capt-estado').textContent = c.agotada ? 'AGOTADA' : 'activa';
+    const captColor = c.agotada ? 'var(--bad)' : 'var(--capt)';
+    setFaceColor('face-capt', captColor);
+    document.getElementById('capt-peaje').style.color = captColor;
+
+    document.getElementById('subj-burnout').textContent = fmt(safe(s.burnout),0);
+    document.getElementById('subj-conf').textContent = fmt(safe(s.confianza),0);
+    document.getElementById('subj-sent').textContent = fmt(safe(s.sentido),0);
+    document.getElementById('subj-atn').textContent = fmt(safe(s.atencion),0);
+    document.getElementById('subj-bien').textContent = fmt(safe(bienestar(s)),0);
+    const subjColor = s.burnout < 30 ? 'var(--ok)' : s.burnout < 60 ? 'var(--warn)' : 'var(--bad)';
+    setFaceColor('face-subj', subjColor);
+    document.getElementById('subj-burnout').style.color = subjColor;
+
+    const poderMedio = (p.judicial + p.legislativo + p.ejecutivo) / 3;
+    const vsm = Adaptador.aplicarAlMonitor();
+    document.getElementById('jur-media').textContent = fmt(safe(poderMedio));
+    document.getElementById('jur-jud').textContent = fmt(safe(p.judicial));
+    document.getElementById('jur-leg').textContent = fmt(safe(p.legislativo));
+    document.getElementById('jur-eje').textContent = fmt(safe(p.ejecutivo));
+    document.getElementById('jur-s3star').textContent = vsm.S3star;
+    const jurColor = poderMedio > 0.6 ? 'var(--ok)' : poderMedio > 0.3 ? 'var(--warn)' : 'var(--bad)';
+    setFaceColor('face-jur', jurColor);
+    document.getElementById('jur-media').style.color = jurColor;
+
+    const alertas = [];
+    if (g.colapso) alertas.push({ tipo:'bad', txt:'🔴 COLAPSO GAIA' });
+    else if (g.temperatura >= State.params.umbralAviso) alertas.push({ tipo:'warn', txt:'🟡 AVISO CLIMÁTICO' });
+    if (c.agotada) alertas.push({ tipo:'bad', txt:'🔴 CAPTURA AGOTADA' });
+    if (s.burnout > 70) alertas.push({ tipo:'warn', txt:'🟡 BURNOUT CRÍTICO' });
+    if (e.recursos < 100) alertas.push({ tipo:'warn', txt:'🟡 RECURSOS BAJOS' });
+    if (poderMedio < 0.3) alertas.push({ tipo:'bad', txt:'🔴 PODERES CAPTURADOS' });
+    if (vsm.viabilityScore !== null && vsm.viabilityScore < 45) alertas.push({ tipo:'bad', txt:'🔴 VSM NO VIABLE' });
+    const alertBox = document.getElementById('alert-list');
+    alertBox.innerHTML = alertas.length === 0
+      ? '<div style="color:#6080a0">— sin alertas —</div>'
+      : alertas.map(a => `<div style="color:${a.tipo === 'bad' ? 'var(--bad)' : 'var(--warn)'}">${a.txt}</div>`).join('');
+    const falColor = alertas.some(a => a.tipo === 'bad') ? 'var(--bad)' : alertas.length ? 'var(--warn)' : 'var(--ok)';
+    setFaceColor('face-alert', falColor);
+
+    renderCards(vsm, alertas);
+  }
+
+  function renderCards(vsm, alertas) {
+    const d = State.data;
+    const g = d.gaia, e = d.economia, c = d.captura, s = d.subj, p = d.poderes;
+    const poderMedio = (p.judicial + p.legislativo + p.ejecutivo) / 3;
+    const gaiaColor = g.temperatura < 1.5 ? 'var(--ok)' : g.temperatura < 2.5 ? 'var(--warn)' : 'var(--bad)';
+    const ecoColor = e.recursos > 500 ? 'var(--ok)' : e.recursos > 200 ? 'var(--warn)' : 'var(--bad)';
+    const captColor = c.agotada ? 'var(--bad)' : 'var(--capt)';
+    const subjColor = s.burnout < 30 ? 'var(--ok)' : s.burnout < 60 ? 'var(--warn)' : 'var(--bad)';
+    const jurColor = poderMedio > 0.6 ? 'var(--ok)' : poderMedio > 0.3 ? 'var(--warn)' : 'var(--bad)';
+    const vsmColor = vsm.viabilityScore === null ? 'var(--muted)'
+                    : vsm.viabilityScore >= 70 ? 'var(--ok)'
+                    : vsm.viabilityScore >= 45 ? 'var(--warn)' : 'var(--bad)';
+
+    const cards = [
+      { id:'gaia', color:gaiaColor, titulo:'🌍 Gaia', rigor:'bajo',
+        rigorTip:'Modelo no calibrado. Frenos parametrizables. No captura climas pre-industriales.',
+        big: fmt(safe(g.temperatura))+'°',
+        rows: [['Nubes (freno)', fmt(safe(g.nubes))], ['Permafrost', fmt(safe(g.permafrost),1)+'%'], ['CO₂', fmt(safe(g.co2),0)], ['Metano', fmt(safe(g.metano),1)]] },
+      { id:'eco', color:ecoColor, titulo:'⚙️ Economía', rigor:'bajo',
+        rigorTip:'Sin calibración. Frenos de escasez y demográfico activos.',
+        big: fmt(safe(e.recursos),0),
+        rows: [['Capital', fmt(safe(e.capital),1)], ['Producción', fmt(safe(e.produccion),1)], ['EROI eco', fmt(safe(e.eroiEconomico))], ['Población', fmt(safe(e.poblacion),0)]] },
+      { id:'capt', color:captColor, titulo:'🪙 Captura', rigor:'bajo',
+        rigorTip:'Modelo conceptual. Freno de resistencia activo.',
+        big: fmt(safe(c.peaje)),
+        rows: [['Filtro info', fmt(safe(c.filtroInfo))], ['Resistencia', fmt(safe(c.resistencia))], ['Coste perp.', fmt(safe(c.costePerpetuacion),0)], ['Estado', c.agotada ? 'AGOTADA' : 'activa']] },
+      { id:'subj', color:subjColor, titulo:'🧠 Subjetividad', rigor:'bajo',
+        rigorTip:'Métricas especulativas. Freno de recuperación activo.',
+        big: fmt(safe(s.burnout),0),
+        rows: [['Confianza', fmt(safe(s.confianza),0)], ['Sentido', fmt(safe(s.sentido),0)], ['Recuperación', fmt(safe(s.recuperacion))], ['Bienestar', fmt(safe(bienestar(s)),0)]] },
+      { id:'jur', color:jurColor, titulo:'⚖️ Poderes', rigor:'medio',
+        rigorTip:'Tres sliders. Freno de presión activo.',
+        big: fmt(safe(poderMedio)),
+        rows: [['Judicial', fmt(safe(p.judicial))], ['Legislativo', fmt(safe(p.legislativo))], ['Ejecutivo', fmt(safe(p.ejecutivo))], ['S3* Audit.', vsm.S3star]] },
+      { id:'vsm', color:vsmColor, titulo:'◈ VSM', rigor:'medio',
+        rigorTip:'Marco sólido. Traducción especulativa.',
+        big: vsm.viabilityScore === null ? '—' : vsm.viabilityScore,
+        rows: [['S1 Oper.', vsm.S1], ['S3* Audit.', vsm.S3star], ['Variedad', fmt(safe(vsm.varietyBalance))], ['Algedonia', vsm.algedonia]] },
+      { id:'alert', color: alertas.some(a=>a.tipo==='bad') ? 'var(--bad)' : alertas.length ? 'var(--warn)' : 'var(--ok)',
+        rigor:'alto', rigorTip:'Reglas deterministas. Verificables.',
+        titulo:'⚠️ Alertas', big: alertas.length === 0 ? 'OK' : String(alertas.length),
+        rows: alertas.length === 0 ? [['—','sin alertas']] : alertas.map(a => [a.txt.replace(/[🔴🟡]\s*/,''), '']) },
+    ];
+
+    const grid = document.getElementById('cards-grid');
+    grid.innerHTML = cards.map(card => `
+      <div class="info-card" data-snap="${card.id}" style="border-color:${card.color}">
+        <div class="info-card-title" style="color:${card.color}">
+          <span>${card.titulo}</span>${rigorBadge(card.rigor, card.rigorTip)}
+        </div>
+        <div class="info-card-big" style="color:${card.color}">${card.big}</div>
+        ${card.rows.map(([k,v]) => `<div class="info-card-row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.info-card').forEach(el => {
+      el.addEventListener('click', () => Cube.snapTo(el.dataset.snap));
+    });
+  }
+
+  function renderVSMDetalle() {
+    const vsm = Adaptador.aplicarAlMonitor();
+    const el = document.getElementById('vsm-detalle');
+    const scoreDisplay = vsm.viabilityScore === null ? '—' : vsm.viabilityScore;
+    let html = `<div style="text-align:center;padding:16px;border-radius:8px;margin-bottom:14px;
+      background:${vsm.verdictColor}15;border:1px solid ${vsm.verdictColor}55">
+      <div style="font-size:2.4rem;font-weight:700;color:${vsm.verdictColor}">${scoreDisplay}${rigorBadge('medio','Score ponderado. No validado empíricamente.')}</div>
+      <div style="font-size:0.85rem;color:var(--muted)">${vsm.verdict}</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:4px">
+        Completitud: ${pct(vsm.completitud)} · Score base: ${vsm.baseScore}
+      </div>
+    </div>`;
+
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px">`;
+    const subs = [
+      {k:'S1', n:vsm.S1, label:'Operaciones', desc:'Extracción + convergencia', rigor:'bajo'},
+      {k:'S2', n:vsm.S2, label:'Coordinación', desc:'Subjetividad + narrativa', rigor:'bajo'},
+      {k:'S3', n:vsm.S3, label:'Control', desc:'Poderes', rigor:'medio'},
+      {k:'S3*', n:vsm.S3star, label:'Auditoría', desc:'Independencia (invertido)', rigor:'medio'},
+      {k:'S4', n:vsm.S4, label:'Inteligencia', desc:'Límites + resistencia', rigor:'bajo'},
+      {k:'S5', n:vsm.S5, label:'Política', desc:'Genealogía + narrativa', rigor:'bajo'},
+    ];
+    subs.forEach(s => {
+      const color = s.k === 'S3*' ? (s.n < 40 ? 'var(--bad)' : 'var(--ok)') : 'var(--vsm)';
+      html += `<div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:10px">
+        <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase">${s.k} · ${s.label} ${rigorBadge(s.rigor, 'Rigor: ' + s.rigor)}</div>
+        <div style="font-size:1.4rem;font-weight:700;color:${color}">${s.n}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">${s.desc}</div>
+        <div style="height:5px;background:rgba(0,0,0,0.4);border-radius:3px;overflow:hidden;margin-top:5px">
+          <div style="height:100%;width:${s.n}%;background:${color}"></div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px">
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:10px">
+        <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase">Variedad ${rigorBadge('medio','Ley de Ashby sólida.')}</div>
+        <div style="font-size:1.4rem;font-weight:700;color:${vsm.varietyBalance < -0.2 ? 'var(--bad)' : 'var(--ok)'}">${vsm.varietyBalance > 0 ? '+' : ''}${fmt(safe(vsm.varietyBalance))}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">Sistema vs entorno.</div>
+      </div>
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:10px">
+        <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase">Algedonia ${rigorBadge('bajo','Métrica especulativa.')}</div>
+        <div style="font-size:1.4rem;font-weight:700;color:${vsm.algedonia < 40 ? 'var(--bad)' : 'var(--ok)'}">${vsm.algedonia}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">Canal de emergencia.</div>
+      </div>
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:10px">
+        <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase">Completitud ${rigorBadge('alto','Dato objetivo.')}</div>
+        <div style="font-size:1.4rem;font-weight:700;color:${vsm.completitud < 0.1 ? 'var(--muted)' : vsm.completitud < 0.5 ? 'var(--warn)' : 'var(--ok)'}">${pct(vsm.completitud)}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">Capas descritas.</div>
+      </div>
+    </div>`;
+
+    html += `<h3 style="color:var(--border);font-size:0.8rem;margin:14px 0 8px">Capas degradadas</h3>`;
+    if (vsm.degradadas.length === 0) {
+      html += `<div style="color:var(--ok);font-size:0.72rem">✓ Todas las capas tienen datos.</div>`;
+    } else {
+      html += `<div style="font-size:0.72rem;color:var(--adapt)">⚠ El Adaptador ha degradado: ${vsm.degradadas.join(', ')}.</div>`;
+    }
+
+    html += `<h3 style="color:var(--border);font-size:0.8rem;margin:14px 0 8px">Patologías detectadas</h3>`;
+    if (vsm.viabilityScore === null) {
+      html += `<div style="background:rgba(139,147,167,0.1);border-left:3px solid var(--muted);padding:10px;font-size:0.72rem"><strong>Sin datos suficientes.</strong></div>`;
+    } else if (vsm.pathologies.length === 0) {
+      html += `<div style="background:rgba(48,208,96,0.1);border-left:3px solid var(--ok);padding:10px;font-size:0.72rem"><strong>Sin patologías críticas.</strong></div>`;
+    } else {
+      vsm.pathologies.forEach(p => {
+        html += `<div style="background:rgba(240,64,64,0.1);border-left:3px solid var(--bad);padding:10px;margin-bottom:6px;font-size:0.72rem">
+          <strong style="color:var(--bad)">${p.title}</strong> <span style="color:var(--muted);font-size:0.65rem">(${p.code})</span><br>
+          <span style="color:var(--muted)">${p.desc}</span>
+        </div>`;
+      });
+    }
+    el.innerHTML = html;
+  }
+
+  function renderFrenos() {
+    const el = document.getElementById('frenos-detalle');
+    const p = State.params;
+    const d = State.data;
+    const frenos = [
+      { k:'frenoNubes', nombre:'🌥️ Termostato de nubes', actual: fmt(safe(p.frenoNubes)), estado: d.gaia.nubes,
+        desc:'A más temperatura, más evaporación, más nubes, más albedo. Frena el runaway térmico.' },
+      { k:'frenoResistencia', nombre:'✊ Resistencia', actual: fmt(safe(p.frenoResistencia)), estado: d.captura.resistencia,
+        desc:'Burnout + transparencia → frena la captura. Sin burnout, la captura crece sin freno.' },
+      { k:'frenoRecuperacion', nombre:'❤️ Recuperación endógena', actual: fmt(safe(p.frenoRecuperacion)), estado: d.subj.recuperacion,
+        desc:'Burnout alto → el cuerpo se defiende. Frena el burnout perpetuo a 100.' },
+      { k:'frenoPoderes', nombre:'⚖️ Presión sobre poderes', actual: fmt(safe(p.frenoPoderes)), estado: null,
+        desc:'Captura erosiona, resistencia recupera. Los poderes oscilan, no se quedan fijos.' },
+      { k:'frenoEscasez', nombre:'📉 Escasez de recursos', actual: fmt(safe(p.frenoEscasez)), estado: null,
+        desc:'Recursos bajos → producción cae → menos emisiones → menos temperatura. Incluye freno demográfico.' },
+    ];
+    let html = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">`;
+    frenos.forEach(f => {
+      const activo = p[f.k] > 0;
+      html += `<div style="background:var(--panel2);border:1px solid ${activo ? 'var(--freno)' : 'var(--bad)'};border-radius:8px;padding:12px">
+        <div style="font-weight:bold;font-size:0.8rem;color:${activo ? 'var(--freno)' : 'var(--bad)'};margin-bottom:6px">${f.nombre}</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:8px;line-height:1.5">${f.desc}</div>
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;margin-bottom:4px">
+          <span>Fuerza del freno</span>
+          <strong style="color:${activo ? 'var(--freno)' : 'var(--bad)'}">${f.actual}</strong>
+        </div>
+        <div style="height:6px;background:rgba(0,0,0,0.4);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${(parseFloat(f.actual)/2)*100}%;background:${activo ? 'var(--freno)' : 'var(--bad)'}"></div>
+        </div>
+        ${f.estado !== null ? `<div style="font-size:0.7rem;color:var(--muted);margin-top:8px">Estado actual: <strong style="color:var(--text)">${fmt(safe(f.estado),3)}</strong></div>` : ''}
+        <div style="font-size:0.65rem;color:#556;margin-top:6px">
+          ${p[f.k] === 0 ? '🔴 Sin freno: colapso garantizado.' :
+            p[f.k] < 1 ? '🟡 Freno débil: colapso lento.' :
+            p[f.k] < 1.5 ? '🟢 Freno normal: equilibrio dinámico.' :
+            '🟢 Freno fuerte: riesgo de estancamiento.'}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+    html += `<div style="margin-top:16px;padding:12px;background:rgba(163,230,53,0.08);border-left:3px solid var(--freno);border-radius:6px;font-size:0.72rem;line-height:1.7;color:#b0c8e0">
+      <strong style="color:var(--freno)">Cómo funciona el acoplamiento:</strong>
+      <div style="margin-top:8px">🌡️ <strong>Gaia</strong> frena con nubes → menos temperatura → menos emisiones → menos forzamiento.</div>
+      <div>🪙 <strong>Captura</strong> frena con resistencia → menos control → menos peaje → menos coste de perpetuación.</div>
+      <div>🧠 <strong>Subjetividad</strong> frena con recuperación → menos burnout → más productividad → menos captura.</div>
+      <div>⚖️ <strong>Poderes</strong> oscilan: captura erosiona, resistencia recupera → equilibrio dinámico.</div>
+      <div>📉 <strong>Economía</strong> frena con escasez y freno demográfico → menos producción → menos emisiones → menos temperatura.</div>
+      <div style="margin-top:8px;color:#f0c040">⚠️ Si TODOS los frenos están a 0, el sistema colapsa siempre. Si están a 2, se estanca. El equilibrio está entre 0.5 y 1.5.</div>
+    </div>`;
+    el.innerHTML = html;
+  }
+
+  function renderBacktest() {
+    const el = document.getElementById('backtest-content');
+    let resultado;
+    try {
+      resultado = Backtest.ejecutar();
+    } catch(e) {
+      el.innerHTML = `<div style="color:var(--bad);padding:20px;font-size:0.8rem">
+        Error al ejecutar el backtest: ${e.message}</div>`;
+      return;
+    }
+    const errClass = (v) => v < 15 ? 'ok' : v < 30 ? 'warn' : 'bad';
+    const ePob = resultado.errorPob;
+    const patron = resultado.patron;
+
+    let html = `<div style="background:rgba(251,146,60,0.1);border-left:3px solid var(--carbono);padding:10px;border-radius:6px;font-size:0.72rem;margin-bottom:14px;line-height:1.6;color:#b0c8e0">
+      <strong style="color:var(--carbono)">Nota:</strong> Este backtest NO compara temperatura. 
+      El modelo no puede capturar Gaia pre-industrial (no tiene ciclo natural del carbono, 
+      equilibrio respiración/absorción, ni variabilidad natural). Compararlo sería deshonesto. 
+      El backtest se enfoca en lo que el modelo SÍ puede capturar: población, recursos, poderes.
+    </div>`;
+
+    html += `<div class="backtest-grid">
+      <div class="backtest-card">
+        <div class="label">MAE Población ${rigorBadge('medio','Error absoluto medio normalizado.')}</div>
+        <div class="val">${fmt(safe(ePob.mae),1)} <span class="backtest-error ${errClass(ePob.mae)}">${ePob.mae < 15 ? 'BUENO' : ePob.mae < 30 ? 'ACEPTABLE' : 'MALO'}</span></div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px">Menor = mejor</div>
+      </div>
+      <div class="backtest-card">
+        <div class="label">RMSE Población ${rigorBadge('medio','Penaliza errores grandes.')}</div>
+        <div class="val">${fmt(safe(ePob.rmse),1)}</div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px">Raíz del error cuadrático</div>
+      </div>
+      <div class="backtest-card">
+        <div class="label">Correlación Pob. ${rigorBadge('medio','Pearson simulación vs realidad.')}</div>
+        <div class="val">${fmt(safe(ePob.correlacion),2)}</div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px">1 = perfecta · 0 = ninguna</div>
+      </div>
+      <div class="backtest-card">
+        <div class="label">Patrón detectado ${rigorBadge('medio','Análisis cualitativo.')}</div>
+        <div class="val" style="color:${patron.fase === 'crisis' ? 'var(--bad)' : patron.fase === 'estancamiento' ? 'var(--warn)' : 'var(--ok)'}">
+          ${patron.fase.toUpperCase()}
+        </div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px">
+          Declive: ${pct(patron.declive)} · Pico en turno ${patron.turnoPico}
+        </div>
+      </div>
+    </div>`;
+
+    html += `<h3 style="color:var(--backtest);font-size:0.8rem;margin:14px 0 8px">Población: simulación vs realidad</h3>`;
+    html += renderGrafica(resultado.años, [
+      { datos: resultado.pobSim, color:'#38bdf8', dash:false, label:'Simulada' },
+      { datos: resultado.datosReales.poblacion, color:'#f0c040', dash:true, label:'Real (índice)' },
+    ]);
+
+    html += `<h3 style="color:var(--backtest);font-size:0.8rem;margin:14px 0 8px">Interpretación</h3>`;
+    html += `<div style="background:rgba(0,0,0,0.3);padding:12px;border-radius:6px;font-size:0.72rem;line-height:1.7;color:#b0c8e0">
+      <p><strong>Lo que el modelo captura:</strong> la dinámica socio-económica. Población crece con recursos, se estanca cuando se agotan, declina cuando los recursos per cápita caen.</p>
+      <p style="margin-top:8px"><strong>Lo que el modelo NO captura:</strong> Gaia pre-industrial. El modelo no tiene ciclo natural del carbono, equilibrio respiración/absorción, ni variabilidad natural. Por eso no se compara temperatura.</p>
+      <p style="margin-top:8px"><strong>Patrón detectado:</strong> ${patron.fase}. Declive del ${pct(patron.declive)}. Pico en el turno ${patron.turnoPico} (año ~${Math.round(patron.turnoPico / 2 + 1500)}).</p>
+      <p style="margin-top:8px"><strong>Conclusión:</strong> el modelo es un <em>andamio conceptual</em>. Captura el patrón cualitativo. No predice valores exactos. Para eso necesitaría calibración.</p>
+      <p style="margin-top:8px"><strong>Rigor:</strong> Datos aproximados (🟡). Modelo no calibrado (🔴). Demostración conceptual.</p>
+    </div>`;
+
+    el.innerHTML = html;
+  }
+
+  function renderGrafica(años, series) {
+    const W = 800, H = 220, PAD = 40;
+    const minAño = años[0], maxAño = años[años.length-1];
+    let minY = Infinity, maxY = -Infinity;
+    series.forEach(s => s.datos.forEach(v => { const sv = safe(v); if (sv < minY) minY = sv; if (sv > maxY) maxY = sv; }));
+    if (!isFinite(minY) || !isFinite(maxY)) { minY = 0; maxY = 1; }
+    const rangeY = maxY - minY || 1;
+    minY -= rangeY * 0.1; maxY += rangeY * 0.1;
+
+    const xScale = año => PAD + ((año - minAño) / (maxAño - minAño)) * (W - PAD * 2);
+    const yScale = v => H - PAD - ((safe(v) - minY) / (maxY - minY)) * (H - PAD * 2);
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`;
+    for (let i = 0; i <= 4; i++) {
+      const y = PAD + (H - PAD * 2) * i / 4;
+      svg += `<line class="grid" x1="${PAD}" y1="${y}" x2="${W-PAD}" y2="${y}"/>`;
+    }
+    svg += `<line class="axis" x1="${PAD}" y1="${H-PAD}" x2="${W-PAD}" y2="${H-PAD}"/>`;
+    svg += `<line class="axis" x1="${PAD}" y1="${PAD}" x2="${PAD}" y2="${H-PAD}"/>`;
+    años.forEach((a, i) => {
+      if (i % 2 === 0) svg += `<text class="label" x="${xScale(a)}" y="${H-PAD+14}" text-anchor="middle">${a}</text>`;
+    });
+    for (let i = 0; i <= 4; i++) {
+      const v = minY + (maxY - minY) * (1 - i/4);
+      const y = PAD + (H - PAD * 2) * i / 4;
+      svg += `<text class="label" x="${PAD-5}" y="${y+3}" text-anchor="end">${fmt(v,1)}</text>`;
+    }
+    series.forEach(s => {
+      const puntos = s.datos.map((v, i) => {
+        const año = años[Math.min(i, años.length-1)];
+        return `${xScale(año).toFixed(1)},${yScale(v).toFixed(1)}`;
+      }).join(' ');
+      svg += `<polyline class="line-${s.dash ? 'real' : 'sim'}" points="${puntos}" style="stroke:${s.color}"/>`;
+    });
+    svg += `</svg>`;
+    let legend = `<div class="backtest-legend">`;
+    series.forEach(s => { legend += `<span><span class="sw" style="background:${s.color}"></span>${s.label}</span>`; });
+    legend += `</div>`;
+    return `<div class="backtest-chart">${svg}${legend}</div>`;
+  }
+
+  function renderLog() {
+    const el = document.getElementById('log');
+    const items = State.data.log.slice(-30).reverse();
+    el.innerHTML = items.map(l => `
+      <div class="log-line">
+        <span>T${String(l.turno).padStart(3)} | T ${l.temp}° | CO₂ ${l.co2} | rec ${l.recursos} | EROIe ${l.eroiEco} | EROIec ${l.eroiEcol} | peaje ${l.peaje} | burn ${l.burnout} | int ${l.intensidad}</span>
+        <span class="flags">${(l.flags||[]).join(' ')}</span>
+      </div>
+    `).join('');
+  }
+
+  function renderEditor() {
+    const d = State.data;
+    const p = d.poderes;
+    const ap = State.adaptParams;
+
+    const podCont = document.getElementById('editor-poderes');
+    podCont.innerHTML = ['judicial','legislativo','ejecutivo'].map(k => `
+      <div class="editor-row">
+        <label>${k.charAt(0).toUpperCase()+k.slice(1)}</label>
+        <input type="range" min="0" max="1" step="0.05" value="${safe(p[k])}" data-poder="${k}">
+        <span class="val">${fmt(safe(p[k]))}</span>
+      </div>
+    `).join('');
+    podCont.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const k = e.target.dataset.poder;
+        const v = parseFloat(e.target.value);
+        e.target.nextElementSibling.textContent = fmt(v);
+        State.setPoder(k, v);
+      });
+    });
+
+    const rows = [
+      { k:'pesoCapital', label:'Peso capital' },
+      { k:'pesoRecursos', label:'Peso recursos' },
+      { k:'pesoConfianza', label:'Peso confianza' },
+      { k:'pesoFiltro', label:'Peso filtro' },
+      { k:'pesoTemperatura', label:'Peso temperatura' },
+      { k:'umbralScore', label:'Umbral score' },
+      { k:'umbralCritico', label:'Umbral crítico' },
+      { k:'factorCompletitud', label:'Factor completitud' },
+    ];
+    const cont = document.getElementById('editor-rows');
+    cont.innerHTML = rows.map(r => `
+      <div class="editor-row">
+        <label>${r.label}</label>
+        <input type="range" min="0" max="1" step="0.05" value="${safe(ap[r.k])}" data-k="${r.k}">
+        <span class="val" data-val="${r.k}">${fmt(safe(ap[r.k]))}</span>
+      </div>
+    `).join('');
+    cont.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const k = e.target.dataset.k;
+        const v = parseFloat(e.target.value);
+        e.target.nextElementSibling.textContent = fmt(v);
+        State.setAdaptParam(k, v);
+      });
+    });
+  }
+
+  function renderHelp() {
+    const el = document.getElementById('help-content');
+    el.innerHTML = `
+      <h3>¿Qué es esto?</h3>
+      <p>Es una herramienta experimental para <strong>pensar sistemas complejos</strong>. No es un modelo validado. No predice el futuro. No reemplaza a nadie. Es un <em>andamio conceptual</em> para estructurar el análisis.</p>
+      <p>Tiene cuatro módulos que trabajan juntos:</p>
+      <ul>
+        <li><strong>Simulador:</strong> 4 capas acopladas (Gaia, Economía, Captura, Subjetividad) + 3 poderes + 5 frenos + intensidad de carbono. Produce datos turno a turno.</li>
+        <li><strong>Monitor VSM:</strong> Diagnóstico de viabilidad basado en el Modelo de Sistema Viable de Stafford Beer y la Ley de Variedad de Ashby.</li>
+        <li><strong>Frenos:</strong> Los 5 bucles negativos que impiden que el sistema colapse siempre.</li>
+        <li><strong>Backtest:</strong> Comparación con datos históricos de España 1500–1700.</li>
+      </ul>
+
+      <h3>¿Cómo se usa?</h3>
+      <div class="box"><strong>1.</strong> Ajusta los sliders del panel derecho. Cada uno tiene un tooltip que explica qué hace.</div>
+      <div class="box"><strong>2.</strong> Pulsa <code>▶ +1</code> para avanzar un turno. O <code>+10</code>, <code>+50</code> para más.</div>
+      <div class="box"><strong>3.</strong> Mira el cubo 3D. Cada cara es una capa. Pulsa los botones inferiores para rotar.</div>
+      <div class="box"><strong>4.</strong> Mira las tarjetas. Tienen un badge de rigor: 🟢 sólido, 🟡 plausible, 🔴 especulativo.</div>
+      <div class="box"><strong>5.</strong> Cambia a la pestaña <strong>Monitor VSM</strong> para ver el diagnóstico completo. O <strong>Backtest</strong> para comparar con la historia.</div>
+
+      <h3>🔥 Intensidad de Carbono</h3>
+      <p>El CO₂ no depende del capital. Depende del <strong>tipo de energía</strong>.</p>
+      <ul>
+        <li><strong>0.0 = Pre-industrial (biomasa):</strong> el CO₂ se recicla en ciclo corto. Cero neto. Gaia plana.</li>
+        <li><strong>0.5 = Transición (carbón):</strong> emisiones medias.</li>
+        <li><strong>1.0 = Fósil (petróleo, gas):</strong> emisiones altas. Gaia sube.</li>
+        <li><strong>2.0 = Fósil extremo:</strong> emisiones muy altas.</li>
+      </ul>
+      <p>Para el backtest 1500–1700 se usa 0.0. Sin emisiones fósiles, Gaia no sube. Eso es correcto.</p>
+
+      <h3>🛑 Los frenos</h3>
+      <p>Sin frenos, el sistema colapsa siempre. Los frenos son bucles negativos:</p>
+      <ul>
+        <li><strong>Nubes:</strong> más temperatura → más evaporación → más albedo → menos temperatura</li>
+        <li><strong>Resistencia:</strong> burnout + transparencia → frena la captura</li>
+        <li><strong>Recuperación:</strong> burnout alto → el cuerpo se defiende → burnout baja</li>
+        <li><strong>Poderes:</strong> captura erosiona, resistencia recupera → oscilación</li>
+        <li><strong>Escasez:</strong> recursos bajos → producción baja → menos emisiones. Incluye freno demográfico.</li>
+      </ul>
+
+      <h3>⚖️ Los tres poderes</h3>
+      <p>Tres sliders en el editor: judicial, legislativo, ejecutivo. Cada uno va de 0 (capturado) a 1 (independiente). El Adaptador los traduce a S3 y S3* del VSM.</p>
+
+      <h3>📉 El backtest</h3>
+      <p>Compara la simulación con datos históricos de España 1500–1700. <strong>No compara temperatura</strong> porque el modelo no captura climas pre-industriales (no tiene ciclo natural del carbono, equilibrio respiración/absorción, ni variabilidad natural). Se enfoca en lo que SÍ puede capturar: población, recursos, poderes.</p>
+      <p>El backtest calcula:</p>
+      <ul>
+        <li><strong>MAE:</strong> Error Absoluto Medio. Menor = mejor.</li>
+        <li><strong>RMSE:</strong> Raíz del Error Cuadrático Medio. Penaliza errores grandes.</li>
+        <li><strong>Correlación:</strong> Pearson. 1 = perfecta, 0 = ninguna.</li>
+        <li><strong>Patrón:</strong> estable, estancamiento o crisis. Según el declive.</li>
+      </ul>
+
+      <h3>Badges de rigor</h3>
+      <p>🟢 <strong>Alto:</strong> dato objetivo, verificable.</p>
+      <p>🟡 <strong>Medio:</strong> marco sólido, traducción especulativa.</p>
+      <p>🔴 <strong>Bajo:</strong> métrica subjetiva, no validada empíricamente.</p>
+
+      <h3>Glosario</h3>
+      <ul>
+        <li><strong>S1-S5:</strong> Subsistemas del VSM (Operaciones, Coordinación, Control, Inteligencia, Política).</li>
+        <li><strong>S3*:</strong> Auditoría. Invertido: más captura = menos auditoría.</li>
+        <li><strong>Algedonia:</strong> Canal de emergencia del VSM. Si está silenciado, la resistencia no llega.</li>
+        <li><strong>Variedad (Ashby):</strong> Solo la variedad absorbe variedad. Si el entorno tiene más, hay déficit.</li>
+        <li><strong>Adaptador Enactivo:</strong> Módulo que traduce el Simulador al Monitor. Degrada sin romper.</li>
+        <li><strong>EROI:</strong> Energy Return On Investment. Energía devuelta por unidad invertida.</li>
+        <li><strong>Intensidad de carbono:</strong> CO₂ emitido por unidad de energía. 0 = biomasa, 1 = fósil.</li>
+      </ul>
+
+      <h3>Aviso epistemológico</h3>
+      <div style="background:rgba(240,64,64,0.1);border-left:3px solid var(--bad);padding:10px;font-size:0.75rem;line-height:1.7;color:#b0c8e0">
+        <strong>Idea experimental.</strong> No es un modelo validado. Los datos históricos son aproximados. 
+        Los frenos son parametrizables, no calibrados. Las métricas de subjetividad son especulativas. 
+        Su valor está en <em>estructurar el análisis</em>, no en <em>predecir la realidad</em>.
+      </div>
+    `;
+  }
+
+  function renderAll() {
+    renderCubo();
+    renderVSMDetalle();
+    renderFrenos();
+    renderLog();
+  }
+
+  return { renderAll, renderEditor, renderVSMDetalle, renderBacktest, renderFrenos, renderHelp };
+})();
+
+/* ============================================================================
+   7. CUBO
+   ============================================================================ */
+const Cube = (() => {
+  const SNAP = {
+    gaia:  { x: 0,   y: 0 },
+    eco:   { x: 0,   y: -90 },
+    capt:  { x: 0,   y: 180 },
+    subj:  { x: 0,   y: 90 },
+    jur:   { x: -90, y: 0 },
+    alert: { x: 90,  y: 0 },
+  };
+  let rotX = 0, rotY = 0;
+  let autoRot = false;
+  let autoRotRAF = null;
+  const cube = document.getElementById('cube');
+  function update() { cube.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`; }
+  function snapTo(cara) {
+    const t = SNAP[cara];
+    if (!t) return;
+    rotX = t.x; rotY = t.y;
+    update();
+    document.querySelectorAll('.snap-btn').forEach(b => b.classList.toggle('active', b.dataset.snap === cara));
+  }
+  function toggleAutoRot() {
+    autoRot = !autoRot;
+    document.getElementById('btn-autorot').textContent = autoRot ? '⏸ Parar' : '🔄 Auto-rotar';
+    if (autoRot) {
+      const loop = () => {
+        if (!autoRot) return;
+        rotY += 0.5;
+        if (rotY > 180) rotY -= 360;
+        update();
+        autoRotRAF = requestAnimationFrame(loop);
+      };
+      loop();
+    } else if (autoRotRAF) cancelAnimationFrame(autoRotRAF);
+  }
+  function bind() {
+    document.querySelectorAll('.snap-btn').forEach(btn => {
+      btn.addEventListener('click', () => snapTo(btn.dataset.snap));
+    });
+  }
+  return { update, snapTo, toggleAutoRot, bind };
+})();
+
+/* ============================================================================
+   8. CONTROLES
+   ============================================================================ */
+function initControles() {
+  const p = State.params;
+
+  // Intensidad de carbono
+  const carbCont = document.getElementById('controles-carbono');
+  carbCont.innerHTML = `
+    <div class="ctrl-row carbono">
+      <label>Intensidad carbono <span data-val="intensidadCarbono">${fmt(p.intensidadCarbono)}</span></label>
+      <input type="range" min="0" max="2" step="0.1" value="${p.intensidadCarbono}" data-k="intensidadCarbono">
+      <div class="explica">0 = pre-industrial (biomasa) · 1 = fósil · 2 = extremo</div>
+    </div>
+    <div style="font-size:0.65rem;color:#556;margin-bottom:8px;line-height:1.4">
+      ${p.intensidadCarbono === 0 ? '🏛️ Economía pre-industrial. Sin emisiones netas. Gaia plana.' :
+        p.intensidadCarbono < 1 ? '⚙️ Transición energética. Emisiones medias.' :
+        p.intensidadCarbono < 1.5 ? '🏭 Economía fósil. Emisiones altas. Gaia sube.' :
+        '☠️ Fósil extremo. Emisiones muy altas.'}
+    </div>
+  `;
+  carbCont.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const k = e.target.dataset.k;
+      const v = parseFloat(e.target.value);
+      State.setParam(k, v);
+      const span = carbCont.querySelector(`[data-val="${k}"]`);
+      if (span) span.textContent = fmt(v);
+      // Re-render para actualizar el texto de contexto
+      initControles();
+    });
+  });
+
+  // Simulador
+  const simRows = [
+    { k:'emisionesPorTurno', label:'Emisiones / turno', min:0, max:10, step:0.5 },
+    { k:'controlInicial', label:'Control inicial captura', min:0, max:1, step:0.05 },
+    { k:'cargaLaboral', label:'Carga laboral', min:0, max:2, step:0.1 },
+    { k:'umbralPerma', label:'Umbral permafrost (°C)', min:1, max:3, step:0.1 },
+    { k:'umbralRunaway', label:'Umbral runaway (°C)', min:2, max:5, step:0.1 },
+    { k:'umbralAviso', label:'Umbral aviso (°C)', min:0.5, max:3, step:0.1 },
+  ];
+  const simCont = document.getElementById('controles-sim');
+  simCont.innerHTML = simRows.map(r => `
+    <div class="ctrl-row">
+      <label>${r.label} <span data-val="${r.k}">${fmt(p[r.k], r.step<1?1:0)}</span></label>
+      <input type="range" min="${r.min}" max="${r.max}" step="${r.step}" value="${p[r.k]}" data-k="${r.k}">
+    </div>
+  `).join('');
+  simCont.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const k = e.target.dataset.k;
+      const v = parseFloat(e.target.value);
+      State.setParam(k, v);
+      const span = simCont.querySelector(`[data-val="${k}"]`);
+      if (span) span.textContent = fmt(v, e.target.step<1?1:0);
+    });
+  });
+
+  // Frenos
+  const frenoRows = [
+    { k:'frenoNubes', label:'🌥️ Freno nubes', min:0, max:2, step:0.1 },
+    { k:'frenoResistencia', label:'✊ Freno resistencia', min:0, max:2, step:0.1 },
+    { k:'frenoRecuperacion', label:'❤️ Freno recuperación', min:0, max:2, step:0.1 },
+    { k:'frenoPoderes', label:'⚖️ Freno poderes', min:0, max:2, step:0.1 },
+    { k:'frenoEscasez', label:'📉 Freno escasez', min:0, max:2, step:0.1 },
+  ];
+  const frenoCont = document.getElementById('controles-frenos');
+  frenoCont.innerHTML = frenoRows.map(r => `
+    <div class="ctrl-row freno">
+      <label>${r.label} <span data-val="${r.k}">${fmt(p[r.k])}</span></label>
+      <input type="range" min="${r.min}" max="${r.max}" step="${r.step}" value="${p[r.k]}" data-k="${r.k}">
+    </div>
+  `).join('');
+  frenoCont.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const k = e.target.dataset.k;
+      const v = parseFloat(e.target.value);
+      State.setParam(k, v);
+      const span = frenoCont.querySelector(`[data-val="${k}"]`);
+      if (span) span.textContent = fmt(v);
+    });
+  });
+
+  // Adaptador
+  const adaptCont = document.getElementById('controles-adapt');
+  adaptCont.innerHTML = `
+    <div class="ctrl-row">
+      <label>Factor completitud <span data-val="factorCompletitud">${fmt(State.adaptParams.factorCompletitud)}</span></label>
+      <input type="range" min="0" max="1" step="0.05" value="${State.adaptParams.factorCompletitud}" data-k="factorCompletitud">
+    </div>
+    <div class="ctrl-row">
+      <label>Umbral patología <span data-val="umbralScore">${fmt(State.adaptParams.umbralScore)}</span></label>
+      <input type="range" min="0" max="1" step="0.05" value="${State.adaptParams.umbralScore}" data-k="umbralScore">
+    </div>
+  `;
+  adaptCont.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const k = e.target.dataset.k;
+      const v = parseFloat(e.target.value);
+      State.setAdaptParam(k, v);
+      const span = adaptCont.querySelector(`[data-val="${k}"]`);
+      if (span) span.textContent = fmt(v);
+    });
+  });
+
+  // Botones
+  document.getElementById('btn-1').onclick = () => State.step();
+  document.getElementById('btn-10').onclick = () => State.stepN(10);
+  document.getElementById('btn-50').onclick = () => State.stepN(50);
+  document.getElementById('btn-reset').onclick = () => { if (confirm('¿Resetear?')) { State.reset(); Cube.snapTo('gaia'); initControles(); } };
+  document.getElementById('btn-autorot').onclick = Cube.toggleAutoRot;
+  document.getElementById('btn-tests').onclick = runTests;
+  document.getElementById('btn-preset-preind').onclick = () => { State.aplicarPreset('preindustrial'); initControles(); };
+  document.getElementById('btn-preset-fosil').onclick = () => { State.aplicarPreset('fosil'); initControles(); };
+  document.getElementById('btn-preset-sin-frenos').onclick = () => { State.aplicarPreset('sin-frenos'); syncControles(); };
+  document.getElementById('btn-preset-equilibrio').onclick = () => { State.aplicarPreset('equilibrio'); syncControles(); };
+  document.getElementById('btn-backtest').onclick = () => {
+    document.querySelectorAll('header .tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelector('header .tabs button[data-view="backtest"]').classList.add('active');
+    ['sim','vsm','frenos','backtest','editor','help'].forEach(v => {
+      const el = document.getElementById('view-'+v);
+      if (el) el.classList.toggle('hidden', v !== 'backtest');
+    });
+    UI.renderBacktest();
+  };
+  document.getElementById('btn-ver-ayuda').onclick = () => {
+    document.querySelectorAll('header .tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelector('header .tabs button[data-view="help"]').classList.add('active');
+    ['sim','vsm','frenos','backtest','editor','help'].forEach(v => {
+      const el = document.getElementById('view-'+v);
+      if (el) el.classList.toggle('hidden', v !== 'help');
+    });
+    UI.renderHelp();
+  };
+
+  // Editor
+  document.getElementById('btn-editor-reset').onclick = () => {
+    if (!confirm('¿Resetear parámetros del adaptador?')) return;
+    const defaults = {
+      pesoCapital:0.4, pesoRecursos:0.3, pesoConfianza:0.3,
+      pesoFiltro:0.5, pesoTemperatura:0.5,
+      pesoJudicial:0.4, pesoLegislativo:0.3, pesoEjecutivo:0.3,
+      umbralScore:0.15, umbralCritico:0.05, factorCompletitud:0.6,
+    };
+    Object.keys(defaults).forEach(k => State.setAdaptParam(k, defaults[k]));
+    UI.renderEditor();
+  };
+  document.getElementById('btn-editor-save').onclick = () => { State.save(); alert('Guardado.'); };
+
+  // Pestañas
+  document.querySelectorAll('header .tabs button').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('header .tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      ['sim','vsm','frenos','backtest','editor','help'].forEach(v => {
+        const el = document.getElementById('view-'+v);
+        if (el) el.classList.toggle('hidden', v !== view);
+      });
+      if (view === 'editor') UI.renderEditor();
+      if (view === 'vsm') UI.renderVSMDetalle();
+      if (view === 'frenos') UI.renderFrenos();
+      if (view === 'backtest') UI.renderBacktest();
+      if (view === 'help') UI.renderHelp();
+    };
+  });
+}
+
+function syncControles() {
+  const p = State.params;
+  ['frenoNubes','frenoResistencia','frenoRecuperacion','frenoPoderes','frenoEscasez'].forEach(k => {
+    const inp = document.querySelector(`#controles-frenos input[data-k="${k}"]`);
+    if (inp) {
+      inp.value = p[k];
+      const span = inp.parentElement.querySelector(`[data-val="${k}"]`);
+      if (span) span.textContent = fmt(p[k]);
+    }
+  });
+}
+
+/* ============================================================================
+   9. TESTS
+   ============================================================================ */
+function runTests() {
+  const out = document.getElementById('tests-out');
+  out.classList.add('visible');
+  out.innerHTML = '';
+  let ok = 0, fail = 0;
+  const log = (msg, cls='') => {
+    const div = document.createElement('div');
+    if (cls) div.className = cls;
+    div.textContent = msg;
+    out.appendChild(div);
+  };
+  const assert = (cond, msg) => {
+    if (cond) { log('✅ ' + msg); ok++; }
+    else { log('❌ ' + msg, 'fail'); fail++; }
+  };
+
+  log('═══ TESTS · Fusión v1.4 ═══');
+  log('');
+  log('─ Utilidades ─');
+  assert(safe(NaN, 0) === 0, 'safe maneja NaN');
+  assert(safe(Infinity, 0) === 0, 'safe maneja Infinity');
+  assert(clamp(5, 0, 1) === 1, 'clamp funciona');
+
+  log('');
+  log('─ Intensidad de carbono ─');
+  State.reset();
+  State.setParam('intensidadCarbono', 0);
+  const eFicticia = { _extraccion: 10 };
+  const emisCero = emisionesEconomia(eFicticia, State.params);
+  assert(emisCero === 0, `Intensidad 0 → emisiones 0 (${emisCero})`);
+  State.setParam('intensidadCarbono', 1);
+  const emisUno = emisionesEconomia(eFicticia, State.params);
+  assert(emisUno > 0, `Intensidad 1 → emisiones > 0 (${fmt(emisUno)})`);
+
+  log('');
+  log('─ Gaia con equilibrio natural ─');
+  State.reset();
+  State.setParam('intensidadCarbono', 0);
+  State.setParam('emisionesPorTurno', 0);
+  for (let i = 0; i < 50; i++) State.step();
+  const co2ConCero = State.data.gaia.co2;
+  assert(Math.abs(co2ConCero - 280) < 5, `CO₂ se mantiene en equilibrio con intensidad 0 (${fmt(co2ConCero,0)} ppm)`);
+  const tempConCero = State.data.gaia.temperatura;
+  assert(Math.abs(tempConCero) < 1, `Temperatura plana con intensidad 0 (${fmt(tempConCero)}°C)`);
+
+  log('');
+  log('─ Gaia con emisiones fósiles ─');
+  State.reset();
+  State.setParam('intensidadCarbono', 1);
+  State.setParam('emisionesPorTurno', 5);
+  for (let i = 0; i < 50; i++) State.step();
+  const tempConUno = State.data.gaia.temperatura;
+  assert(tempConUno > 0, `Temperatura sube con intensidad 1 (${fmt(tempConUno)}°C)`);
+
+  log('');
+  log('─ Freno demográfico ─');
+  State.reset();
+  State.setParam('intensidadCarbono', 1);
+  State.setParam('emisionesPorTurno', 5);
+  for (let i = 0; i < 100; i++) State.step();
+  const pob = State.data.economia.poblacion;
+  assert(pob >= 0 && pob <= 10000, `Población en rango (${fmt(pob,0)})`);
+
+  log('');
+  log('─ Backtest ─');
+  try {
+    const bt = Backtest.ejecutar();
+    assert(bt.serie.length > 0, `Serie generada (${bt.serie.length} turnos)`);
+    assert(isFinite(bt.errorPob.mae), `MAE población finito (${fmt(bt.errorPob.mae)})`);
+    assert(isFinite(bt.errorPob.correlacion), `Correlación finita (${fmt(bt.errorPob.correlacion)})`);
+    assert(bt.errorPob.correlacion >= -1 && bt.errorPob.correlacion <= 1, 'Correlación en rango');
+    assert(bt.patron.fase !== undefined, `Patrón detectado: ${bt.patron.fase}`);
+  } catch(e) {
+    assert(false, `Backtest ejecuta sin error: ${e.message}`);
+  }
+
+  log('');
+  log('─ Reset ─');
+  State.reset();
+  assert(State.data.turno === 0, 'Turno reseteado');
+  assert(State.data.poderes.judicial === 0.30, 'Poderes reseteados');
+
+  log('');
+  log(`═══ Resultado: ${ok} OK, ${fail} FALLOS ═══`);
+}
+
+/* ============================================================================
+   10. INIT
+   ============================================================================ */
+(function init() {
+  State.load();
+
+  // Mostrar modal de bienvenida si es primera visita
+  if (!State.welcomeSeen()) {
+    document.getElementById('welcomeModal').classList.add('open');
+  }
+  document.getElementById('btnCerrarWelcome').onclick = () => {
+    document.getElementById('welcomeModal').classList.remove('open');
+    State.marcarWelcomeVisto();
+  };
+
+  Cube.bind();
+  Cube.update();
+  Cube.snapTo('gaia');
+  initControles();
+  UI.renderAll();
+  EventBus.on('state:changed', () => UI.renderAll());
+  EventBus.on('state:reset', () => { Cube.snapTo('gaia'); UI.renderAll(); });
+  console.log('%cFusión v1.4 lista', 'color:#00ffff;font-weight:bold');
+  console.log('Novedades: equilibrio natural del CO₂ · freno demográfico · backtest sin Gaia · modal de bienvenida');
+  console.log('Presets: Pre-industrial (carbono=0) · Fósil (carbono=1) · Sin frenos · Equilibrio');
+})();
+</script>
+</body>
+</html>
