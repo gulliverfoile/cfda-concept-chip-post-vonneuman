@@ -1,0 +1,314 @@
+# Fusión v1.4 · Simulador + Monitor + Backtest
+
+Herramienta experimental para **pensar sistemas complejos**. No es un modelo validado. No predice el futuro. No reemplaza a nadie. Es un **andamio conceptual** para estructurar el análisis.
+
+---
+
+## ¿Qué es?
+
+Un archivo HTML único que combina cuatro módulos:
+
+1. **Simulador** — 4 capas acopladas + 3 poderes + 5 frenos + intensidad de carbono. Produce datos turno a turno.
+2. **Monitor VSM** — Diagnóstico de viabilidad basado en el Modelo de Sistema Viable de Stafford Beer y la Ley de Variedad de Ashby.
+3. **Frenos** — Vista detallada de los 5 bucles negativos que impiden el colapso infinito.
+4. **Backtest** — Comparación con datos históricos de España 1500–1700.
+
+Todo corre en el navegador. Sin servidor. Sin dependencias. Sin instalación.
+
+---
+
+## ¿Qué hace?
+
+### Simulador
+
+Modela un sistema socio-técnico con cuatro capas acopladas:
+
+- **🌍 Gaia** — temperatura, CO₂, permafrost, albedo, nubes
+- **⚙️ Economía** — capital, recursos, producción, población, EROI
+- **🪙 Captura** — control, filtro de información, narrativa, peaje, resistencia
+- **🧠 Subjetividad** — burnout, confianza, sentido, atención, recuperación
+
+Más tres **poderes** (judicial, legislativo, ejecutivo) y cinco **frenos** parametrizables:
+
+- **🌥️ Nubes** — termostato térmico (más temperatura → más evaporación → más albedo → menos temperatura)
+- **✊ Resistencia** — burnout + transparencia → frena la captura
+- **❤️ Recuperación** — burnout alto → el cuerpo se defiende → burnout baja
+- **⚖️ Poderes** — captura erosiona, resistencia recupera → oscilación
+- **📉 Escasez** — recursos bajos → producción baja → menos emisiones. Incluye freno demográfico.
+
+### Monitor VSM
+
+Traduce el estado del Simulador a un diagnóstico de viabilidad sistémica usando el modelo de Beer:
+
+| Subsistema | Qué mide |
+|---|---|
+| S1 · Operaciones | Extracción + convergencia |
+| S2 · Coordinación | Subjetividad + narrativa |
+| S3 · Control | Poderes |
+| S3* · Auditoría | Independencia (invertido: más captura = menos auditoría) |
+| S4 · Inteligencia | Límites + resistencia |
+| S5 · Política | Genealogía + narrativa |
+
+Y calcula:
+
+- **Variedad (Ashby)** — sistema vs entorno. Negativo = déficit.
+- **Algedonia** — canal de emergencia. Si está silenciado, la resistencia no llega.
+- **Completitud** — cuánto del sistema está descrito.
+- **Patologías** — auditoría capturada, poderes capturados, presente sobre futuro, déficit de variedad, algedonia silenciada.
+
+### Frenos
+
+Cada freno va de 0 (sin freno) a 2 (freno fuerte). A 1 = normal.
+
+- **0 → colapso garantizado.** Sin bucles negativos, el sistema explota.
+- **1 → equilibrio dinámico.** El sistema oscila y se estabiliza.
+- **2 → estancamiento.** Los frenos son tan fuertes que el sistema no evoluciona.
+
+### Backtest
+
+Compara la simulación con datos históricos de España 1500–1700. **No compara temperatura** porque el modelo no captura climas pre-industriales. Verifica solo el **patrón cualitativo**: ¿sube? ¿pica? ¿declina?
+
+---
+
+## ¿Cómo lo hace?
+
+### Arquitectura
+
+Un solo archivo HTML con módulos internos separados por eventos:
+┌─────────────────────────────────────────────────────────┐
+│ NÚCLEO COMÚN │
+│ EventBus · State · Utilidades · Adaptador Enactivo │
+└─────────────────────────────────────────────────────────┘
+↑ ↑ ↑
+┌────┴────┐ ┌─────┴─────┐ ┌────┴────┐
+│Simulador│ │ Monitor │ │Backtest │
+│(4 capas)│ │ (VSM) │ │(España) │
+└────┬────┘ └─────┬─────┘ └────┬────┘
+│ │ │
+└──────────┬─────────┴──────────┬─────────┘
+│ │
+▼ ▼
+┌──────────────────────────────────────┐
+│ ADAPTADOR ENACTIVO │
+│ Traduce entre dominios sin romper │
+│ el núcleo. Degrada sin colapsar. │
+└──────────────────────────────────────┘
+
+text
+
+### El Adaptador Enactivo
+
+Es la pieza clave. Traduce el estado del Simulador a capas del Monitor. Si falta un dato (ej: genealogía), lo marca como `degradado: true` y el Monitor lo trata como capa parcial. Sin romper el diagnóstico.
+
+**Es blando:** puede degradar, inferir, filtrar.
+**Es configurable:** los pesos se ajustan desde el editor.
+
+### Los frenos como bucles negativos
+
+Sin frenos, el sistema es un misil sin freno. La temperatura llega a 96°C. El burnout a 100. Los recursos a 0. Los poderes a 0. Todo colapsa.
+
+Con frenos, el sistema tiene **múltiples atractores**:
+
+- **Sin frenos:** colapso garantizado
+- **Frenos débiles:** colapso lento
+- **Frenos normales:** equilibrio dinámico con oscilaciones
+- **Frenos fuertes:** estancamiento
+
+Eso es lo que hace al modelo **explorable**, no dogmático.
+
+### La intensidad de carbono
+
+El CO₂ no depende del capital. Depende del **tipo de energía**.
+
+| Valor | Régimen | Emisiones |
+|---|---|---|
+| 0.0 | Pre-industrial (biomasa) | Cero neto |
+| 0.5 | Transición (carbón) | Medias |
+| 1.0 | Fósil (petróleo, gas) | Altas |
+| 2.0 | Fósil extremo | Muy altas |
+
+Sin esto, el modelo sería **ahistórico**: trataría 1500 igual que 2024. Con esto, el modelo puede representar ambos periodos.
+
+---
+
+## Badges de rigor
+
+Cada métrica tiene un badge que indica su nivel de rigor:
+
+- 🟢 **Alto** — dato objetivo, verificable
+- 🟡 **Medio** — marco sólido, traducción especulativa
+- 🔴 **Bajo** — métrica subjetiva, no validada empíricamente
+
+**Eso es honestidad epistemológica operacionalizada.** No "esto es verdad". "Esto es lo que sé, esto es lo que creo, esto es lo que intuyo".
+
+---
+
+## Uso
+
+### Abrir el archivo
+
+Descarga el HTML y ábrelo en cualquier navegador moderno. No necesita servidor.
+
+### Interfaz
+
+- **Pestaña Simulador** — vista principal. Cubo 3D + tarjetas de datos.
+- **Pestaña Monitor VSM** — diagnóstico completo.
+- **Pestaña Frenos** — vista detallada de los 5 bucles negativos.
+- **Pestaña Backtest** — comparación con España 1500–1700.
+- **Pestaña Editor** — ajuste de pesos del Adaptador y poderes.
+- **Pestaña Ayuda** — documentación completa.
+
+### Panel de control
+
+- **Intensidad de carbono** — 0 (pre-industrial) a 2 (fósil extremo)
+- **Simulador** — emisiones, control inicial, carga laboral, umbrales
+- **Frenos** — los 5 frenos, de 0 a 2
+- **Adaptador** — factor de completitud, umbral de patología
+
+### Botones
+
+- **▶ +1 / ⏩ +10 / ⏭ +50** — avanzar turnos
+- **↺ Reset** — resetear estado
+- **🔄 Auto-rotar** — rotar el cubo automáticamente
+- **📉 Ejecutar Backtest** — ejecutar comparación histórica
+- **🏛️ Preset Pre-industrial** — intensidad = 0
+- **🏭 Preset Fósil** — intensidad = 1
+- **💥 Preset Sin frenos** — todos los frenos a 0
+- **⚖️ Preset Equilibrio** — todos los frenos a 1
+- **🧪 Tests** — ejecutar tests internos
+
+---
+
+## Limitaciones honestas
+
+### Lo que el modelo NO captura
+
+- **Tecnología** — no hay progreso técnico. La agricultura, el comercio y la industria no mejoran.
+- **Comercio** — no hay intercambio entre regiones.
+- **Migración** — no hay flujos migratorios internos.
+- **Adaptación** — la población no se adapta a la escasez (cambia dieta, emigra, innova).
+- **Clima pre-industrial** — no hay ciclo natural del carbono, equilibrio respiración/absorción, ni variabilidad natural (volcanes, actividad solar).
+- **Instituciones** — no hay derecho, propiedad, leyes. Los poderes son un slider.
+- **Cultura** — no hay valores, normas, identidades.
+
+### Lo que el modelo NO predice
+
+- **Valores exactos** — la simulación no coincide con la realidad en valores. El MAE es alto.
+- **Puntos de inflexión** — no detecta cuándo un sistema va a cambiar de régimen.
+- **Eventos específicos** — no predice crisis, revoluciones, colapsos.
+
+### Qué es entonces
+
+Un **andamio conceptual**. Una herramienta para:
+
+- **Estructurar el análisis** de sistemas complejos
+- **Explorar escenarios** ("¿qué pasa si subo las emisiones?")
+- **Ver conexiones** entre capas que de otro modo pasarían desapercibidas
+- **Generar hipótesis** que se pueden verificar o falsar
+
+**No es una herramienta predictiva.** No es un modelo calibrado. No es ciencia. Es **filosofía operacionalizada**.
+
+---
+
+## Rigor
+
+| Componente | Rigor | Por qué |
+|---|---|---|
+| Simulador | 🔴 | Sin calibración con datos reales |
+| Monitor VSM | 🟡 | Marco sólido (Beer, Ashby), traducción especulativa |
+| Frenos | 🔴 | Parametrizables, no calibrados |
+| Backtest | 🟡 | Datos aproximados, verificación cualitativa |
+| Intensidad de carbono | 🟡 | Concepto sólido, valores aproximados |
+| Poderes | 🟡 | Concepto plausible, sliders sin calibrar |
+
+---
+
+## Estructura del código
+
+Un solo archivo HTML con módulos internos:
+Fusión v1.4
+├── EventBus — pub/sub desacoplado
+├── State — estado, persistencia, mutaciones
+├── Simulador
+│ ├── stepGaia — termostato, CO₂, nubes
+│ ├── stepEconomia — capital, recursos, freno demográfico
+│ ├── stepCaptura — control, filtro, resistencia
+│ ├── stepSubjetividad — burnout, recuperación
+│ ├── stepPoderes — presión sobre poderes
+│ └── stepMotor — orquestador
+├── Adaptador Enactivo
+│ ├── traducir — Simulador → capas
+│ └── aplicarAlMonitor — capas → VSM
+├── Backtest
+│ ├── simular — simulación histórica
+│ ├── calcularError — MAE, RMSE, correlación
+│ └── analizarPatron — cualitativo
+├── UI
+│ ├── renderCubo — cubo 3D
+│ ├── renderCards — tarjetas de datos
+│ ├── renderVSMDetalle — diagnóstico VSM
+│ ├── renderFrenos — vista de frenos
+│ ├── renderBacktest — comparación histórica
+│ └── renderHelp — ayuda completa
+├── Cube — rotación 3D
+├── Controles — sliders
+└── Tests — verificación interna
+
+text
+
+**Marcadores de refactorización:** cada módulo tiene comentarios `[MÓDULO: X]`, `[RESPONSABILIDAD: Y]`, `[REFACTOR: Z]`. Cuando la idea esté probada, se puede dividir en varios archivos.
+
+---
+
+## Contexto teórico
+
+Este proyecto surge de una conversación larga sobre:
+
+- **Rockefeller** y los mecanismos de poder corporativo
+- **La educación** como tecnología de normalización
+- **Foucault** y el biopoder
+- **Fisher** y el realismo capitalista
+- **TUSE** (Teoría Unificada de Sistemas Emergentes)
+- **Estructuras disipativas** de Prigogine
+- **Autopoiesis** de Maturana y Varela
+- **Cibernética** de segundo orden
+- **VSM** de Stafford Beer
+
+La herramienta es un intento de **operacionalizar** esas ideas en un artefacto ejecutable.
+
+---
+
+## Aviso epistemológico
+
+**Idea experimental.** No es un modelo validado. Los datos históricos son aproximados. Los frenos son parametrizables, no calibrados. Las métricas de subjetividad son especulativas.
+
+Su valor está en **estructurar el análisis**, no en **predecir la realidad**.
+
+Si algo falla, es porque el modelo es un andamio. Si algo acierta, es porque el patrón es robusto.
+
+**Úsalo con escepticismo.**
+
+---
+
+## Licencia
+
+AGPLv3. Si lo mejoras, compártelo.
+
+---
+
+## Contribuir
+
+Siéntete libre de:
+
+- Añadir más capas al Simulador
+- Ajustar los frenos
+- Mejorar el Adaptador Enactivo
+- Añadir más casos históricos al Backtest
+- Refactorizar los módulos
+- Criticar el modelo
+
+**El objetivo no es tener razón. Es pensar mejor.**
+
+---
+
+*Fusión v1.4 · 2026 · Hecho con IA, con dudas, sin certezas.*
