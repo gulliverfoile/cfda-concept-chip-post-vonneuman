@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Árbol de la vida — captura y merges</title>
+<style>
+  :root{--bg:#0f1115;--fg:#e6e6e6;--muted:#888;--edge:#2a2f3a;--edge-strong:#3a4250;
+    --bacteria:#4A90D9;--archaea:#D9534F;--eukaryota:#5CB85C;
+    --primaria:#F0AD4E;--secundaria:#9B59B6;--terciaria:#E67E22;--hgt:#95A5A6;
+    --cap-free:#5CB85C;--cap-semi:#F0AD4E;--cap-capt:#E67E22;--cap-infra:#D9534F;
+    --m-genome:#4A90D9;--m-div:#F0AD4E;--m-metab:#D9534F}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif;font-size:13px;overflow:hidden}
+  header{padding:10px 16px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--edge);background:#161a20}
+  header h1{font-size:14px;font-weight:500;margin:0;margin-right:auto;color:var(--muted)}
+  button{background:#1f252f;color:var(--fg);border:1px solid var(--edge-strong);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit}
+  button:hover{background:#2a3140}
+  button.active{background:#3a4a6a;border-color:#5a6a8a}
+  #status{color:var(--muted);font-size:11px;margin-left:6px}
+  #canvas{position:absolute;top:49px;left:0;right:0;bottom:0;overflow:auto;transition:right .25s}
+  body.panel-open #canvas{right:340px}
+  #canvas svg{display:block}
+  .node-label{font-size:12px;fill:var(--fg);user-select:none;cursor:pointer}
+  .node-label:hover{text-decoration:underline;fill:#7ab8ff}
+  .node-sublabel{font-size:10px;fill:var(--muted);font-style:italic;pointer-events:none;user-select:none}
+  .edge{fill:none;stroke:var(--edge-strong);stroke-width:1.8;transition:opacity .25s}
+  .edge-merge{fill:none;stroke-width:1.8;stroke-dasharray:6 4;opacity:.4;transition:opacity .25s,stroke-width .25s;pointer-events:none}
+  .edge-merge.hgt{stroke-dasharray:2 4}
+  .edge-label{font-size:9px;fill:var(--muted);pointer-events:none;user-select:none}
+  .mode-grafo .edge{opacity:.15}
+  .mode-grafo .edge-merge{opacity:1;stroke-width:2.5}
+  .edge-merge.highlight{opacity:1!important;stroke-width:3!important}
+  .edge-hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer}
+  .node.highlight circle,.node.highlight polygon{filter:drop-shadow(0 0 8px currentColor)}
+  .badge{font-size:10px;font-weight:700;text-anchor:middle;pointer-events:none}
+  .mini-bar-track{fill:#2a2f3a}
+  .panel{position:fixed;top:49px;right:0;bottom:0;width:340px;background:#161a20;border-left:1px solid var(--edge-strong);padding:16px 18px;overflow-y:auto;transform:translateX(100%);transition:transform .25s;z-index:5}
+  .panel.open{transform:translateX(0)}
+  .panel-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:2px 8px}
+  .panel h2{margin:0 0 2px;font-size:16px;font-weight:600}
+  .panel-la{font-style:italic;color:var(--muted);font-size:12px;margin-bottom:8px}
+  .panel-type{display:inline-block;padding:2px 8px;border-radius:3px;background:#2a3140;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px}
+  .panel-section{margin-bottom:16px}
+  .panel-section h3{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500}
+  .panel-section p{margin:0;line-height:1.5;color:#c9c9c9}
+  .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px}
+  .bar-label{width:70px;color:var(--muted)}
+  .bar-track{flex:1;height:6px;background:#2a2f3a;border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:3px;transition:width .3s}
+  .bar-val{width:32px;text-align:right;color:#aaa;font-variant-numeric:tabular-nums}
+  .panel-wiki{display:inline-block;color:#7ab8ff;text-decoration:none;font-size:12px;margin-top:8px}
+  .panel-wiki:hover{text-decoration:underline}
+  .legend{position:fixed;bottom:16px;right:16px;background:#161a20;border:1px solid var(--edge-strong);border-radius:8px;padding:10px 14px;font-size:11px;max-width:260px;z-index:4;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+  body.panel-open .legend{right:356px}
+  .legend h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500}
+  .legend-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;color:#c9c9c9}
+  .swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
+  .modal.open{display:flex}
+  .modal-content{background:#161a20;border:1px solid var(--edge-strong);border-radius:8px;padding:24px 28px;max-width:640px;max-height:80vh;overflow-y:auto;line-height:1.55}
+  .modal-content h2{margin:0 0 12px;font-size:18px}
+  .modal-content h3{margin:16px 0 6px;font-size:13px;color:#7ab8ff}
+  .modal-content p{margin:0 0 10px;color:#c9c9c9;font-size:13px}
+  .modal-content .close{float:right;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0;margin-top:-4px}
+  .modal-content code{background:#0f1115;padding:1px 5px;border-radius:3px;font-size:11px;color:#e6a855}
+  .tooltip{position:fixed;background:#1a1f28;border:1px solid var(--edge-strong);border-radius:6px;padding:8px 10px;font-size:12px;max-width:280px;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,.5);opacity:0;transition:opacity .15s;pointer-events:none}
+  .tooltip.visible{opacity:1}
+</style>
+</head>
+<body class="mode-arbol">
+<header>
+  <h1>Árbol de la vida · captura y merges</h1>
+  <button id="btn-arbol" class="active">Árbol</button>
+  <button id="btn-grafo">Grafo</button>
+  <button id="btn-reset">Reset</button>
+  <button id="btn-metodo">Metodología</button>
+  <span id="status"></span>
+</header>
+<div id="canvas"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+<aside class="panel" id="panel"></aside>
+<div class="legend" id="legend">
+  <h4>Captura media</h4>
+  <div class="legend-row"><div class="swatch" style="background:var(--cap-free)"></div>Libre (0–50%)</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--cap-semi)"></div>Semi (50–70%)</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--cap-capt)"></div>Capturado (70–85%)</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--cap-infra)"></div>Infraestructura (85–100%)</div>
+  <h4 style="margin-top:12px">Medidas (barras)</h4>
+  <div class="legend-row"><div class="swatch" style="background:var(--m-genome)"></div>Retención genoma → captura</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--m-div)"></div>Autonomía división → captura</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--m-metab)"></div>Dependencia metabólica</div>
+  <h4 style="margin-top:12px">Merges</h4>
+  <div class="legend-row"><div class="swatch" style="background:var(--primaria)"></div>Primaria</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--secundaria)"></div>Secundaria</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--terciaria)"></div>Terciaria</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--hgt)"></div>HGT / simbiosis obligada</div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <button class="close" onclick="document.getElementById('modal').classList.remove('open')">×</button>
+    <h2>Metodología y limitaciones</h2>
+    <p>Este gráfico es <strong>heurístico, no ciencia</strong>. Es una herramienta para pensar sobre acoplamientos y captura, no una filogenia precisa. Las relaciones y cifras son aproximaciones didácticas.</p>
+
+    <h3>Las tres medidas de captura</h3>
+    <p><strong>Retención genómica → captura</strong>: porcentaje del genoma original del simbionte que se ha perdido. 100% captura = genoma mínimo. Referencia: mitocondria ~1% retenido, Buchnera ~13%, Paulinella ~50%.</p>
+    <p><strong>Autonomía de división → captura</strong>: capacidad del orgánulo de dividirse por su cuenta. La mitocondria conserva maquinaria de fisión (DRP1 en eucariotas, proteínas bacterianas); Buchnera no se divide sin el control del huésped.</p>
+    <p><strong>Dependencia metabólica</strong>: cuántas funciones metabólicas han sido transferidas al núcleo del huésped. Buchnera produce aminoácidos esenciales pero depende del huésped para todo lo demás.</p>
+
+    <h3>Por qué las tres importan</h3>
+    <p>Las tres correlacionan parcialmente con el tiempo desde el merge, pero <strong>discrepan en casos atípicos</strong>. El caso clave: <strong>Buchnera está más capturada que la mitocondria</strong> por dos de tres medidas, pese a ser 12 veces más joven. La mitocondria conserva autonomía de división; Buchnera la perdió. Si solo mostraras una medida, este hallazgo desaparece.</p>
+    <p>Las tres son <strong>proxis correlacionados</strong> de la misma variable latente (captura). No son ortogonales. Su utilidad es que <strong>discrepan donde el proceso es atípico</strong>.</p>
+
+    <h3>Lo que este gráfico NO muestra</h3>
+    <p>· No es una filogenia precisa. Cripto, dino, apicomplexa y diatomeas cuelgan todos de <code>eukaryota</code> por simplicidad, pero en realidad están en supergrupos distintos (SAR, Cryptista, Alveolata).</p>
+    <p>· La hipótesis "cuatro endosimbiosis secundarias independientes" está <strong>en debate</strong> (chromalveolata vs eventos múltiples). El gráfico presenta la hipótesis mayoritaria como si fuera hecho.</p>
+    <p>· Las eras son aproximadas (±200 Ma en los casos antiguos).</p>
+    <p>· La asimetría huésped/donante (el donante deja de ser linaje independiente) no se codifica visualmente.</p>
+
+    <h3>Qué sí responde</h3>
+    <p>· ¿Qué donantes se reutilizan más? (rojas ×4, cianobacteria ×3+)</p>
+    <p>· ¿Qué merges son más profundos / antiguos / irreversibles?</p>
+    <p>· ¿Dónde hay convergencia? (Paulinella y cloroplasto = dos capturas independientes de cianobacteria)</p>
+    <p>· ¿Qué captura es atípica? (Buchnera vs mitocondria)</p>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  {id:'luca',tipo:'raiz',parent:null,label:{es:'LUCA',la:'Last Universal Common Ancestor'},nota:'Último ancestro común universal.',wiki:'LUCA'},
+  {id:'bacteria',tipo:'clado',parent:'luca',label:{es:'Bacteria',la:''},nota:'Dominio procariota. Alta transferencia horizontal.',wiki:'Bacteria'},
+  {id:'archaea',tipo:'clado',parent:'luca',label:{es:'Archaea',la:''},nota:'Dominio procariota. Asgard es el linaje hermano de eucariotas.',wiki:'Archaea'},
+  {id:'eukaryota',tipo:'clado',parent:'luca',label:{es:'Eukaryota',la:''},nota:'Dominio eucariota. Emerge de Archaea + alfa-proteobacteria.',wiki:'Eukaryota'},
+  {id:'ciano',tipo:'clado',parent:'bacteria',label:{es:'Cianobacteria',la:''},nota:'Bacteria fotosintética. Donante del cloroplasto.',wiki:'Cianobacteria'},
+  {id:'alfa',tipo:'clado',parent:'bacteria',label:{es:'Alfa-proteobacteria',la:''},nota:'Donante de la mitocondria.',wiki:'Alphaproteobacteria'},
+  {id:'gamma',tipo:'clado',parent:'bacteria',label:{es:'Gamma-proteobacteria',la:''},nota:'Incluye Buchnera.',wiki:'Gammaproteobacteria'},
+  {id:'asgard',tipo:'clado',parent:'archaea',label:{es:'Asgardarchaeota',la:''},nota:'Huésped de la mitocondria.',wiki:'Asgardarchaeota'},
+
+  {id:'mito',tipo:'evento',parent:'eukaryota',label:{es:'Mitocondria',la:'Mitochondrium'},nota:'Endosimbiosis primaria: alfa-proteobacteria → huésped Asgard. ~1.800 Ma.',wiki:'Mitocondria',merge:{donor:'alfa',tipo:'primaria',era:1800},capture:{genome:99,division:70,metabolic:90}},
+  {id:'cloro',tipo:'evento',parent:'eukaryota',label:{es:'Cloroplasto',la:'Chloroplastum'},nota:'Endosimbiosis primaria: cianobacteria → eucariota. ~1.500 Ma.',wiki:'Cloroplasto',merge:{donor:'ciano',tipo:'primaria',era:1500},capture:{genome:95,division:70,metabolic:85}},
+
+  {id:'opistho',tipo:'clado',parent:'eukaryota',label:{es:'Opisthokonta',la:''},nota:'Hongos y animales.',wiki:'Opisthokonta'},
+  {id:'hongos',tipo:'clado',parent:'opistho',label:{es:'Hongos',la:'Fungi'},nota:'Reino propio, más emparentado con animales que con plantas.',wiki:'Fungi'},
+  {id:'animalia',tipo:'clado',parent:'opistho',label:{es:'Animalia',la:'Metazoa'},nota:'Reino animal.',wiki:'Animalia'},
+  {id:'insectos',tipo:'clado',parent:'animalia',label:{es:'Insectos',la:'Insecta'},nota:'Clase de artrópodos.',wiki:'Insecta'},
+  {id:'pulgones',tipo:'clado',parent:'insectos',label:{es:'Pulgones',la:'Aphidoidea'},nota:'Albergan Buchnera como simbionte obligado.',wiki:'Aphidoidea'},
+  {id:'buchnera',tipo:'evento',parent:'pulgones',label:{es:'Buchnera',la:'Buchnera aphidicola'},nota:'Endosimbiosis obligada. Genoma muy reducido, no cultivable. ~150 Ma.',wiki:'Buchnera aphidicola',merge:{donor:'gamma',tipo:'hgt',era:150},capture:{genome:87,division:95,metabolic:95}},
+
+  {id:'archaeplastida',tipo:'clado',parent:'eukaryota',label:{es:'Archaeplastida',la:''},nota:'Portan cloroplasto primario.',wiki:'Archaeplastida'},
+  {id:'plantae',tipo:'clado',parent:'archaeplastida',label:{es:'Plantae',la:'Plantae'},nota:'Plantas verdes.',wiki:'Plantae'},
+  {id:'glauco',tipo:'clado',parent:'archaeplastida',label:{es:'Glaucofitas',la:'Glaucophyta'},nota:'Cloroplasto con peptidoglicano.',wiki:'Glaucophyta'},
+  {id:'rojas',tipo:'clado',parent:'archaeplastida',label:{es:'Algas rojas',la:'Rhodophyta'},nota:'Donante de múltiples endosimbiosis secundarias.',wiki:'Rhodophyta'},
+  {id:'verdes',tipo:'clado',parent:'eukaryota',label:{es:'Algas verdes',la:'Chlorophyta'},nota:'Donante de endosimbiosis secundarias.',wiki:'Chlorophyta'},
+  {id:'rhizaria',tipo:'clado',parent:'eukaryota',label:{es:'Rhizaria',la:''},nota:'Protistas con pseudópodos filiformes.',wiki:'Rhizaria'},
+  {id:'paulinella',tipo:'evento',parent:'rhizaria',label:{es:'Paulinella',la:'Paulinella chromatophora'},nota:'Endosimbiosis primaria reciente (~120 Ma). Caso independiente de la mitocondria.',wiki:'Paulinella chromatophora',merge:{donor:'ciano',tipo:'primaria',era:120},capture:{genome:50,division:30,metabolic:40}},
+
+  {id:'cripto',tipo:'evento',parent:'eukaryota',label:{es:'Criptofitas',la:'Cryptophyta'},nota:'Huésped. Secundaria: alga roja. ~600 Ma.',wiki:'Cryptophyta',merge:{donor:'rojas',tipo:'secundaria',era:600},capture:{genome:90,division:80,metabolic:85}},
+  {id:'dino',tipo:'evento',parent:'eukaryota',label:{es:'Dinoflagelados',la:'Dinoflagellata'},nota:'Huésped. Secundaria/terciaria: alga roja. ~400 Ma.',wiki:'Dinoflagellata',merge:{donor:'rojas',tipo:'terciaria',era:400},capture:{genome:80,division:60,metabolic:75}},
+  {id:'apicomplexa',tipo:'evento',parent:'eukaryota',label:{es:'Apicomplexa',la:''},nota:'Huésped. Secundaria: alga roja. Apicoplasto no fotosintético. ~800 Ma.',wiki:'Apicomplexa',merge:{donor:'rojas',tipo:'secundaria',era:800},capture:{genome:95,division:90,metabolic:95}},
+  {id:'diatomeas',tipo:'evento',parent:'eukaryota',label:{es:'Diatomeas',la:'Bacillariophyta'},nota:'Huésped. Secundaria: alga roja. Cuatro membranas. ~200 Ma.',wiki:'Bacillariophyta',merge:{donor:'rojas',tipo:'secundaria',era:200},capture:{genome:85,division:70,metabolic:80}},
+  {id:'euglenas',tipo:'evento',parent:'eukaryota',label:{es:'Euglenas',la:'Euglenida'},nota:'Huésped. Secundaria: alga verde. ~1.500 Ma.',wiki:'Euglenida',merge:{donor:'verdes',tipo:'secundaria',era:1500},capture:{genome:70,division:50,metabolic:65}},
+  {id:'cloraracnio',tipo:'evento',parent:'eukaryota',label:{es:'Cloraracniofitas',la:'Chlorarachniophyta'},nota:'Huésped. Secundaria: alga verde. Conserva nucleomorfo. ~1.000 Ma.',wiki:'Chlorarachniophyta',merge:{donor:'verdes',tipo:'secundaria',era:1000},capture:{genome:80,division:70,metabolic:75}},
+];
+
+const state={collapsed:new Set(),layout:{},visible:new Set(),mode:'arbol',highlight:null,current:null};
+const byId={},childrenOf={};
+DATA.forEach(n=>{byId[n.id]=n;if(n.parent)(childrenOf[n.parent]||=[]).push(n.id)});
+
+const X=240,Y=44;
+function computeLayout(){
+  const v=new Set();
+  (function w(id){v.add(id);if(state.collapsed.has(id))return;(childrenOf[id]||[]).forEach(w)})('luca');
+  state.visible=v;
+  const L={};let ny=0;
+  (function a(id,d){
+    const k=(childrenOf[id]||[]).filter(x=>v.has(x));
+    if(!k.length||state.collapsed.has(id)){L[id]={x:d*X,y:ny};ny+=Y}
+    else{const ys=k.map(x=>a(x,d+1).y);L[id]={x:d*X,y:(ys[0]+ys[ys.length-1])/2}}
+    return L[id]
+  })('luca',0);
+  let mi=Infinity,ma=-Infinity;Object.values(L).forEach(p=>{mi=Math.min(mi,p.y);ma=Math.max(ma,p.y)});
+  const m=(mi+ma)/2;Object.keys(L).forEach(i=>L[i].y-=m);
+  state.layout=L;
+}
+const svg=document.getElementById('svg'),tooltip=document.getElementById('tooltip'),panel=document.getElementById('panel');
+function el(t,a={}){const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const[k,v]of Object.entries(a))if(v!=null)e.setAttribute(k,v);return e}
+function ancestor(id){let c=id;while(c&&!state.visible.has(c))c=byId[c]?.parent;return c}
+function avgCapture(n){const c=n.capture;return c?(c.genome+c.division+c.metabolic)/3:0}
+function capColor(n){
+  if(n.tipo!=='evento')return null;
+  const a=avgCapture(n);
+  return a<50?'var(--cap-free)':a<70?'var(--cap-semi)':a<85?'var(--cap-capt)':'var(--cap-infra)';
+}
+function typeColor(n){return{primaria:'var(--primaria)',secundaria:'var(--secundaria)',terciaria:'var(--terciaria)',hgt:'var(--hgt)'}[n.merge?.tipo]||'#888'}
+function cladeColor(n){
+  if(n.tipo==='raiz')return '#888';
+  if(['bacteria','ciano','alfa','gamma'].includes(n.id))return 'var(--bacteria)';
+  if(['archaea','asgard'].includes(n.id))return 'var(--archaea)';
+  return 'var(--eukaryota)';
+}
+
+function render(){
+  hideTT();svg.innerHTML='';computeLayout();
+  const ids=[...state.visible],L=state.layout;
+  let miX=Infinity,maX=-Infinity,miY=Infinity,maY=-Infinity;
+  ids.forEach(i=>{const p=L[i];if(!p)return;miX=Math.min(miX,p.x);maX=Math.max(maX,p.x);miY=Math.min(miY,p.y);maY=Math.max(maY,p.y)});
+  const padX=100,padY=70,labelW=200;
+  const w=(maX-miX)+padX*2+labelW,h=(maY-miY)+padY*2;
+  const oX=padX-miX,oY=padY-miY;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.setAttribute('width',w);svg.setAttribute('height',h);
+  const gE=el('g'),gM=el('g'),gL=el('g'),gN=el('g');
+  svg.append(gE,gM,gL,gN);
+
+  // vertical edges
+  ids.forEach(id=>{const n=byId[id];if(!n.parent||!state.visible.has(n.parent))return;const a=L[n.parent],b=L[id];if(!a||!b)return;
+    const x1=a.x+oX,y1=a.y+oY,x2=b.x+oX,y2=b.y+oY,mx=(x1+x2)/2;
+    gE.appendChild(el('path',{d:`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`,class:'edge'}))});
+
+  // merges
+  ids.forEach(id=>{const n=byId[id];if(n.tipo!=='evento'||!n.merge)return;
+    const dn=ancestor(n.merge.donor);if(!dn||dn===id)return;
+    const a=L[dn],b=L[id];if(!a||!b)return;
+    const x1=a.x+oX,y1=a.y+oY,x2=b.x+oX,y2=b.y+oY;
+    const mx=(x1+x2)/2,my=Math.min(y1,y2)-Math.max(40,Math.min(100,Math.abs(x2-x1)*.2));
+    const d=`M${x1},${y1} Q${mx},${my} ${x2},${y2}`;
+    const hit=el('path',{d,class:'edge-hit'});
+    hit.addEventListener('click',e=>{e.stopPropagation();state.highlight=state.highlight===id?null:id;render()});
+    gM.appendChild(hit);
+    gM.appendChild(el('path',{d,class:'edge-merge'+(n.merge.tipo==='hgt'?' hgt':'')+(state.highlight===id?' highlight':''),stroke:typeColor(n)}));
+    // edge label
+    const lbl=el('text',{x:mx,y:my-4,class:'edge-label','text-anchor':'middle'});
+    lbl.textContent=`${byId[n.merge.donor]?.label.es||n.merge.donor} → ${n.label.es} (~${n.merge.era} Ma)`;
+    gL.appendChild(lbl);
+  });
+
+  // nodes
+  ids.forEach(id=>{const n=byId[id],p=L[id];if(!p)return;
+    const cx=p.x+oX,cy=p.y+oY;
+    let color=n.tipo==='evento'?capColor(n):cladeColor(n);
+    let hl=state.highlight===id;
+    if(!hl&&state.highlight){const h=byId[state.highlight];if(h?.merge&&ancestor(h.merge.donor)===id)hl=true}
+    const col=state.collapsed.has(id),kids=childrenOf[id]||[],hasK=kids.length>0;
+    const g=el('g',{class:'node'+(hl?' highlight':''),style:`color:${color}`});
+    let dot;
+    if(n.tipo==='evento'){
+      const s=12;
+      dot=el('polygon',{points:`${cx},${cy-s} ${cx+s},${cy} ${cx},${cy+s} ${cx-s},${cy}`,fill:color,stroke:'#0f1115','stroke-width':'1.5',style:'cursor:pointer'});
+    }else if(n.tipo==='raiz'){
+      const s=13;
+      dot=el('polygon',{points:`${cx},${cy-s} ${cx+s*.87},${cy-s*.5} ${cx+s*.87},${cy+s*.5} ${cx},${cy+s} ${cx-s*.87},${cy+s*.5} ${cx-s*.87},${cy-s*.5}`,fill:color,stroke:'#0f1115','stroke-width':'1.5',style:'cursor:pointer'});
+    }else{
+      const r=col?9:7;
+      dot=el('circle',{cx,cy,r,fill:col?'var(--bg)':color,stroke:color,'stroke-width':col?'2.5':'1.5',style:'cursor:pointer'});
+      if(col&&hasK){const b=el('text',{x:cx,y:cy+3.5,class:'badge',style:`fill:${color}`});b.textContent=kids.length;g.appendChild(b)}
+    }
+    g.appendChild(dot);
+
+    dot.addEventListener('mouseenter',e=>showTT(n,e));
+    dot.addEventListener('mouseleave',hideTT);
+    dot.addEventListener('click',e=>{e.stopPropagation();openPanel(n)});
+
+    const lbl=el('text',{x:cx+16,y:cy-1,class:'node-label'});
+    lbl.textContent=n.label.es;
+    lbl.addEventListener('click',e=>{e.stopPropagation();window.open(`https://es.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(n.wiki)}`,'_blank','noopener')});
+    g.appendChild(lbl);
+
+    if(n.tipo==='evento'&&n.capture){
+      // 3 mini-bars: genome, division, metabolic (all as capture levels)
+      const bars=[['genome','var(--m-genome)'],['division','var(--m-div)'],['metabolic','var(--m-metab)']];
+      bars.forEach(([k,c],i)=>{
+        const y=cy+5+i*5;
+        g.appendChild(el('rect',{x:cx+16,y,width:50,height:3,class:'mini-bar-track',rx:1.5}));
+        g.appendChild(el('rect',{x:cx+16,y,width:50*n.capture[k]/100,height:3,fill:c,rx:1.5}));
+      });
+    } else if(n.label.la){
+      const sub=el('text',{x:cx+16,y:cy+13,class:'node-sublabel'});sub.textContent=n.label.la;g.appendChild(sub);
+    }
+    gN.appendChild(g);
+  });
+
+  svg.onclick=()=>{if(state.highlight){state.highlight=null;render()}};
+  updateStatus();
+}
+function updateStatus(){document.getElementById('status').textContent=`${state.visible.size} visibles · ${DATA.length} totales`}
+
+function showTT(n,e){tooltip.innerHTML=`<div style="font-weight:600;margin-bottom:4px">${n.label.es}</div><div style="color:#888;line-height:1.4">${n.nota}</div>`;tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY+14)+'px';tooltip.classList.add('visible')}
+function hideTT(){tooltip.classList.remove('visible')}
+
+function openPanel(n){
+  const avg=n.capture?Math.round((n.capture.genome+n.capture.division+n.capture.metabolic)/3):null;
+  let html=`<button class="panel-close" onclick="closePanel()">×</button>
+    <h2>${n.label.es}</h2>${n.label.la?`<div class="panel-la">${n.label.la}</div>`:''}
+    <div class="panel-type">${n.tipo}</div>`;
+  if(n.capture){
+    html+=`<div class="panel-section"><h3>Captura media: ${avg}%</h3>
+      ${bar('Genoma',n.capture.genome,'var(--m-genome)')}
+      ${bar('División',n.capture.division,'var(--m-div)')}
+      ${bar('Metabólico',n.capture.metabolic,'var(--m-metab)')}</div>`;
+  }
+  if(n.merge){
+    html+=`<div class="panel-section"><h3>Merge</h3>
+      <p>Donante: <strong>${byId[n.merge.donor]?.label.es||n.merge.donor}</strong><br>
+      Tipo: ${n.merge.tipo}<br>Era: ~${n.merge.era} Ma</p></div>`;
+  }
+  html+=`<div class="panel-section"><h3>Nota</h3><p>${n.nota}</p></div>
+    <a class="panel-wiki" href="https://es.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(n.wiki)}" target="_blank" rel="noopener">↗ Buscar en Wikipedia</a>`;
+  panel.innerHTML=html;
+  panel.classList.add('open');
+  document.body.classList.add('panel-open');
+  state.current=n.id;
+}
+function bar(l,v,c){return `<div class="bar-row"><span class="bar-label">${l}</span><div class="bar-track"><div class="bar-fill" style="width:${v}%;background:${c}"></div></div><span class="bar-val">${v}%</span></div>`}
+window.closePanel=function(){panel.classList.remove('open');document.body.classList.remove('panel-open');state.current=null};
+
+document.getElementById('btn-arbol').onclick=()=>setMode('arbol');
+document.getElementById('btn-grafo').onclick=()=>setMode('grafo');
+document.getElementById('btn-reset').onclick=()=>{state.collapsed.clear();state.highlight=null;closePanel();render()};
+document.getElementById('btn-metodo').onclick=()=>document.getElementById('modal').classList.add('open');
+document.getElementById('modal').onclick=e=>{if(e.target.id==='modal')document.getElementById('modal').classList.remove('open')};
+
+function setMode(m){state.mode=m;document.body.classList.remove('mode-arbol','mode-grafo');document.body.classList.add('mode-'+m);
+  document.getElementById('btn-arbol').classList.toggle('active',m==='arbol');
+  document.getElementById('btn-grafo').classList.toggle('active',m==='grafo')}
+
+render();
+</script>
+</body>
+</html>
