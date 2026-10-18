@@ -1,0 +1,408 @@
+════════════════════════════════════════════════════════════════════════
+  ÁRBOL DE LA VIDA — CAPTURA Y MERGES
+  Documento de especificación, metodología y premisas
+════════════════════════════════════════════════════════════════════════
+
+ARCHIVO: arbol-vida.html
+TIPO:    Visualización interactiva SVG autocontenida (sin dependencias)
+LICENCIA DE USO: libre, con la condición de no presentarla como
+                 filogenia precisa (ver sección ADVERTENCIAS)
+
+
+────────────────────────────────────────────────────────────────────────
+1. QUÉ ES
+────────────────────────────────────────────────────────────────────────
+
+Una herramienta visual para pensar sobre dos fenómenos biológicos:
+
+  a) La herencia vertical (árbol de la vida clásico).
+  b) Los "merges" (endosimbiosis, transferencia horizontal de genes,
+     simbiosis obligadas) que el árbol clásico oculta o reduce a
+     anécdotas.
+
+El gráfico propone una lectura de la evolución como conjunto de
+acoplamientos semi-autónomos entre sistemas, no como una jerarquía
+única de descendencia.
+
+NO es una filogenia precisa. Es una herramienta heurística.
+
+NO es una fuente científica. Es un mapa conceptual con datos
+aproximados para ilustrar patrones.
+
+
+────────────────────────────────────────────────────────────────────────
+2. QUÉ HACE
+────────────────────────────────────────────────────────────────────────
+
+  · Dibuja 28 nodos organizados en un árbol tidy-tree horizontal,
+    con aristas verticales (herencia) y arcos punteados (merges).
+
+  · Codifica el grado de captura de cada orgánulo/simbionte
+    mediante color del nodo (4 niveles) y tres mini-barras:
+       - Retención genómica (cuánto genoma propio ha perdido)
+       - Autonomía de división (si se divide por su cuenta)
+       - Dependencia metabólica (cuántas funciones han pasado al huésped)
+
+  · Etiqueta cada arco de merge con la fórmula explícita:
+       "donante → huésped (~X Ma)"
+    para que el usuario no tenga que inferir la dirección.
+
+  · Ofrece dos vistas del mismo SVG:
+       - Modo Árbol: verticales fuertes, merges tenues (proyección clásica)
+       - Modo Grafo: merges fuertes, verticales tenues (ontología completa)
+
+  · Interacción:
+       - Click en nodo clado    → colapsa/expande sus hijos
+       - Click en nodo evento   → resalta su arco y extremos
+       - Hover sobre el punto   → descripción breve
+       - Click sobre el nombre  → abre búsqueda de Wikipedia
+       - Click en botón Panel   → ficha completa del nodo
+       - Botón "Metodología"    → este mismo contenido en modal
+
+  · Persistencia: ninguna. Cada carga reinicia el estado.
+
+
+────────────────────────────────────────────────────────────────────────
+3. CÓMO LO HACE
+────────────────────────────────────────────────────────────────────────
+
+MODELO DE DATOS
+  Cada nodo es un objeto JS con:
+    { id, tipo, parent, merge?, capture?, wiki, nota, label{es,la} }
+
+  tipo ∈ { raiz, clado, evento }
+    - raiz:   LUCA (punto de partida único)
+    - clado:  linaje con descendencia vertical
+    - evento: merge (endosimbiosis, simbiosis, HGT)
+
+  merge = { donor, tipo, era }
+    - donor: id del linaje donante
+    - tipo:  primaria | secundaria | terciaria | hgt
+    - era:   millones de años aproximados
+
+  capture = { genome, division, metabolic }
+    - Los tres valores son 0–100 = grado de CAPTURA (no de retención)
+    - 100 = capturado por completo; 0 = libre
+
+LAYOUT
+  Algoritmo tidy-tree horizontal recursivo:
+    - x = profundidad × 240
+    - y = post-orden: hojas primero, padres centrados sobre hijos
+    - se recalcula SOLO en click de expansión/colapso y reset
+    - nunca en hover, resize ni scroll (evita recálculos innecesarios)
+
+  Centrado vertical: tras el recorrido, se resta la media de Y para
+  que el árbol quede equilibrado en el viewport.
+
+RENDER
+  SVG puro, tres capas en orden de profundidad:
+    gE: aristas verticales (herencia)
+    gM: arcos de merge + zonas de click
+    gL: etiquetas de arista
+    gN: nodos + etiquetas
+
+  Arcos de merge: bezier cuadrático con punto de control elevado
+  (Q mx,my x2,y2). Si el donante está colapsado, el arco se ancla
+  al ancestro visible más cercano para no dejar arcos huérfanos.
+
+CODIFICACIÓN VISUAL
+  Canal          | Codifica                    | Pregunta
+  ───────────────┼─────────────────────────────┼──────────────────
+  Color nodo     | Captura media (4 niveles)   | ¿Cuánto capturado?
+  3 mini-barras  | Genoma/División/Metabolismo | ¿Por qué vía?
+  Color arista   | Tipo de merge               | ¿Cómo ocurrió?
+  Etiqueta arco  | "donante → huésped (~Ma)"   | ¿Quién a quién?
+  Forma          | Raiz / clado / evento       | ¿Qué es?
+  Relleno/anillo | Expandido / colapsado       | ¿Tiene hijos?
+  Badge numérico | Nº hijos ocultos            | ¿Cuántos?
+
+  Colores de captura:
+    verde     #5CB85C  → 0–50%   Libre
+    ámbar     #F0AD4E  → 50–70%  Semi
+    naranja   #E67E22  → 70–85%  Capturado
+    rojo      #D9534F  → 85–100% Infraestructura
+
+  Colores de merge:
+    naranja   primaria
+    morado    secundaria
+    naranja2  terciaria
+    gris      hgt / simbiosis obligada
+
+RESTRICCIONES TÉCNICAS (para que no explote)
+  · Tope duro: 40 nodos, profundidad 5
+  · SVG con viewBox + scroll nativo (no se desborda)
+  · Transiciones CSS de 200 ms, un solo recálculo por evento
+  · Sin dependencias externas
+  · Tooltip posicionado en coordenadas de cliente (fixed)
+  · Modal bloquea el fondo con overlay
+
+
+────────────────────────────────────────────────────────────────────────
+4. METODOLOGÍA: LAS TRES MEDIDAS DE CAPTURA
+────────────────────────────────────────────────────────────────────────
+
+El gráfico usa tres proxis correlacionados de la misma variable
+latente (captura). Ninguno es perfecto. Los tres se incluyen porque
+DISCREPAN en casos atípicos, y esa discrepancia es información.
+
+A) RETENCIÓN GENÓMICA → CAPTURA
+   Porcentaje del genoma original del simbionte que se ha perdido.
+   100% captura = genoma mínimo (solo lo esencial para el huésped).
+   0% captura = genoma intacto.
+
+   Referencias:
+     Mitocondria:  ~1% retenido   → ~99% captura
+     Cloroplasto:  ~5% retenido   → ~95% captura
+     Buchnera:     ~13% retenido  → ~87% captura
+     Paulinella:   ~50% retenido  → ~50% captura
+
+B) AUTONOMÍA DE DIVISIÓN → CAPTURA
+   Capacidad del orgánulo de dividirse por su cuenta, sin el control
+   del ciclo celular del huésped.
+   100% captura = no se divide sin el huésped.
+   0% captura = división totalmente autónoma.
+
+   Referencias:
+     Mitocondria:  conserva maquinaria de fisión (proteínas DRP1
+                   en eucariotas, reminiscentes de la fisión bacteriana)
+     Buchnera:     depende enteramente del huésped para dividirse
+     Paulinella:   aún conserva capacidad de división autónoma
+
+C) DEPENDENCIA METABÓLICA → CAPTURA
+   Cuántas funciones metabólicas han sido transferidas al núcleo
+   del huésped.
+   100% captura = el orgánulo no puede realizar ninguna función
+   metabólica sin instrucciones del huésped.
+   0% captura = metabolismo autónomo completo.
+
+   Referencias:
+     Mitocondria:  produce ATP pero depende del huésped para
+                   proteínas del transporte, replicación, etc.
+     Buchnera:     produce aminoácidos esenciales para el pulgón
+                   pero depende del huésped para todo lo demás
+
+POR QUÉ LAS TRES IMPORTAN
+  Las tres correlacionan parcialmente con el tiempo desde el merge,
+  pero discrepan en casos atípicos. Caso clave:
+
+    BUCHNERA está más capturada que la MITOCONDRIA por dos de tres
+    medidas (división 95 vs 70, metabolismo 95 vs 90), pese a ser
+    ~12 veces más joven (~150 Ma vs ~1.800 Ma).
+
+    Motivo: la mitocondria conserva autonomía de división; Buchnera
+    la perdió por completo.
+
+    Si solo se mostrara una medida, este hallazgo desaparecería.
+    Las tres se justifican precisamente por su discrepancia.
+
+LIMITACIÓN EPISTEMOLÓGICA
+  Las tres medidas NO son ortogonales. Todas correlacionan parcialmente
+  con el tiempo. Son proxis de la misma variable latente. Su utilidad
+  es que discrepan donde el proceso es atípico, NO que midan cosas
+  independientes.
+
+  Esto se declara explícitamente para no caer en circularidad: si
+  solo se coloreara por retención genómica, el gráfico "probaría"
+  su propia premisa (más anidamiento → más captura) porque esa
+  premisa estaría en la métrica.
+
+
+────────────────────────────────────────────────────────────────────────
+5. PREMISAS DEL GRÁFICO
+────────────────────────────────────────────────────────────────────────
+
+El gráfico parte de las siguientes premisas, que son HIPÓTESIS,
+no hechos establecidos:
+
+P1) El árbol clásico (herencia vertical) es una proyección útil
+    para eucariotas con especiación lineal, pero OCULTA los merges
+    horizontales que son precisamente donde ocurre buena parte de
+    la innovación evolutiva.
+
+P2) Un merge es un "commit" en el sentido informático: una unidad
+    acotada de cambio estructural, no una simple suma de linajes.
+
+P3) La asimetría huésped/donante es constitutiva: el donante deja
+    de ser un linaje independiente y se convierte en orgánulo. El
+    huésped persiste. Esta asimetría es clave para entender la
+    "captura".
+
+P4) El anidamiento semi-autónomo (varios sistemas con relojes
+    distintos acoplados) genera más variedad combinatoria que la
+    optimización interna de un solo sistema. Ver: mitocondria,
+    cloroplasto, Buchnera.
+
+P5) El grado de captura de un orgánulo es medible (con las tres
+    medidas de la sección 4), y esa medida es informativa sobre
+    si el merge sigue generando variedad o si ya es "deuda"
+    (infraestructura fija).
+
+Estas premisas NO son consenso universal. Son la lente desde la que
+el gráfico propone leer los datos.
+
+
+────────────────────────────────────────────────────────────────────────
+6. ADVERTENCIAS
+────────────────────────────────────────────────────────────────────────
+
+⚠ ADVERTENCIA 1: NO ES UNA FILOGENIA PRECISA.
+   El layout tidy-tree pone cripto, dino, apicomplexa y diatomeas
+   como hermanos colgando de eukariota, por simplicidad visual.
+   En realidad están en supergrupos distintos:
+     - Dinoflagelados y Apicomplexa: Alveolata (SAR)
+     - Diatomeas: Stramenopiles (SAR, rama distinta)
+     - Criptofitas: Cryptista
+   El gráfico simplifica la topología para hacer legible el patrón
+   de merges. No usar como referencia taxonómica.
+
+⚠ ADVERTENCIA 2: LA HIPÓTESIS "SECUNDARIA ×4 INDEPENDIENTES"
+   ESTÁ EN DEBATE.
+   Hay dos hipótesis mayoritarias:
+     a) Chromalveolata: UN solo evento secundario ancestral, con
+        pérdidas posteriores en varios linajes.
+     b) Eventos múltiples: varias endosimbiosis secundarias
+        independientes con el mismo donante (alga roja).
+   El gráfico presenta la opción (b) como si fuera hecho, porque
+   es la más didáctica. Para uso científico, tratar con cautela.
+
+⚠ ADVERTENCIA 3: LAS ERAS SON APROXIMADAS.
+   Las cifras "~X Ma" tienen un margen de ±200 Ma en los casos
+   antiguos (mitocondria, cloroplasto) y ±50 Ma en los recientes
+   (Buchnera, Paulinella). No usar para dataciones.
+
+⚠ ADVERTENCIA 4: LA ASIMETRÍA HUÉSPED/DONANTE NO SE CODIFICA
+   VISUALMENTE.
+   El grafo dibuja dos nodos conectados por una arista. Pero el
+   donante deja de ser un linaje independiente tras el merge.
+   Esa asimetría (que es la clave de la "captura") no se ve en
+   el gráfico; hay que saberla por la leyenda o por la nota del
+   nodo.
+
+⚠ ADVERTENCIA 5: LOS VALORES DE CAPTURA SON ESTIMACIONES
+   DIDÁCTICAS.
+   Los porcentajes de genoma, división y metabolismo son
+   aproximaciones basadas en literatura general. No provienen
+   de un dataset curado ni de una revisión sistemática. Sirven
+   para ilustrar el patrón, no para análisis cuantitativo serio.
+
+⚠ ADVERTENCIA 6: EL GRÁFICO NO MUESTRA EL COSTE DEL MERGE.
+   Un merge no es gratis: el huésped tiene que borrar información
+   (en el sentido de Landauer) para integrar al donante. Cuanto
+   más profundo el anidamiento, más interfaces, más coste de
+   borrado. Este coste no se codifica, pero es central para
+   entender por qué algunos merges se vuelven irreversibles.
+
+⚠ ADVERTENCIA 7: EL GRÁFICO NO MUESTRA EL ESPACIO QUE EL MERGE
+   ABRE.
+   La mitocondria no solo "costó" genes: habilitó el metabolismo
+   aerobio, que a su vez habilitó la multicelularidad. El gráfico
+   muestra el merge pero no el nuevo espacio de posibilidades
+   que ese merge hace posible. Para verlo, hay que leer el nodo
+   con contexto, no aislado.
+
+
+────────────────────────────────────────────────────────────────────────
+7. QUÉ PREGUNTAS SÍ RESPONDE
+────────────────────────────────────────────────────────────────────────
+
+El gráfico, pese a sus limitaciones, permite ver patrones que el
+árbol clásico oculta:
+
+  · ¿Qué donantes se reutilizan más?
+    Algas rojas ×4 (cripto, dino, apicomplexa, diatomeas)
+    Cianobacteria ×3+ (cloroplasto, Paulinella, y ancestral de rojas)
+    Algas verdes ×2 (euglenas, cloraracniofitas)
+    → Pregunta abierta: ¿qué hace a un buen donante?
+
+  · ¿Los merges profundos son más irreversibles?
+    Sí, y el gráfico lo hace visible con las tres barras. Los
+    merges antiguos (mitocondria, cloroplasto) tienen captura
+    alta en las tres dimensiones. Los recientes (Paulinella)
+    tienen captura baja o media.
+
+  · ¿Dónde hay convergencia?
+    Paulinella y cloroplasto son dos capturas independientes de
+    cianobacteria. El gráfico lo muestra con dos arcos que llegan
+    al mismo donante desde huéspedes distintos. Esto sugiere que
+    ese acoplamiento es especialmente productivo, no accidental.
+
+  · ¿Qué captura es atípica?
+    Buchnera vs mitocondria: dos casos de captura casi total,
+    pero con perfiles distintos en las tres medidas. El gráfico
+    permite compararlos de un vistazo.
+
+  · ¿Dónde el anidamiento es más profundo?
+    Dinoflagelados (terciario), apicomplexa y diatomeas
+    (secundarios). Los arcos con más niveles de anidamiento son
+    los que más "deuda" acumulan.
+
+
+────────────────────────────────────────────────────────────────────────
+8. LÍMITES DEL INSTRUMENTO
+────────────────────────────────────────────────────────────────────────
+
+Este gráfico es un PÓSTER, no un INSTRUMENTO ANALÍTICO en su estado
+actual. Para convertirlo en instrumento harían falta:
+
+  · Un modo "captura" dedicado que coloree por captura y atenúe
+    el resto de la información visual.
+  · Un modo "composición" que dibuje las aristas como líneas
+    segmentadas (cada segmento = un origen distinto).
+  · Un modo "estratigráfico" donde el eje X sea tiempo real (Ma).
+    Más honesto, mucho menos legible.
+  · Una leyenda explícita con las tres medidas.
+  · Un panel lateral con ficha completa (ya implementado).
+  · Un modal de metodología (ya implementado).
+
+Con seis codificaciones simultáneas (color, tamaño, forma, barra,
+trazo, etiqueta), el gráfico se acerca al límite de "chartjunk":
+más allá de 5–6 dimensiones visuales, el lector deja de poder hacer
+comparaciones fiables. Por eso cada modo de vista debería responder
+UNA pregunta, no todas a la vez.
+
+Regla operativa recomendada:
+  · Modo "estructura"  → árbol vs grafo (sin captura)
+  · Modo "captura"     → color + barras (sin merges etiquetados)
+  · Modo "composición" → aristas segmentadas (sin color)
+  · Modo "tiempo"      → eje X = Ma (sin barra)
+
+
+────────────────────────────────────────────────────────────────────────
+9. CÓMO USARLO EN 60 SEGUNDOS
+────────────────────────────────────────────────────────────────────────
+
+1. Abrir arbol-vida.html en cualquier navegador moderno.
+2. Pulsar "Metodología" para leer las advertencias antes de
+   interpretar nada (recomendado).
+3. Alternar "Árbol" / "Grafo" para ver la diferencia entre
+   proyección vertical y ontología completa.
+4. Pasar el ratón por los puntos para leer descripciones breves.
+5. Hacer click en un nodo evento (rombo) para resaltar su arco
+   y sus dos extremos.
+6. Hacer click en un nombre para abrir búsqueda de Wikipedia.
+7. Colapsar ramas grandes (Bacteria, Algas rojas) para reducir
+   la densidad visual y ver patrones de otro nivel.
+8. Usar "Metodología" como referencia cuando algo no cuadre.
+9. No usar para publicar. Usar para pensar.
+
+
+────────────────────────────────────────────────────────────────────────
+10. CRÉDITOS Y CONTEXTO
+────────────────────────────────────────────────────────────────────────
+
+Este documento y la herramienta que describe surgieron de una
+conversación sobre optimización bajo restricciones, acoplamientos
+semi-autónomos, y la relación entre variedad y captura en sistemas
+complejos.
+
+La idea central: la naturaleza produce "commits" (merges) que se
+anidan sin disolverse. El capitalismo produce "commits" que se
+fijan para proteger las partes existentes. La diferencia no es
+el mecanismo, es la REVERSIBILIDAD y la REVISABILIDAD.
+
+Este gráfico no prueba esa tesis. Solo ofrece un vocabulario visual
+para pensarla.
+
+════════════════════════════════════════════════════════════════════════
+FIN DEL DOCUMENTO
+════════════════════════════════════════════════════════════════════════
