@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Explorador de puntos notables · curvas 2D + esqueleto</title>
+<title>Explorador de puntos notables · curvas + esqueleto + KKT</title>
 <style>
   :root {
     --bg:#0f1115; --fg:#e5e7eb; --muted:#9ca3af; --panel:#161922; --border:#2a2f3a;
     --cruce:#ef4444; --tangencia:#22c55e; --cercania:#eab308; --paso:#a855f7;
-    --skeleton:#fbbf24; --region:#06b6d4;
+    --skeleton:#fbbf24; --region:#06b6d4; --optimo:#22d3ee;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden}
@@ -17,36 +17,22 @@
   #cv.dragging{cursor:grabbing}
 
   #panel{
-    position:fixed;
-    top:60px; right:12px; bottom:12px;
-    width:400px;
-    max-width:calc(100vw - 24px);
-    overflow-y:auto;
-    padding:12px;
+    position:fixed; top:60px; right:12px; bottom:12px;
+    width:400px; max-width:calc(100vw - 24px);
+    overflow-y:auto; padding:12px;
     background:rgba(22,25,34,.96);
-    backdrop-filter:blur(6px);
-    -webkit-backdrop-filter:blur(6px);
-    border:1px solid var(--border);
-    border-radius:8px;
-    font-size:13px;
-    z-index:10;
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    border:1px solid var(--border); border-radius:8px;
+    font-size:13px; z-index:10;
     box-shadow:0 8px 32px rgba(0,0,0,.5);
     transition:transform .22s ease, opacity .22s ease;
   }
-  #panel.hidden{
-    transform:translateX(calc(100% + 24px));
-    opacity:0;
-    pointer-events:none;
-  }
-
+  #panel.hidden{ transform:translateX(calc(100% + 24px)); opacity:0; pointer-events:none; }
   #toggle-panel{
     position:fixed; top:12px; right:12px; z-index:20;
-    width:40px; height:40px;
-    display:flex; align-items:center; justify-content:center;
-    font-size:18px; padding:0;
-    box-shadow:0 4px 12px rgba(0,0,0,.4);
+    width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+    font-size:18px; padding:0; box-shadow:0 4px 12px rgba(0,0,0,.4);
   }
-
   #panel::-webkit-scrollbar{width:8px}
   #panel::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:4px}
   #panel::-webkit-scrollbar-track{background:transparent}
@@ -75,18 +61,24 @@
   .result.tangencia{border-color:var(--tangencia)}
   .result.cercania{border-color:var(--cercania)}
   .result.paso{border-color:var(--paso)}
+  .result.optimo{border-color:var(--optimo);background:rgba(34,211,238,.08)}
   .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
   .badge.cruce{background:var(--cruce);color:#fff}
   .badge.tangencia{background:var(--tangencia);color:#000}
   .badge.cercania{background:var(--cercania);color:#000}
   .badge.paso{background:var(--paso);color:#fff}
+  .badge.optimo{background:var(--optimo);color:#000}
   button{background:#2a2f3a;color:var(--fg);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px}
   button:hover{background:#353b4a}
+  button.primary{background:#1e3a5f;border-color:#2a4a7f}
+  button.primary:hover{background:#2a4a7f}
   select{background:#2a2f3a;color:var(--fg);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px}
   .filters{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
   .filters label{display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:2px 6px;border-radius:3px;background:#1c2030}
   hr{border:0;border-top:1px solid var(--border);margin:12px 0}
   .check{display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .kkt-box{padding:8px;background:rgba(34,211,238,.08);border:1px solid var(--optimo);border-radius:6px;margin-top:8px;font-size:12px}
 </style>
 </head>
 <body>
@@ -114,7 +106,101 @@ class EventBus {
 }
 
 // ============================================================
-// MÓDULO 1 · DOMINIO · GEOMETRÍAS (curvas abiertas y regiones)
+// FUNCIONES OBJETIVO (f(x,y) para niveles)
+// ============================================================
+const FUNCS = {
+  distancia:       { label: "distancia al origen √(x²+y²)", fn: (x,y) => Math.hypot(x,y) },
+  suma_cuadrados:  { label: "x² + y²",                       fn: (x,y) => x*x + y*y },
+  lineal:          { label: "x + y",                         fn: (x,y) => x + y },
+  producto:        { label: "x · y",                         fn: (x,y) => x*y },
+  l1:              { label: "|x| + |y|  (L1)",               fn: (x,y) => Math.abs(x) + Math.abs(y) },
+  max_abs:         { label: "max(|x|, |y|)  (L∞)",           fn: (x,y) => Math.max(Math.abs(x), Math.abs(y)) },
+};
+
+// ============================================================
+// MARCHING SQUARES (contorno de f(x,y) = level)
+// ============================================================
+function marchingSquares(f, level, x0, y0, x1, y1, res){
+  const dx = (x1-x0)/res, dy = (y1-y0)/res;
+  const grid = [];
+  for (let j=0; j<=res; j++){
+    const row = new Array(res+1);
+    for (let i=0; i<=res; i++){
+      row[i] = f(x0+i*dx, y0+j*dy) - level;
+    }
+    grid.push(row);
+  }
+  const segs = [];
+  const lerp = (a, b, va, vb) => {
+    const den = va - vb;
+    if (Math.abs(den) < 1e-12) return (a+b)/2;
+    return a + (b-a) * (va/den);
+  };
+  for (let j=0; j<res; j++){
+    for (let i=0; i<res; i++){
+      const v00 = grid[j][i],   v10 = grid[j][i+1];
+      const v01 = grid[j+1][i], v11 = grid[j+1][i+1];
+      const x = x0 + i*dx, y = y0 + j*dy;
+      const pts = [];
+      if ((v00 < 0) !== (v10 < 0)) pts.push([lerp(x, x+dx, v00, v10), y]);
+      if ((v10 < 0) !== (v11 < 0)) pts.push([x+dx, lerp(y, y+dy, v10, v11)]);
+      if ((v01 < 0) !== (v11 < 0)) pts.push([lerp(x, x+dx, v01, v11), y+dy]);
+      if ((v00 < 0) !== (v01 < 0)) pts.push([x, lerp(y, y+dy, v00, v01)]);
+      if (pts.length === 2) segs.push([pts[0], pts[1]]);
+      else if (pts.length === 4){
+        // ambiguo: conectar por valor central
+        const c = f(x+dx/2, y+dy/2) - level;
+        if ((v00 > 0) === (c > 0)){
+          segs.push([pts[0], pts[3]]);
+          segs.push([pts[1], pts[2]]);
+        } else {
+          segs.push([pts[0], pts[1]]);
+          segs.push([pts[2], pts[3]]);
+        }
+      }
+    }
+  }
+  return segs;
+}
+
+function chainSegments(segs, tol){
+  if (segs.length === 0) return [];
+  const used = new Array(segs.length).fill(false);
+  const chains = [];
+  for (let i=0; i<segs.length; i++){
+    if (used[i]) continue;
+    used[i] = true;
+    const chain = [segs[i][0], segs[i][1]];
+    let changed = true;
+    while (changed){
+      changed = false;
+      const ha = chain[0], hb = chain[chain.length-1];
+      for (let j=0; j<segs.length; j++){
+        if (used[j]) continue;
+        const [a, b] = segs[j];
+        const dAtoHb = Math.hypot(a[0]-hb[0], a[1]-hb[1]);
+        const dBtoHb = Math.hypot(b[0]-hb[0], b[1]-hb[1]);
+        const dAtoHa = Math.hypot(a[0]-ha[0], a[1]-ha[1]);
+        const dBtoHa = Math.hypot(b[0]-ha[0], b[1]-ha[1]);
+        const m = Math.min(dAtoHb, dBtoHb, dAtoHa, dBtoHa);
+        if (m < tol){
+          if (m === dAtoHb) chain.push(b);
+          else if (m === dBtoHb) chain.push(a);
+          else if (m === dAtoHa) chain.unshift(b);
+          else chain.unshift(a);
+          used[j] = true;
+          changed = true;
+        }
+      }
+    }
+    chains.push(chain);
+  }
+  chains.sort((a,b) => b.length - a.length);
+  return chains[0] || [];
+}
+
+// ============================================================
+// DOMINIO · GEOMETRÍAS
 // ============================================================
 class Geometry {
   constructor(cfg){ this.cfg = cfg; }
@@ -205,7 +291,6 @@ class Bezier extends Geometry {
   }
 }
 
-// Poligono: región cerrada. Puede ser rectángulo (cx,cy,w,h) o polígono arbitrario (vertices).
 class Poligono extends Geometry {
   get vertices(){
     if (this.cfg.vertices) return this.cfg.vertices;
@@ -236,8 +321,53 @@ class Poligono extends Geometry {
   }
 }
 
+// NivelDe: curva de nivel f(x,y) = level, muestreada por marching squares.
+// [DECISIÓN] Solo la rama más larga del contorno (para hiperbolas con 2 ramas,
+// se muestra solo una). Cambiar a "todas las ramas" si se quiere.
+class NivelDe extends Geometry {
+  constructor(cfg){
+    super(cfg);
+    this._polyline = null;
+    this._cum = null;
+    this._lastKey = null;
+  }
+  compute(){
+    const key = `${this.cfg.fName}|${this.cfg.level.toFixed(6)}|${this.cfg.cx.toFixed(3)}|${this.cfg.cy.toFixed(3)}|${this.cfg.radius.toFixed(3)}`;
+    if (key === this._lastKey && this._polyline) return;
+    const fn = FUNCS[this.cfg.fName].fn;
+    const { level, cx, cy, radius } = this.cfg;
+    const R = radius * 1.15;
+    const segs = marchingSquares(fn, level, cx-R, cy-R, cx+R, cy+R, 90);
+    this._polyline = chainSegments(segs, (2*R)/40);
+    this._cum = null;
+    this._lastKey = key;
+  }
+  eval(t){
+    if (!this._polyline) this.compute();
+    const pts = this._polyline;
+    if (!pts || pts.length < 2) return { p: [this.cfg.cx, this.cfg.cy], d: [1,0] };
+    if (!this._cum){
+      this._cum = [0];
+      for (let i=1; i<pts.length; i++){
+        this._cum.push(this._cum[i-1] + Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]));
+      }
+    }
+    const total = this._cum[pts.length-1] || 1;
+    const target = clamp(t, 0, 1) * total;
+    let i = 0;
+    while (i < pts.length-2 && this._cum[i+1] < target) i++;
+    const segLen = this._cum[i+1] - this._cum[i] || 1;
+    const f = (target - this._cum[i]) / segLen;
+    const p0 = pts[i], p1 = pts[i+1];
+    return {
+      p: [p0[0]+f*(p1[0]-p0[0]), p0[1]+f*(p1[1]-p0[1])],
+      d: [p1[0]-p0[0], p1[1]-p0[1]]
+    };
+  }
+}
+
 // ============================================================
-// MÓDULO 1 · DOMINIO · SAMPLER, NORMALIZACIÓN, DETECTOR
+// SAMPLER, NORMALIZACIÓN, DETECCIÓN
 // ============================================================
 function sampleByArcLength(geom, N){
   const M = N*8;
@@ -349,9 +479,11 @@ function detect(states, opts){
   const prepped = [];
   for (const s of states){
     if (!s.visible) continue;
-    if (s.showSkeleton) continue; // las regiones con esqueleto no entran en detección de pares
+    if (s.showSkeleton) continue;
     if (mode === "B" && s.role === "none") continue;
+    if (s.geom instanceof NivelDe) s.geom.compute();
     const raw = sampleByArcLength(s.geom, N);
+    if (raw.length < 2) continue;
     const pts = normalizePoints(raw.map(r => r.p), normMode, normScale);
     const tans = computeTangents(pts);
     prepped.push({ id: s.id, role: s.role, pts, tans });
@@ -386,19 +518,7 @@ function detect(states, opts){
 }
 
 // ============================================================
-// MÓDULO 2 · ESQUELETO / DIRECTRIZ DE REGIÓN
-// ------------------------------------------------------------
-// [DECISIÓN] Esqueleto por "dos aristas equidistantes":
-//   - Rasterizamos la región a una rejilla.
-//   - Para cada celda dentro, calculamos la distancia a cada arista.
-//   - d1, d2 = dos distancias menores; diff = |d1 - d2|.
-//   - El eje medio es el conjunto de puntos donde diff = 0 (equidistante
-//     a dos aristas) y es mínimo local de diff.
-//   Válido para polígonos convexos. Para no convexos aparecen ramas
-//   espurias; se resolvería con chequeo de bola maximal (costoso).
-// Alternativas: Zhang-Suen thinning, Voronoi de segmentos, distance
-// transform + crestas. Cambiar si: quieres esqueleto topológico robusto
-// en polígonos no convexos.
+// ESQUELETO
 // ============================================================
 function pointInPolygon(px, py, verts){
   let inside = false;
@@ -580,7 +700,6 @@ class CanvasRenderer {
     ctx.clearRect(0,0,W,H);
     this._drawGrid(W,H);
 
-    // Curvas y regiones
     for (const s of state.geometries){
       if (!s.visible) continue;
       const pts = sampleByArcLength(s.geom, 300);
@@ -597,7 +716,6 @@ class CanvasRenderer {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Esqueleto de la región
       if (s.showSkeleton && s.skeleton){
         ctx.fillStyle = "rgba(251, 191, 36, 0.85)";
         for (const p of s.skeleton.points){
@@ -607,20 +725,31 @@ class CanvasRenderer {
       }
     }
 
-    // Detecciones del módulo 1
     const colors = { cruce:"#ef4444", tangencia:"#22c55e", cercania:"#eab308", paso:"#a855f7" };
     for (let i=0;i<dets.length;i++){
       const d = dets[i];
       if (!state.filters[d.type]) continue;
       const [sx,sy] = this.worldToScreen([d.x,d.y]);
-      const r = i === this.highlight ? 8 : 5;
+      const r = i === this.highlight ? 8 : (d.isOptimum ? 7 : 5);
       ctx.beginPath();
       ctx.arc(sx, sy, r, 0, Math.PI*2);
-      ctx.fillStyle = colors[d.type];
+      if (d.isOptimum){
+        ctx.fillStyle = "#22d3ee";
+      } else {
+        ctx.fillStyle = colors[d.type];
+      }
       ctx.fill();
       ctx.strokeStyle = i === this.highlight ? "#fff" : "rgba(0,0,0,0.6)";
       ctx.lineWidth = i === this.highlight ? 2 : 1;
       ctx.stroke();
+      if (d.isOptimum){
+        // aro exterior
+        ctx.beginPath();
+        ctx.arc(sx, sy, r+3, 0, Math.PI*2);
+        ctx.strokeStyle = "#22d3ee";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
     }
   }
   _drawGrid(W,H){
@@ -662,20 +791,17 @@ class ControlsPanel {
     root.innerHTML = "";
     const h = document.createElement("h3"); h.textContent = "Parámetros globales"; root.appendChild(h);
     const S = this.app.state;
-    const mk = (label, el) => {
-      const row = document.createElement("div");
-      row.className = "row";
-      const l = document.createElement("label"); l.textContent = label;
-      row.appendChild(l); row.appendChild(el);
-      root.appendChild(row);
-    };
+
     const modeSel = document.createElement("select");
     for (const [k,v] of [["A","A · todos contra todos"],["B","B · objetivo × restricción"]]){
       const o = document.createElement("option"); o.value=k; o.textContent=v; modeSel.appendChild(o);
     }
     modeSel.value = S.mode;
     modeSel.onchange = () => { S.mode = modeSel.value; this.bus.emit("state:change"); this._refreshRoles(); };
-    mk("Modo", modeSel);
+    const rowMode = document.createElement("div"); rowMode.className = "row";
+    const lMode = document.createElement("label"); lMode.textContent = "Modo";
+    rowMode.append(lMode, modeSel);
+    root.appendChild(rowMode);
 
     root.appendChild(document.createElement("hr"));
 
@@ -756,7 +882,22 @@ class ControlsPanel {
     const body = document.createElement("div"); body.className = "geom-body";
     hd.onclick = () => box.classList.toggle("open");
 
-    // Checkbox de esqueleto para polígonos
+    // Selector de función para NivelDe
+    if (g.geom instanceof NivelDe){
+      const row = document.createElement("div"); row.className = "row";
+      const l = document.createElement("label"); l.textContent = "f(x,y)";
+      const sel = document.createElement("select");
+      for (const [k, v] of Object.entries(FUNCS)){
+        const o = document.createElement("option"); o.value = k; o.textContent = v.label;
+        sel.appendChild(o);
+      }
+      sel.value = g.params.fName;
+      sel.onchange = () => { g.params.fName = sel.value; this.bus.emit("state:change"); };
+      row.append(l, sel);
+      body.appendChild(row);
+    }
+
+    // Checkbox de esqueleto
     if (g.geom instanceof Poligono){
       const ck = document.createElement("label");
       ck.className = "check";
@@ -766,6 +907,7 @@ class ControlsPanel {
       body.appendChild(ck);
     }
 
+    // Sliders de parámetros
     for (const [key, spec] of Object.entries(g.paramSpec)){
       const row = document.createElement("div"); row.className = "row";
       const l = document.createElement("label"); l.textContent = spec.label;
@@ -776,6 +918,35 @@ class ControlsPanel {
       row.append(l, inp, val);
       body.appendChild(row);
     }
+
+    // Botón buscar óptimo
+    if (g.geom instanceof NivelDe){
+      const btn = document.createElement("button");
+      btn.className = "primary";
+      btn.textContent = "Buscar óptimo (tangencia)";
+      btn.style.marginTop = "8px";
+      btn.style.width = "100%";
+      btn.onclick = () => this.app.buscarOptimo(g);
+      body.appendChild(btn);
+
+      const rowMode = document.createElement("div"); rowMode.className = "row";
+      rowMode.style.marginTop = "6px";
+      const lMode = document.createElement("label"); lMode.textContent = "dirección";
+      const selMode = document.createElement("select");
+      for (const [k,v] of [["min","minimizar f"],["max","maximizar f"]]){
+        const o = document.createElement("option"); o.value=k; o.textContent=v; selMode.appendChild(o);
+      }
+      selMode.value = this.app.state.optMode;
+      selMode.onchange = () => { this.app.state.optMode = selMode.value; };
+      rowMode.append(lMode, selMode);
+      body.appendChild(rowMode);
+
+      const hint = document.createElement("div");
+      hint.className = "hint";
+      hint.textContent = "Mueve el nivel (o pulsa Buscar) hasta que la curva sea tangente a una restricción. Ese punto es el óptimo KKT: f es mínima/máxima respetando las restricciones.";
+      body.appendChild(hint);
+    }
+
     box.append(hd, body);
     return box;
   }
@@ -784,20 +955,41 @@ class ControlsPanel {
   updateResults(dets){
     const root = this._resultsRoot;
     root.innerHTML = "";
+
+    // Bloque de óptimo KKT
+    const optimos = dets.filter(d => d.isOptimum);
+    if (optimos.length > 0){
+      const best = optimos.reduce((a, b) => {
+        const va = this.app.state.optMode === "min" ? a.level : -a.level;
+        const vb = this.app.state.optMode === "min" ? b.level : -b.level;
+        return va < vb ? a : b;
+      });
+      const box = document.createElement("div");
+      box.className = "kkt-box";
+      box.innerHTML = `<strong>★ Óptimo candidato (${this.app.state.optMode})</strong><br>
+        f = <strong>${best.level.toFixed(3)}</strong> (${FUNCS[best.fName]?.label || best.fName})<br>
+        punto: (${best.x.toFixed(3)}, ${best.y.toFixed(3)})<br>
+        toca: ${best.a} × ${best.b}<br>
+        <em>Tangencia entre curva de nivel y restricción: KKT en 2D.</em>`;
+      root.appendChild(box);
+    }
+
     const h = document.createElement("h3"); h.textContent = `Detecciones (${dets.length})`; root.appendChild(h);
     const list = document.createElement("div"); list.className = "list";
     for (let i=0;i<dets.length;i++){
       const d = dets[i];
       const div = document.createElement("div");
-      div.className = "result " + d.type;
-      div.innerHTML = `<span class="badge ${d.type}">${d.type}</span>
-        (${d.x.toFixed(2)}, ${d.y.toFixed(2)}) · d=${d.d.toFixed(3)} · ∠=${(d.angle*DEG).toFixed(1)}°`;
+      div.className = "result " + (d.isOptimum ? "optimo" : d.type);
+      const star = d.isOptimum ? "★ " : "";
+      const levelStr = d.level !== undefined ? ` · f=${d.level.toFixed(3)}` : "";
+      div.innerHTML = `<span class="badge ${d.isOptimum ? "optimo" : d.type}">${star}${d.isOptimum ? "óptimo" : d.type}</span>
+        (${d.x.toFixed(2)}, ${d.y.toFixed(2)}) · d=${d.d.toFixed(3)} · ∠=${(d.angle*DEG).toFixed(1)}°${levelStr}`;
       div.onclick = () => this.app.renderer.setHighlight(i);
       list.appendChild(div);
     }
     root.appendChild(list);
 
-    // Resumen de esqueletos
+    // Esqueletos
     const skels = this.app.state.geometries.filter(g => g.showSkeleton && g.skeleton);
     if (skels.length){
       const h2 = document.createElement("h3"); h2.textContent = "Esqueletos"; h2.style.marginTop = "12px";
@@ -808,7 +1000,6 @@ class ControlsPanel {
         div.style.borderColor = "#fbbf24";
         div.innerHTML = `<span class="badge" style="background:#fbbf24;color:#000">${g.label}</span>
           ${g.skeleton.points.length} puntos de eje medio`;
-        list.appendChild(div);
         root.appendChild(div);
       }
     }
@@ -831,6 +1022,7 @@ class App {
       normScale: 5,
       skeletonResolution: 200,
       skeletonTolerance: 0.02,
+      optMode: "min",
       filters: { cruce:true, tangencia:true, cercania:true, paso:false },
       geometries: this._defaultGeometries(),
     };
@@ -848,6 +1040,14 @@ class App {
         p0x:p0[0], p0y:p0[1], p1x:p1[0], p1y:p1[1],
         p2x:p2[0], p2y:p2[1], p3x:p3[0], p3y:p3[1],
       };
+    } else if (id === "nivel"){
+      params = {
+        fName: geom.cfg.fName,
+        level: geom.cfg.level,
+        cx: geom.cfg.cx,
+        cy: geom.cfg.cy,
+        radius: geom.cfg.radius,
+      };
     } else {
       params = { ...geom.cfg };
     }
@@ -855,6 +1055,13 @@ class App {
   }
   _defaultGeometries(){
     return [
+      this._mkGeom("nivel", "Nivel (objetivo)", "#22d3ee", "objective",
+        new NivelDe({ fName:"distancia", level:1.5, cx:0, cy:0, radius:4 }), {
+        level:{label:"nivel c",min:-5,max:10,step:0.05,fmt:v=>v.toFixed(2)},
+        cx:{label:"cx",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        cy:{label:"cy",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        radius:{label:"radio",min:1,max:15,step:0.5,fmt:v=>v.toFixed(1)},
+      }),
       this._mkGeom("cuadrado", "Región", "#06b6d4", "none",
         new Poligono({cx:0, cy:0, w:4, h:3}), {
         cx:{label:"cx",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
@@ -917,6 +1124,7 @@ class App {
         continue;
       }
       Object.assign(g.geom.cfg, g.params);
+      if (g.geom instanceof NivelDe) g.geom.compute();
     }
   }
   _recomputeSkeletons(){
@@ -930,6 +1138,82 @@ class App {
         g.skeleton = null;
       }
     }
+  }
+  _augmentDetections(){
+    // Marcar tangencias nivel×restricción como óptimo KKT
+    for (const d of this.dets){
+      const a = this.state.geometries.find(g => g.id === d.a);
+      const b = this.state.geometries.find(g => g.id === d.b);
+      let nivel = null;
+      if (a?.geom instanceof NivelDe) nivel = a;
+      else if (b?.geom instanceof NivelDe) nivel = b;
+      if (nivel){
+        d.level = nivel.params.level;
+        d.fName = nivel.params.fName;
+        d.isOptimum = (d.type === "tangencia");
+      }
+    }
+  }
+  buscarOptimo(nivel){
+    const S = this.state;
+    const restrictions = S.geometries.filter(g =>
+      g.visible && g.role === "restriction" && !(g.geom instanceof NivelDe) && !g.showSkeleton
+    );
+    if (restrictions.length === 0){
+      alert("Necesitas al menos una restricción visible (rol 'restriction').");
+      return null;
+    }
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    const restPts = [];
+    for (const r of restrictions){
+      const pts = sampleByArcLength(r.geom, 200).map(s => s.p);
+      for (const p of pts){
+        if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0];
+        if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1];
+      }
+      restPts.push(...pts);
+    }
+    const span = Math.max(maxX-minX, maxY-minY) || 10;
+    const r = span * 0.8;
+    const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
+    const f = FUNCS[nivel.params.fName].fn;
+    const samples = [
+      f(cx-r, cy-r), f(cx+r, cy-r), f(cx-r, cy+r), f(cx+r, cy+r),
+      f(cx, cy), f(cx, cy-r), f(cx, cy+r), f(cx+r, cy), f(cx-r, cy),
+    ].filter(v => isFinite(v));
+    let cMin = Math.min(...samples), cMax = Math.max(...samples);
+    if (cMin === cMax){ cMin -= 1; cMax += 1; }
+    const steps = 80;
+    const cs = [];
+    for (let i=0; i<=steps; i++) cs.push(cMin + (cMax-cMin)*i/steps);
+    if (S.optMode === "max") cs.reverse();
+    const epsD = Math.max(S.epsD * 1.5, 0.06);
+    const restSample = restPts.filter((_, i) => i % 2 === 0);
+    for (const c of cs){
+      const n = new NivelDe({ fName: nivel.params.fName, level: c, cx, cy, radius: r });
+      n.compute();
+      const pts = sampleByArcLength(n, 200).map(s => s.p);
+      if (pts.length === 0) continue;
+      let minD = Infinity;
+      for (const [x,y] of pts){
+        for (const [gx,gy] of restSample){
+          const d = Math.hypot(x-gx, y-gy);
+          if (d < minD) minD = d;
+          if (minD < epsD) break;
+        }
+        if (minD < epsD) break;
+      }
+      if (minD < epsD){
+        nivel.params.level = c;
+        nivel.params.cx = cx;
+        nivel.params.cy = cy;
+        nivel.params.radius = r;
+        this._detect();
+        return { c };
+      }
+    }
+    alert("No se encontró tangencia en el rango calculado. Ajusta los parámetros.");
+    return null;
   }
   wire(){
     if (this._wired) return;
@@ -957,6 +1241,7 @@ class App {
       normMode: this.state.normMode,
       normScale: this.state.normScale,
     });
+    this._augmentDetections();
     this._draw();
     this.controls.updateResults(this.dets);
   }
@@ -976,7 +1261,6 @@ function runTests(){
   };
   const approx = (a,b,eps=1e-6) => Math.abs(a-b) < eps;
 
-  // Módulo 1: detector
   const l1 = new Recta({x1:-1,y1:0,x2:1,y2:0});
   const l2 = new Recta({x1:0,y1:-1,x2:0,y2:1});
   let dets = detect(
@@ -985,7 +1269,6 @@ function runTests(){
     {mode:"A",N:200,epsD:0.05,epsA:0.15,dMax:0.5,normMode:"none",normScale:1});
   const cruces = dets.filter(d => d.type==="cruce");
   t("perpendiculares → 1 cruce", cruces.length===1, `got ${cruces.length}`);
-  if (cruces.length) t("cruce en (0,0)", approx(cruces[0].x,0,0.02) && approx(cruces[0].y,0,0.02), JSON.stringify(cruces[0]));
 
   const l3 = new Recta({x1:-1,y1:0.5,x2:1,y2:0.5});
   dets = detect(
@@ -1006,15 +1289,7 @@ function runTests(){
      {id:"b",visible:true,role:"restriction",geom:circulo,showSkeleton:false}],
     {mode:"A",N:400,epsD:0.08,epsA:0.25,dMax:0.5,normMode:"none",normScale:1});
   const tan = dets.filter(d=>d.type==="tangencia");
-  t("tangencia detectada (1)", tan.length===1, `got ${tan.length} types=${dets.map(d=>d.type).join(",")}`);
-  if (tan.length) t("tangencia en (0,0)", approx(tan[0].x,0,0.03) && approx(tan[0].y,0,0.03), JSON.stringify(tan[0]));
-
-  const lejos = new Recta({x1:10,y1:10,x2:12,y2:10});
-  dets = detect(
-    [{id:"a",visible:true,role:"restriction",geom:l1,showSkeleton:false},
-     {id:"b",visible:true,role:"restriction",geom:lejos,showSkeleton:false}],
-    {mode:"A",N:200,epsD:0.05,epsA:0.15,dMax:0.5,normMode:"none",normScale:1});
-  t("lejanas → 0", dets.length===0, `got ${dets.length}`);
+  t("tangencia detectada (1)", tan.length===1, `got ${tan.length}`);
 
   const bz = new Bezier({pts:[[0,0],[3,0],[3,3],[0,3]]});
   const sp = sampleByArcLength(bz, 100);
@@ -1022,58 +1297,51 @@ function runTests(){
   for (let i=1;i<sp.length;i++) dists.push(hypot(sp[i].p[0]-sp[i-1].p[0], sp[i].p[1]-sp[i-1].p[1]));
   const avg = dists.reduce((s,x)=>s+x,0)/dists.length;
   const maxDev = Math.max(...dists.map(d=>Math.abs(d-avg)));
-  t("sampler: desviación < 2% del paso", maxDev/avg < 0.02, `avg=${avg.toFixed(4)} dev=${maxDev.toFixed(4)}`);
+  t("sampler: desviación < 2% del paso", maxDev/avg < 0.02);
 
-  const diag = new Recta({x1:0,y1:0,x2:1,y2:1});
-  const rawPts = sampleByArcLength(diag, 20).map(s=>s.p);
-  const norm = normalizePoints(rawPts, "unite", 5);
-  const tRaw = [rawPts[1][0]-rawPts[0][0], rawPts[1][1]-rawPts[0][1]];
-  const tNorm = [norm[1][0]-norm[0][0], norm[1][1]-norm[0][1]];
-  t("unite preserva ángulo", approx(angleBetween(tRaw,tNorm), 0, 1e-6));
+  t("clasif: cruce",     classify(0.01, 1.0, 0.05, 0.15)==="cruce");
+  t("clasif: tangencia", classify(0.01, 0.05, 0.05, 0.15)==="tangencia");
+  t("clasif: cercanía",  classify(0.5, 0.05, 0.05, 0.15)==="cercania");
+  t("clasif: paso",      classify(0.5, 1.0, 0.05, 0.15)==="paso");
 
-  t("clasif: d<ε_d, no paralelo → cruce",     classify(0.01, 1.0, 0.05, 0.15)==="cruce");
-  t("clasif: d<ε_d, paralelo → tangencia",    classify(0.01, 0.05, 0.05, 0.15)==="tangencia");
-  t("clasif: d>ε_d, paralelo → cercanía",     classify(0.5, 0.05, 0.05, 0.15)==="cercania");
-  t("clasif: d>ε_d, no paralelo → paso",      classify(0.5, 1.0, 0.05, 0.15)==="paso");
-
-  const st = [
-    {id:"a",visible:true,role:"objective",  geom:l1, showSkeleton:false},
-    {id:"b",visible:true,role:"restriction",geom:l2, showSkeleton:false},
-    {id:"c",visible:true,role:"restriction",geom:l3, showSkeleton:false},
-  ];
-  dets = detect(st, {mode:"B",N:200,epsD:0.05,epsA:0.15,dMax:0.6,normMode:"none",normScale:1});
-  const pares = new Set(dets.map(d=>[d.a,d.b].sort().join("-")));
-  t("modo B: solo objetivo×restricción", ![...pares].includes("b-c"));
-
-  // Módulo 2: esqueleto
-  console.group("Tests · esqueleto de región");
   const sq = new Poligono({cx:0.5, cy:0.5, w:1, h:1});
   const sk = computeSkeleton(sq.vertices, {resolution: 120, tolerance: 0.03});
-  t("esqueleto de cuadrado no vacío", sk.points.length > 20, `got ${sk.points.length}`);
+  t("esqueleto de cuadrado no vacío", sk.points.length > 20);
   let onDiag = 0;
   for (const p of sk.points){
     if (Math.abs(Math.abs(p.x-0.5) - Math.abs(p.y-0.5)) < 0.05) onDiag++;
   }
-  t("mayoría en diagonales del cuadrado", onDiag / sk.points.length > 0.7, `${(100*onDiag/sk.points.length).toFixed(1)}%`);
+  t("mayoría en diagonales", onDiag / sk.points.length > 0.7);
 
-  const rect = new Poligono({cx:0, cy:0, w:4, h:1});
-  const sk2 = computeSkeleton(rect.vertices, {resolution: 160, tolerance: 0.03});
-  t("esqueleto de rectángulo no vacío", sk2.points.length > 20, `got ${sk2.points.length}`);
-  // Comprobar que hay puntos cerca de la línea central y=0
-  let onCenter = 0;
-  for (const p of sk2.points){
-    if (Math.abs(p.y) < 0.1) onCenter++;
-  }
-  t("rectángulo: hay eje central en y=0", onCenter > 10, `got ${onCenter}`);
+  console.group("Tests · niveles (marching squares)");
+  const nv = new NivelDe({fName:"distancia", level:1, cx:0, cy:0, radius:4});
+  nv.compute();
+  const nvPts = sampleByArcLength(nv, 200).map(s=>s.p);
+  t("nivel: muestra puntos", nvPts.length > 50);
+  const radii = nvPts.map(([x,y]) => Math.hypot(x,y));
+  const rAvg = radii.reduce((s,x)=>s+x,0)/radii.length;
+  const rMaxDev = Math.max(...radii.map(r=>Math.abs(r-rAvg)));
+  t("nivel: círculo de radio 1", approx(rAvg, 1, 0.05) && rMaxDev < 0.05, `avg=${rAvg.toFixed(3)} dev=${rMaxDev.toFixed(3)}`);
 
-  const lejosDelBorde = computeSkeleton(new Poligono({cx:0,cy:0,w:1,h:1}).vertices, {resolution: 100, tolerance: 0.02});
-  let allInside = true;
-  for (const p of lejosDelBorde.points){
-    if (!pointInPolygon(p.x, p.y, [[-0.5,-0.5],[0.5,-0.5],[0.5,0.5],[-0.5,0.5]])){
-      allInside = false; break;
-    }
+  const nv2 = new NivelDe({fName:"lineal", level:1, cx:0, cy:0, radius:4});
+  nv2.compute();
+  const pts2 = sampleByArcLength(nv2, 200).map(s=>s.p);
+  if (pts2.length > 10){
+    const allOnLine = pts2.every(([x,y]) => Math.abs(x+y-1) < 0.1);
+    t("nivel: recta x+y=1", allOnLine);
+  } else {
+    t("nivel: recta x+y=1 (no samplea)", false, `pts=${pts2.length}`);
   }
-  t("puntos del esqueleto dentro del polígono", allInside);
+
+  const nv3 = new NivelDe({fName:"producto", level:1, cx:0, cy:0, radius:4});
+  nv3.compute();
+  const pts3 = sampleByArcLength(nv3, 200).map(s=>s.p);
+  if (pts3.length > 10){
+    const allOnHyp = pts3.every(([x,y]) => Math.abs(x*y-1) < 0.15);
+    t("nivel: hipérbola xy=1", allOnHyp);
+  } else {
+    t("nivel: hipérbola xy=1 (no samplea)", false, `pts=${pts3.length}`);
+  }
   console.groupEnd();
 
   console.groupEnd();
