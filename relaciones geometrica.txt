@@ -1,0 +1,245 @@
+================================================================================
+EXPLORADOR DE PUNTOS NOTABLES ENTRE CURVAS 2D
+Curvas + esqueleto de región + visualizador KKT
+================================================================================
+
+QUÉ ES
+------
+Una herramienta web de un solo archivo HTML que dibuja curvas paramétricas
+en un plano 2D y detecta automáticamente los puntos donde dos curvas se
+cruzan, se tocan o se acercan. Además incluye dos módulos independientes:
+un calculador de esqueleto (eje medio) de regiones poligonales, y un
+visualizador de las condiciones de optimalidad KKT para problemas de
+optimización con dos variables.
+
+No es un producto. Es un microscopio geométrico: sirve para VER relaciones
+entre curvas, no para resolver un problema de negocio concreto. Su valor
+principal es didáctico y exploratorio.
+
+No resuelve:
+  - Optimización de paradas de bus (problema discreto sobre grafos).
+  - Diseño de canales de refrigeración (CFD + optimización topológica).
+  - Tráfico agregado (teoría de flujo, economía del comportamiento).
+  - Nada con más de 2 variables (la geometría deja de ser intuitiva).
+
+Sí sirve para:
+  - Ver qué es una tangencia, una intersección, una cercanía.
+  - Visualizar las condiciones KKT de un problema de optimización 2D.
+  - Comparar curvas (clotoides, Bézier, espirales) en el mismo plano.
+  - Detectar colisiones o clearance entre trayectorias paramétricas.
+  - Enseñar geometría diferencial con sliders en vivo.
+
+
+ESTRUCTURA DEL CÓDIGO
+---------------------
+Tres capas, sin build, sin npm, sin frameworks:
+
+  1. DOMINIO (JS puro, sin DOM ni canvas)
+     - Clases de geometría: Recta, Espiral, Murray, Clotoide, Bezier,
+       Poligono, NivelDe.
+     - Sampler por longitud de arco.
+     - Normalización (none / unite / minmax).
+     - Detector de mínimos de distancia.
+     - Clasificador de puntos (cruce / tangencia / cercanía / paso).
+     - Calculador de esqueleto de región.
+     - Funciones objetivo (distancia, x²+y², x+y, xy, L1, L∞).
+
+  2. ADAPTADORES (sí tocan DOM y canvas)
+     - CanvasRenderer: pan/zoom, dibujo de curvas, puntos y esqueleto.
+     - ControlsPanel: construye el panel flotante, sliders, roles,
+       filtros y lista de resultados.
+
+  3. APLICACIÓN (wiring)
+     - App: mantiene el estado, orquesta los módulos y conecta todo
+       mediante un EventBus (state:change, view:change, display:change).
+     - Debounce de 60 ms para no recalcular en cada píxel de slider.
+
+La separación permite cambiar la UI (React, three.js) sin tocar el
+dominio, y añadir geometrías nuevas creando una clase con eval(t).
+
+
+QUÉ HACE CADA MÓDULO
+--------------------
+MÓDULO 1 · DETECTOR DE RELACIONES ENTRE CURVAS
+  Entrada: una lista de geometrías visibles con un rol
+           (objective / restriction / none).
+  Proceso:
+    1. Cada geometría se muestrea en N puntos equidistantes en longitud
+       de arco (no en parámetro t, que sesga Bézier y clotoide).
+    2. Los puntos se normalizan según el modo elegido.
+    3. Se calculan tangentes por diferencia central.
+    4. Para cada par (según el modo A o B), se calcula la matriz de
+       distancias punto a punto.
+    5. Se buscan mínimos locales (vecindario 5×5) y se deduplican
+       quedándose con el de menor distancia en cada grupo espacial.
+    6. Cada mínimo se clasifica con dos umbrales:
+         - epsD: distancia de contacto
+         - epsA: ángulo de paralelismo
+       dando cuatro tipos:
+         - cruce:      d < epsD, tangentes no paralelas
+         - tangencia:  d < epsD, tangentes paralelas
+         - cercanía:   d > epsD, tangentes paralelas
+         - paso:       d > epsD, tangentes no paralelas
+  Salida: lista de puntos (x, y, d, ángulo, tipo, par de curvas).
+
+MÓDULO 2 · ESQUELETO DE REGIÓN (eje medio / directriz)
+  Entrada: un polígono (rectángulo o lista de vértices).
+  Proceso:
+    1. Rasteriza la región en una rejilla de resolución configurable.
+    2. Para cada celda dentro, calcula la distancia a cada arista.
+    3. Toma las dos distancias menores d1, d2 y calcula diff = |d1-d2|.
+    4. El eje medio son los puntos donde diff ≈ 0 y es mínimo local.
+  Salida: nube de puntos del esqueleto (dibujados en amarillo).
+  Limitación: heurística exacta para polígonos convexos; puede dar ramas
+  espurias en no convexos. Alternativas: Voronoi de segmentos, thinning
+  morfológico (Zhang-Suen), distance transform + crestas.
+
+MÓDULO 3 · VISUALIZADOR KKT (condiciones de optimalidad)
+  Entrada: una función objetivo f(x,y) y una o más restricciones.
+  Proceso:
+    1. La geometría NivelDe dibuja la curva de nivel f(x,y) = c usando
+       marching squares sobre una rejilla, y encadena los segmentos en
+       una polilínea (solo la rama más larga).
+    2. El detector del Módulo 1 busca tangencias entre esa curva de
+       nivel y las restricciones.
+    3. Toda tangencia que involucre a un NivelDe se marca como
+       "óptimo candidato" (isOptimum = true), se pinta en cian y se
+       lista arriba de los resultados con su valor de f.
+    4. El botón "Buscar óptimo" barre c en el rango inferido de las
+       restricciones (80 pasos), en la dirección elegida (min o max),
+       y se detiene en la primera tangencia.
+  Fundamento: en un problema de optimización con restricciones, el
+  óptimo (si existe y es regular) está donde la curva de nivel de f es
+  TANGENTE a la frontera de la región factible. Es la versión geométrica
+  de las condiciones KKT en 2D.
+  Limitación: solo 2 variables, solo restricciones suaves. No sustituye
+  a un solver; lo visualiza.
+
+
+CÓMO SE USA
+-----------
+1. Abrir el HTML en un navegador. El panel flota a la derecha; se oculta
+   con el botón ☰ o con la tecla P.
+2. Cada geometría es un bloque colapsable con:
+     - Un punto de color (identifica la curva en el canvas).
+     - El nombre.
+     - Un badge de rol (clic para ciclar none → restriction → objective).
+     - Un icono de visibilidad (◉/○).
+     - Sliders de sus parámetros.
+3. Modo A: todas las geometrías visibles se cruzan entre sí.
+   Modo B: solo se cruzan objective × restriction.
+4. Los puntos detectados aparecen en el canvas (colores por tipo) y en
+   la lista de la derecha. Clic en un resultado resalta el punto.
+5. Filtros por tipo (cruce, tangencia, cercanía, paso) para ocultar los
+   que no interesen.
+6. En la geometría NivelDe, el selector f(x,y) cambia la función
+   objetivo; el slider "nivel c" mueve la curva; "Buscar óptimo" coloca
+   el nivel en la primera tangencia con una restricción.
+
+Parámetros globales clave:
+  - N muestras: puntos por curva (más = más preciso, más lento).
+  - epsD: umbral de distancia para "contacto".
+  - epsA: umbral de ángulo para "paralelismo".
+  - d_max: cutoff para descartar pares lejanos.
+  - Norm: none / unite (isotrópico) / minmax (rompe ángulos).
+  - Resolución y tolerancia del esqueleto.
+
+
+EJEMPLO KKT EN 30 SEGUNDOS
+--------------------------
+Problema: minimizar √(x²+y²) sujeto a x + y ≥ 2.
+Solución analítica: (1, 1), f = √2 ≈ 1.414.
+
+Pasos en la herramienta:
+  1. En "Recta", ajustar parámetros a x1=0, y1=2, x2=2, y2=0.
+  2. En "Nivel (objetivo)", dejar f = distancia.
+  3. Pulsar "Buscar óptimo" con dirección "min".
+  4. El nivel se coloca tangente a la recta en (1,1). El punto se marca
+     en cian con aro exterior y aparece el bloque "Óptimo candidato"
+     arriba con f = 1.414.
+
+Eso es KKT visualizado: la circunferencia más pequeña que aún toca la
+recta determina el óptimo.
+
+
+DECISIONES DE DISEÑO (marcadas como [DECISIÓN] en el código)
+-------------------------------------------------------------
+Cada bloque [DECISIÓN] indica:
+  - qué se eligió,
+  - qué alternativas hay,
+  - cuándo cambiarlo.
+Puntos marcados:
+  - Espiral de Arquímedes (vs logarítmica vs Fermat).
+  - Murray simétrico (vs asimétrico).
+  - Clotoide por integración numérica (vs aproximación polinómica).
+  - Bézier cúbica (vs B-spline, NURBS).
+  - Muestreo por arco (vs por parámetro).
+  - Normalización none/unite/minmax (vs por longitud de arco, por
+    centroide, bounds combinados).
+  - Tangentes por diferencia central (vs analíticas).
+  - Detector O(N·M) con 5×5 (vs spatial hash, vs refinamiento
+    sub-muestreo).
+  - Ángulo en [0, π/2] (vs con signo).
+  - Clasificador 4 tipos (vs 3 sin "paso").
+  - Esqueleto por equidistancia (vs Voronoi, vs thinning).
+  - NivelDe solo rama más larga (vs todas las ramas).
+
+
+TESTS
+-----
+Al cargar, la consola ejecuta una batería de tests sobre el dominio:
+  - Rectas perpendiculares → 1 cruce en (0,0).
+  - Rectas paralelas → 0 cruces, ≥1 cercanía.
+  - Tangencia recta/círculo → 1 tangencia.
+  - Curvas lejanas → 0 detecciones.
+  - Sampler: desviación < 2% del paso medio.
+  - Normalización unite preserva ángulo.
+  - Clasificador: los 4 tipos.
+  - Modo B filtra por roles.
+  - Esqueleto de cuadrado: mayoritariamente en diagonales.
+  - Esqueleto de rectángulo: eje central en y=0.
+  - Puntos de esqueleto dentro del polígono.
+  - Marching squares: círculo de radio 1, recta x+y=1, hipérbola xy=1.
+
+Si algo falla, sale en rojo en la consola. Sirven como red de seguridad
+al modificar fórmulas.
+
+
+QUÉ NO HACE (y por qué)
+-----------------------
+  - No resuelve problemas de negocio concretos: la geometría describe
+    relaciones espaciales, no decisiones. Las decisiones necesitan
+    objetivos, restricciones y un solver.
+  - No escala a 3+ variables: la intuición geométrica se pierde.
+  - No es un solver numérico: el barrido de "Buscar óptimo" es de 80
+    pasos sobre una rejilla; un solver real usaría gradientes,
+    Newton, o programación entera según el caso.
+  - No dibuja líneas continuas en el esqueleto: son puntos de 2.4 px.
+    Un pase de "tracing" para unirlos en polilíneas no está en v1.
+  - No exporta ni importa: no hay JSON de estado ni carga de archivos.
+
+
+EXTENDERLO
+----------
+Añadir una geometría nueva:
+  1. Crear una clase que extienda Geometry con eval(t) → {p:[x,y], d:[dx,dy]}.
+  2. Registrarla en _defaultGeometries() con su paramSpec.
+  3. Nada más: el sampler, normalizador, detector, renderer y panel
+     funcionan sin tocar código.
+
+Añadir una función objetivo nueva:
+  1. Añadir una entrada a FUNCS con {label, fn}.
+  2. Aparece automáticamente en el selector de NivelDe.
+
+Cambiar la métrica de distancia:
+  - El punto de cambio es hypot() dentro de findDistanceMinima. Cambiar
+    a norma L1, L∞ o geodésica requiere tocar también computeTangents
+    y el cálculo de ángulo, porque la noción de "paralelo" depende de
+    la métrica.
+
+
+LICENCIA / USO
+--------------
+Código de ejemplo, sin garantías. Úsalo, modifícalo, rómpelo. Si te
+sirve para entender KKT, tangencias o esqueletos, ya ha cumplido.
+Si buscas un producto, esto no lo es.
