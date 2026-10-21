@@ -2,18 +2,55 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Explorador de puntos notables · curvas 2D</title>
+<title>Explorador de puntos notables · curvas 2D + esqueleto</title>
 <style>
   :root {
     --bg:#0f1115; --fg:#e5e7eb; --muted:#9ca3af; --panel:#161922; --border:#2a2f3a;
     --cruce:#ef4444; --tangencia:#22c55e; --cercania:#eab308; --paso:#a855f7;
+    --skeleton:#fbbf24; --region:#06b6d4;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg)}
-  #app{display:flex;height:100vh}
-  #cv{flex:1;display:block;background:var(--bg);cursor:grab}
+  html,body{margin:0;height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden}
+
+  #app{position:relative;height:100vh;width:100vw}
+  #cv{position:absolute;inset:0;display:block;background:var(--bg);cursor:grab;width:100%;height:100%}
   #cv.dragging{cursor:grabbing}
-  #panel{width:400px;overflow-y:auto;padding:12px;background:var(--panel);border-left:1px solid var(--border);font-size:13px}
+
+  #panel{
+    position:fixed;
+    top:60px; right:12px; bottom:12px;
+    width:400px;
+    max-width:calc(100vw - 24px);
+    overflow-y:auto;
+    padding:12px;
+    background:rgba(22,25,34,.96);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:13px;
+    z-index:10;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);
+    transition:transform .22s ease, opacity .22s ease;
+  }
+  #panel.hidden{
+    transform:translateX(calc(100% + 24px));
+    opacity:0;
+    pointer-events:none;
+  }
+
+  #toggle-panel{
+    position:fixed; top:12px; right:12px; z-index:20;
+    width:40px; height:40px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; padding:0;
+    box-shadow:0 4px 12px rgba(0,0,0,.4);
+  }
+
+  #panel::-webkit-scrollbar{width:8px}
+  #panel::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:4px}
+  #panel::-webkit-scrollbar-track{background:transparent}
+
   .section{margin-bottom:16px}
   .section h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
   .row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
@@ -48,6 +85,8 @@
   select{background:#2a2f3a;color:var(--fg);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px}
   .filters{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
   .filters label{display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:2px 6px;border-radius:3px;background:#1c2030}
+  hr{border:0;border-top:1px solid var(--border);margin:12px 0}
+  .check{display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px}
 </style>
 </head>
 <body>
@@ -58,32 +97,11 @@
     <div class="section" id="geoms-section"></div>
     <div class="section" id="results-section"></div>
   </aside>
+  <button id="toggle-panel" title="Mostrar/ocultar panel (P)">☰</button>
 </div>
 <script>
 "use strict";
 
-// ============================================================
-// PORTS (contratos implícitos en JS)
-// ------------------------------------------------------------
-// RendererPort:
-//   draw(state, detections)
-//   worldToScreen(p) -> [sx,sy]
-//   screenToWorld([sx,sy]) -> p
-//   fitToGeometries(states)
-//   setHighlight(idx)
-//
-// ControlsPort:
-//   mount(container, app)   // construye DOM, suscribe al bus
-//
-// BusPort (EventBus abajo):
-//   on(ev, fn), off(ev, fn), emit(ev, data)
-//
-// El dominio NO importa DOM ni canvas. Los adaptadores SÍ.
-// ============================================================
-
-// ============================================================
-// 0. UTILS
-// ============================================================
 const hypot = Math.hypot;
 const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
 const DEG = 180/Math.PI;
@@ -96,14 +114,8 @@ class EventBus {
 }
 
 // ============================================================
-// 1. DOMINIO (puro, sin DOM)
+// MÓDULO 1 · DOMINIO · GEOMETRÍAS (curvas abiertas y regiones)
 // ============================================================
-
-// ------------------------------------------------------------
-// 1.1 Geometrías
-// Cada una implementa eval(t) -> {p:[x,y], d:[dx,dy]} con t en [0,1].
-// d() no necesita estar normalizado; el sampler lo normaliza.
-// ------------------------------------------------------------
 class Geometry {
   constructor(cfg){ this.cfg = cfg; }
   eval(_t){ throw new Error("abstract"); }
@@ -116,9 +128,6 @@ class Recta extends Geometry {
   }
 }
 
-// [DECISIÓN] Espiral de Arquímedes r = a + b·θ
-// Alternativas: espiral logarítmica (auto-similar), espiral de Fermat (r²=θ)
-// Cambiar si: quieres que las ramas se separen geométricamente (logarítmica)
 class Espiral extends Geometry {
   eval(t){
     const {cx,cy,a,b,thetaMax} = this.cfg;
@@ -131,10 +140,6 @@ class Espiral extends Geometry {
   }
 }
 
-// [DECISIÓN] Bifurcación de Murray: 3 segmentos (padre + 2 hijos), ángulo simétrico.
-// Ley: r0³ = r1³ + r2³, ángulo óptimo ~74.93° para flujo laminar.
-// Alternativa: ángulo asimétrico, o radio asimétrico (r1≠r2).
-// Cambiar si: quieres estudiar asimetría de bifurcación.
 class Murray extends Geometry {
   eval(t){
     const {ox,oy,len,angleDeg} = this.cfg;
@@ -154,10 +159,6 @@ class Murray extends Geometry {
   }
 }
 
-// [DECISIÓN] Clotoide (Euler): curvatura lineal con la longitud.
-// Se integra numéricamente al construir; eval(t) interpola tabla.
-// Alternativa: solo el tramo inicial aproximado por polinomios.
-// Cambiar si: necesitas precisión analítica (raro).
 class Clotoide extends Geometry {
   constructor(cfg){
     super(cfg);
@@ -192,9 +193,6 @@ class Clotoide extends Geometry {
   }
 }
 
-// [DECISIÓN] Bézier cúbica con 4 puntos de control.
-// Alternativas: B-spline, NURBS, polinomio de Hermite.
-// Cambiar si: quieres control local (B-spline) o pesos (NURBS).
 class Bezier extends Geometry {
   eval(t){
     const [p0,p1,p2,p3] = this.cfg.pts;
@@ -207,12 +205,40 @@ class Bezier extends Geometry {
   }
 }
 
-// ------------------------------------------------------------
-// 1.2 Sampler por longitud de arco
-// [DECISIÓN] Muestreo uniforme en arco, no en parámetro.
-// Alternativa: muestreo en parámetro (más rápido, malo en Bézier/clotoide).
-// Cambiar si: la velocidad importa y las curvas son casi rectas.
-// ------------------------------------------------------------
+// Poligono: región cerrada. Puede ser rectángulo (cx,cy,w,h) o polígono arbitrario (vertices).
+class Poligono extends Geometry {
+  get vertices(){
+    if (this.cfg.vertices) return this.cfg.vertices;
+    const {cx, cy, w, h} = this.cfg;
+    return [
+      [cx-w/2, cy-h/2], [cx+w/2, cy-h/2],
+      [cx+w/2, cy+h/2], [cx-w/2, cy+h/2],
+    ];
+  }
+  eval(t){
+    const v = this.vertices;
+    const n = v.length;
+    const cum = [0];
+    for (let i=0;i<n;i++){
+      const a = v[i], b = v[(i+1)%n];
+      cum.push(cum[i] + Math.hypot(b[0]-a[0], b[1]-a[1]));
+    }
+    const L = clamp(t,0,1) * cum[n];
+    let i = 0;
+    while (i < n-1 && cum[i+1] < L) i++;
+    const a = v[i], b = v[(i+1)%n];
+    const segLen = cum[i+1] - cum[i] || 1;
+    const f = (L - cum[i]) / segLen;
+    return {
+      p: [a[0] + f*(b[0]-a[0]), a[1] + f*(b[1]-a[1])],
+      d: [b[0]-a[0], b[1]-a[1]]
+    };
+  }
+}
+
+// ============================================================
+// MÓDULO 1 · DOMINIO · SAMPLER, NORMALIZACIÓN, DETECTOR
+// ============================================================
 function sampleByArcLength(geom, N){
   const M = N*8;
   const rawPts = new Array(M+1), rawTs = new Array(M+1);
@@ -239,16 +265,6 @@ function sampleByArcLength(geom, N){
   return out;
 }
 
-// ------------------------------------------------------------
-// 1.3 Normalización
-// [DECISIÓN] Tres modos:
-//   none   → identidad
-//   unite  → isotrópico /scale (preserva ángulos; no-op para detección
-//            si epsD también escala)
-//   minmax → no isotrópico (rompe ángulos; útil solo para display)
-// Alternativa: normalizar por longitud de arco, o por centroide.
-// Cambiar si: quieres que geometrías muy dispares convivan visualmente.
-// ------------------------------------------------------------
 function normalizePoints(pts, mode, scale){
   if (mode === "none") return pts.map(p => [p[0], p[1]]);
   if (mode === "unite"){
@@ -264,10 +280,6 @@ function normalizePoints(pts, mode, scale){
   return pts.map(p => [p[0], p[1]]);
 }
 
-// [DECISIÓN] Tangentes por diferencia central tras normalizar.
-// Alternativa: usar la tangente analítica de eval() (más precisa pero no
-// refleja la normalización).
-// Cambiar si: la normalización es none y quieres precisión analítica.
 function computeTangents(pts){
   const n = pts.length;
   const t = new Array(n);
@@ -280,15 +292,6 @@ function computeTangents(pts){
   return t;
 }
 
-// ------------------------------------------------------------
-// 1.4 Detector (opción C: mínimos de distancia)
-// ------------------------------------------------------------
-// [DECISIÓN] Matriz de distancias O(N·M), mínimos no estrictos, deduplicado.
-// Alternativas:
-//   - Spatial hash: O(N) por par, pero código más largo.
-//   - Refinamiento sub-muestreo: más preciso pero lento.
-// Cambiar si: N sube de 800 o necesitas precisión sub-píxel.
-// ------------------------------------------------------------
 function findDistanceMinima(A, B, dedupeR){
   const N = A.length, M = B.length;
   const D = new Array(N);
@@ -317,7 +320,6 @@ function findDistanceMinima(A, B, dedupeR){
       if (isMin) cands.push({ i, j, d:v, p:[(A[i][0]+B[j][0])/2, (A[i][1]+B[j][1])/2] });
     }
   }
-  // Deduplicar por proximidad espacial: quedarse con el de menor d
   cands.sort((a,b) => a.d - b.d);
   const kept = [];
   for (const c of cands){
@@ -326,8 +328,6 @@ function findDistanceMinima(A, B, dedupeR){
   return kept;
 }
 
-// [DECISIÓN] Ángulo entre tangentes en [0, π/2] (ignora orientación).
-// Alternativa: ángulo con signo [0, 2π) si la orientación importa.
 function angleBetween(u, v){
   const nu = hypot(u[0],u[1]), nv = hypot(v[0],v[1]);
   if (nu < 1e-12 || nv < 1e-12) return 0;
@@ -335,31 +335,27 @@ function angleBetween(u, v){
   return Math.acos(Math.abs(c));
 }
 
-// [DECISIÓN] Clasificador por (d, ángulo) → 4 tipos.
-// Alternativa: 3 tipos (sin "paso cercano"), o umbral adaptativo por escala.
 function classify(d, angle, epsD, epsA){
-  const touching   = d < epsD;
-  const parallel   = angle < epsA;
+  const touching = d < epsD;
+  const parallel = angle < epsA;
   if (touching && !parallel) return "cruce";
   if (touching &&  parallel) return "tangencia";
   if (!touching && parallel) return "cercania";
   return "paso";
 }
 
-// Orquestador del dominio: puro, sin side effects
 function detect(states, opts){
   const { mode, N, epsD, epsA, dMax, normMode, normScale } = opts;
-  // 1) Muestrear + normalizar + tangentes por geometría visible
   const prepped = [];
   for (const s of states){
     if (!s.visible) continue;
+    if (s.showSkeleton) continue; // las regiones con esqueleto no entran en detección de pares
     if (mode === "B" && s.role === "none") continue;
     const raw = sampleByArcLength(s.geom, N);
     const pts = normalizePoints(raw.map(r => r.p), normMode, normScale);
     const tans = computeTangents(pts);
     prepped.push({ id: s.id, role: s.role, pts, tans });
   }
-  // 2) Seleccionar pares
   const pairs = [];
   for (let i=0;i<prepped.length;i++){
     for (let j=i+1;j<prepped.length;j++){
@@ -372,13 +368,12 @@ function detect(states, opts){
       pairs.push([a, b]);
     }
   }
-  // 3) Detectar
   const dets = [];
   const dedupeR = Math.max(epsD*3, 0.02);
   for (const [a, b] of pairs){
     const minima = findDistanceMinima(a.pts, b.pts, dedupeR);
     for (const m of minima){
-      if (m.d > dMax) continue; // cutoff de cercanía
+      if (m.d > dMax) continue;
       const ang = angleBetween(a.tans[m.i], b.tans[m.j]);
       const type = classify(m.d, ang, epsD, epsA);
       dets.push({
@@ -391,12 +386,99 @@ function detect(states, opts){
 }
 
 // ============================================================
-// 2. ADAPTADORES
+// MÓDULO 2 · ESQUELETO / DIRECTRIZ DE REGIÓN
+// ------------------------------------------------------------
+// [DECISIÓN] Esqueleto por "dos aristas equidistantes":
+//   - Rasterizamos la región a una rejilla.
+//   - Para cada celda dentro, calculamos la distancia a cada arista.
+//   - d1, d2 = dos distancias menores; diff = |d1 - d2|.
+//   - El eje medio es el conjunto de puntos donde diff = 0 (equidistante
+//     a dos aristas) y es mínimo local de diff.
+//   Válido para polígonos convexos. Para no convexos aparecen ramas
+//   espurias; se resolvería con chequeo de bola maximal (costoso).
+// Alternativas: Zhang-Suen thinning, Voronoi de segmentos, distance
+// transform + crestas. Cambiar si: quieres esqueleto topológico robusto
+// en polígonos no convexos.
 // ============================================================
+function pointInPolygon(px, py, verts){
+  let inside = false;
+  const n = verts.length;
+  for (let i=0, j=n-1; i<n; j=i++){
+    const xi = verts[i][0], yi = verts[i][1];
+    const xj = verts[j][0], yj = verts[j][1];
+    if (((yi > py) !== (yj > py)) &&
+        (px < (xj - xi) * (py - yi) / (yj - yi) + xi)){
+      inside = !inside;
+    }
+  }
+  return inside;
+}
 
-// ------------------------------------------------------------
-// 2.1 CanvasRenderer (implementa RendererPort)
-// ------------------------------------------------------------
+function distToSegment(px, py, ax, ay, bx, by){
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx*dx + dy*dy;
+  const t = len2 > 0 ? clamp(((px-ax)*dx + (py-ay)*dy) / len2, 0, 1) : 0;
+  const cx = ax + t*dx, cy = ay + t*dy;
+  return Math.hypot(px-cx, py-cy);
+}
+
+function computeSkeleton(vertices, opts = {}){
+  const { resolution = 200, tolerance = 0.02 } = opts;
+  const n = vertices.length;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x,y] of vertices){
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  const W = maxX - minX, H = maxY - minY;
+  const cell = Math.max(W, H) / resolution;
+  const nx = Math.ceil(W / cell) + 1;
+  const ny = Math.ceil(H / cell) + 1;
+  const diff = new Float64Array(nx * ny).fill(1e9);
+  const dmin = new Float64Array(nx * ny).fill(-1);
+  for (let j=0;j<ny;j++){
+    for (let i=0;i<nx;i++){
+      const px = minX + i*cell;
+      const py = minY + j*cell;
+      if (!pointInPolygon(px, py, vertices)) continue;
+      let d1 = Infinity, d2 = Infinity;
+      for (let e=0;e<n;e++){
+        const a = vertices[e], b = vertices[(e+1)%n];
+        const d = distToSegment(px, py, a[0], a[1], b[0], b[1]);
+        if (d < d1){ d2 = d1; d1 = d; }
+        else if (d < d2){ d2 = d; }
+      }
+      const idx = j*nx + i;
+      diff[idx] = d2 - d1;
+      dmin[idx] = d1;
+    }
+  }
+  const pts = [];
+  for (let j=1;j<ny-1;j++){
+    for (let i=1;i<nx-1;i++){
+      const idx = j*nx + i;
+      if (dmin[idx] < 0) continue;
+      const v = diff[idx];
+      if (v > tolerance) continue;
+      let isMin = true;
+      for (let dj=-1; dj<=1 && isMin; dj++){
+        for (let di=-1; di<=1; di++){
+          if (dj===0 && di===0) continue;
+          const nidx = (j+dj)*nx + (i+di);
+          if (dmin[nidx] < 0) continue;
+          if (diff[nidx] < v - 1e-9){ isMin = false; break; }
+        }
+      }
+      if (!isMin) continue;
+      pts.push({ x: minX + i*cell, y: minY + j*cell, d: dmin[idx] });
+    }
+  }
+  return { points: pts, cell, bbox: {minX, minY, maxX, maxY} };
+}
+
+// ============================================================
+// ADAPTADOR CANVAS
+// ============================================================
 class CanvasRenderer {
   constructor(canvas, bus){
     this.cv = canvas;
@@ -496,9 +578,9 @@ class CanvasRenderer {
     const ctx = this.ctx;
     const W = this.cv.clientWidth, H = this.cv.clientHeight;
     ctx.clearRect(0,0,W,H);
-    // grid
     this._drawGrid(W,H);
-    // curvas
+
+    // Curvas y regiones
     for (const s of state.geometries){
       if (!s.visible) continue;
       const pts = sampleByArcLength(s.geom, 300);
@@ -514,8 +596,18 @@ class CanvasRenderer {
       ctx.setLineDash(s.role === "objective" ? [] : s.role === "none" ? [4,4] : []);
       ctx.stroke();
       ctx.setLineDash([]);
+
+      // Esqueleto de la región
+      if (s.showSkeleton && s.skeleton){
+        ctx.fillStyle = "rgba(251, 191, 36, 0.85)";
+        for (const p of s.skeleton.points){
+          const [sx,sy] = this.worldToScreen([p.x, p.y]);
+          ctx.fillRect(sx-1.2, sy-1.2, 2.4, 2.4);
+        }
+      }
     }
-    // detecciones
+
+    // Detecciones del módulo 1
     const colors = { cruce:"#ef4444", tangencia:"#22c55e", cercania:"#eab308", paso:"#a855f7" };
     for (let i=0;i<dets.length;i++){
       const d = dets[i];
@@ -556,17 +648,19 @@ function niceStep(raw){
   return p * (n<1.5?1 : n<3.5?2 : n<7.5?5 : 10);
 }
 
-// ------------------------------------------------------------
-// 2.2 ControlsPanel (implementa ControlsPort)
-// ------------------------------------------------------------
+// ============================================================
+// ADAPTADOR CONTROLES
+// ============================================================
 class ControlsPanel {
   constructor(bus, app){ this.bus = bus; this.app = app; }
-  mount(root){
+  mount(){
     this._buildGlobal(document.getElementById("global-section"));
     this._buildGeoms(document.getElementById("geoms-section"));
     this._buildResults(document.getElementById("results-section"));
   }
   _buildGlobal(root){
+    root.innerHTML = "";
+    const h = document.createElement("h3"); h.textContent = "Parámetros globales"; root.appendChild(h);
     const S = this.app.state;
     const mk = (label, el) => {
       const row = document.createElement("div");
@@ -575,7 +669,6 @@ class ControlsPanel {
       row.appendChild(l); row.appendChild(el);
       root.appendChild(row);
     };
-    // modo
     const modeSel = document.createElement("select");
     for (const [k,v] of [["A","A · todos contra todos"],["B","B · objetivo × restricción"]]){
       const o = document.createElement("option"); o.value=k; o.textContent=v; modeSel.appendChild(o);
@@ -583,15 +676,14 @@ class ControlsPanel {
     modeSel.value = S.mode;
     modeSel.onchange = () => { S.mode = modeSel.value; this.bus.emit("state:change"); this._refreshRoles(); };
     mk("Modo", modeSel);
-    root.appendChild(document.createElement("hr")).style.borderColor = "#2a2f3a";
 
-    const slider = (label, key, min, max, step, fmt = v=>v.toFixed(2), after) => {
-      const wrap = document.createElement("div");
-      wrap.style.display = "contents";
+    root.appendChild(document.createElement("hr"));
+
+    const slider = (label, key, min, max, step, fmt) => {
       const inp = document.createElement("input");
       inp.type = "range"; inp.min = min; inp.max = max; inp.step = step; inp.value = S[key];
       const val = document.createElement("span"); val.className = "val"; val.textContent = fmt(S[key]);
-      inp.oninput = () => { S[key] = parseFloat(inp.value); val.textContent = fmt(S[key]); this.bus.emit("state:change"); after?.(); };
+      inp.oninput = () => { S[key] = parseFloat(inp.value); val.textContent = fmt(S[key]); this.bus.emit("state:change"); };
       const row = document.createElement("div");
       row.className = "row";
       const l = document.createElement("label"); l.textContent = label;
@@ -602,7 +694,7 @@ class ControlsPanel {
     slider("ε_d (dist)",    "epsD",   0.005, 0.3, 0.005, v => v.toFixed(3));
     slider("ε_a (ángulo)",  "epsA",   0.01, 0.6, 0.01, v => (v*DEG).toFixed(1)+"°");
     slider("d_max cutoff",  "dMax",   0.05, 1.5, 0.05, v => v.toFixed(2));
-    // normalización
+
     const normRow = document.createElement("div"); normRow.className = "row";
     const nl = document.createElement("label"); nl.textContent = "Norm";
     const ns = document.createElement("select");
@@ -610,13 +702,18 @@ class ControlsPanel {
       const o = document.createElement("option"); o.value=m; o.textContent=m; ns.appendChild(o);
     }
     ns.value = S.normMode;
-    ns.onchange = () => { S.normMode = ns.value; this.bus.emit("state:change"); };
+    ns.onchange = () => { S.normMode = ns.value; this.bus.emit("state:change"); this._buildGlobal(root); };
     normRow.append(nl, ns);
     root.appendChild(normRow);
     if (S.normMode !== "none"){
       slider("scale norm", "normScale", 1, 20, 0.5, v => v.toFixed(1));
     }
-    // filtros de tipo
+
+    root.appendChild(document.createElement("hr"));
+    const h2 = document.createElement("h3"); h2.textContent = "Esqueleto de regiones"; root.appendChild(h2);
+    slider("resolución esq.", "skeletonResolution", 80, 400, 20, v => v|0);
+    slider("tolerancia esq.", "skeletonTolerance", 0.005, 0.15, 0.005, v => v.toFixed(3));
+
     const f = document.createElement("div"); f.className = "filters";
     for (const t of ["cruce","tangencia","cercania","paso"]){
       const lab = document.createElement("label");
@@ -626,7 +723,7 @@ class ControlsPanel {
       f.appendChild(lab);
     }
     root.appendChild(f);
-    // botón fit
+
     const btn = document.createElement("button");
     btn.textContent = "Ajustar vista";
     btn.style.marginTop = "8px";
@@ -658,7 +755,17 @@ class ControlsPanel {
     hd.append(dot, name, role, vis);
     const body = document.createElement("div"); body.className = "geom-body";
     hd.onclick = () => box.classList.toggle("open");
-    // sliders de parámetros
+
+    // Checkbox de esqueleto para polígonos
+    if (g.geom instanceof Poligono){
+      const ck = document.createElement("label");
+      ck.className = "check";
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!g.showSkeleton;
+      cb.onchange = () => { g.showSkeleton = cb.checked; this.bus.emit("state:change"); };
+      ck.append(cb, document.createTextNode(" Mostrar esqueleto (directriz)"));
+      body.appendChild(ck);
+    }
+
     for (const [key, spec] of Object.entries(g.paramSpec)){
       const row = document.createElement("div"); row.className = "row";
       const l = document.createElement("label"); l.textContent = spec.label;
@@ -673,13 +780,11 @@ class ControlsPanel {
     return box;
   }
   _refreshRoles(){ this._buildGeoms(document.getElementById("geoms-section")); }
-  _buildResults(root){
-    this._resultsRoot = root;
-  }
+  _buildResults(root){ this._resultsRoot = root; }
   updateResults(dets){
     const root = this._resultsRoot;
-    const old = root.querySelector(".list"); old?.remove();
-    const h = document.createElement("h3"); h.textContent = `Detecciones (${dets.length})`;
+    root.innerHTML = "";
+    const h = document.createElement("h3"); h.textContent = `Detecciones (${dets.length})`; root.appendChild(h);
     const list = document.createElement("div"); list.className = "list";
     for (let i=0;i<dets.length;i++){
       const d = dets[i];
@@ -690,12 +795,28 @@ class ControlsPanel {
       div.onclick = () => this.app.renderer.setHighlight(i);
       list.appendChild(div);
     }
-    root.append(h, list);
+    root.appendChild(list);
+
+    // Resumen de esqueletos
+    const skels = this.app.state.geometries.filter(g => g.showSkeleton && g.skeleton);
+    if (skels.length){
+      const h2 = document.createElement("h3"); h2.textContent = "Esqueletos"; h2.style.marginTop = "12px";
+      root.appendChild(h2);
+      for (const g of skels){
+        const div = document.createElement("div");
+        div.className = "result";
+        div.style.borderColor = "#fbbf24";
+        div.innerHTML = `<span class="badge" style="background:#fbbf24;color:#000">${g.label}</span>
+          ${g.skeleton.points.length} puntos de eje medio`;
+        list.appendChild(div);
+        root.appendChild(div);
+      }
+    }
   }
 }
 
 // ============================================================
-// 3. APLICACIÓN (wiring)
+// APLICACIÓN
 // ============================================================
 class App {
   constructor(){
@@ -708,6 +829,8 @@ class App {
       dMax: 0.4,
       normMode: "none",
       normScale: 5,
+      skeletonResolution: 200,
+      skeletonTolerance: 0.02,
       filters: { cruce:true, tangencia:true, cercania:true, paso:false },
       geometries: this._defaultGeometries(),
     };
@@ -717,49 +840,95 @@ class App {
     this._wired = false;
     this._pendingDetect = null;
   }
+  _mkGeom(id, label, color, role, geom, paramSpec, showSkeleton = false){
+    let params;
+    if (id === "bezier"){
+      const [p0,p1,p2,p3] = geom.cfg.pts;
+      params = {
+        p0x:p0[0], p0y:p0[1], p1x:p1[0], p1y:p1[1],
+        p2x:p2[0], p2y:p2[1], p3x:p3[0], p3y:p3[1],
+      };
+    } else {
+      params = { ...geom.cfg };
+    }
+    return { id, label, color, role, geom, params, paramSpec, visible:true, showSkeleton, skeleton:null };
+  }
   _defaultGeometries(){
     return [
-      this._mkGeom("recta", "Recta", "#60a5fa", "restriction", new Recta({x1:-3,y1:-3,x2:3,y2:3}), {
+      this._mkGeom("cuadrado", "Región", "#06b6d4", "none",
+        new Poligono({cx:0, cy:0, w:4, h:3}), {
+        cx:{label:"cx",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
+        cy:{label:"cy",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
+        w:{label:"ancho",min:0.5,max:10,step:0.1,fmt:v=>v.toFixed(1)},
+        h:{label:"alto",min:0.5,max:10,step:0.1,fmt:v=>v.toFixed(1)},
+      }, true),
+      this._mkGeom("recta", "Recta", "#60a5fa", "restriction",
+        new Recta({x1:-3,y1:-3,x2:3,y2:3}), {
         x1:{label:"x1",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
         y1:{label:"y1",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
         x2:{label:"x2",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
         y2:{label:"y2",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
       }),
-      this._mkGeom("espiral", "Espiral", "#f472b6", "restriction", new Espiral({cx:0,cy:0,a:0.3,b:0.35,thetaMax:4*Math.PI}), {
+      this._mkGeom("espiral", "Espiral", "#f472b6", "restriction",
+        new Espiral({cx:0,cy:0,a:0.3,b:0.35,thetaMax:4*Math.PI}), {
         cx:{label:"cx",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
         cy:{label:"cy",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
         a:{label:"a",min:0.05,max:2,step:0.05,fmt:v=>v.toFixed(2)},
         b:{label:"b",min:0.05,max:1,step:0.05,fmt:v=>v.toFixed(2)},
+        thetaMax:{label:"θ_max",min:1,max:20,step:0.5,fmt:v=>v.toFixed(1)},
       }),
-      this._mkGeom("murray", "Murray", "#34d399", "restriction", new Murray({ox:0,oy:0,len:2.5,angleDeg:75}), {
+      this._mkGeom("murray", "Murray", "#34d399", "restriction",
+        new Murray({ox:0,oy:0,len:2.5,angleDeg:75}), {
         ox:{label:"ox",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
         oy:{label:"oy",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
         len:{label:"len",min:0.5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
         angleDeg:{label:"ángulo",min:30,max:120,step:1,fmt:v=>v.toFixed(0)+"°"},
       }),
-      this._mkGeom("clotoide", "Clotoide", "#f59e0b", "restriction", new Clotoide({x:-4,y:1,heading:0,length:6,kMax:0.3}), {
+      this._mkGeom("clotoide", "Clotoide", "#f59e0b", "restriction",
+        new Clotoide({x:-4,y:1,heading:0,length:6,kMax:0.3}), {
         x:{label:"x0",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
         y:{label:"y0",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
         heading:{label:"heading",min:-3.14,max:3.14,step:0.1,fmt:v=>v.toFixed(2)},
         length:{label:"L",min:1,max:10,step:0.5,fmt:v=>v.toFixed(1)},
         kMax:{label:"k_max",min:0.05,max:1,step:0.05,fmt:v=>v.toFixed(2)},
       }),
-      this._mkGeom("bezier", "Bézier", "#a78bfa", "restriction", new Bezier({pts:[[-3,2],[-1,4],[1,-4],[3,-2]]}), {
-        // Simplificado: solo mostramos 2 de los 4 puntos para no saturar
+      this._mkGeom("bezier", "Bézier", "#a78bfa", "restriction",
+        new Bezier({pts:[[-3,2],[-1,4],[1,-4],[3,-2]]}), {
+        p0x:{label:"p0.x",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        p0y:{label:"p0.y",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        p1x:{label:"p1.x",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        p1y:{label:"p1.y",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        p2x:{label:"p2.x",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        p2y:{label:"p2.y",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        p3x:{label:"p3.x",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        p3y:{label:"p3.y",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
       }),
     ];
   }
-  _mkGeom(id, label, color, role, geom, paramSpec){
-    // geom.cfg es la fuente de verdad de params para Recta/Espiral/Murray/Clotoide
-    // Bézier usa pts (array) y no se expone en v1
-    const params = { ...(geom.cfg.pts ? {} : geom.cfg) };
-    return { id, label, color, role, geom, params, paramSpec, visible:true };
-  }
   _syncGeomParams(){
-    // Tras mover sliders, hay que reconstruir geom.cfg desde params
     for (const g of this.state.geometries){
-      if (g.id === "bezier") continue;
+      if (g.id === "bezier"){
+        g.geom.cfg.pts = [
+          [g.params.p0x, g.params.p0y],
+          [g.params.p1x, g.params.p1y],
+          [g.params.p2x, g.params.p2y],
+          [g.params.p3x, g.params.p3y],
+        ];
+        continue;
+      }
       Object.assign(g.geom.cfg, g.params);
+    }
+  }
+  _recomputeSkeletons(){
+    for (const g of this.state.geometries){
+      if (g.showSkeleton && g.geom instanceof Poligono){
+        g.skeleton = computeSkeleton(g.geom.vertices, {
+          resolution: this.state.skeletonResolution,
+          tolerance: this.state.skeletonTolerance,
+        });
+      } else {
+        g.skeleton = null;
+      }
     }
   }
   wire(){
@@ -769,18 +938,16 @@ class App {
     this.bus.on("state:change", () => this._scheduleDetect());
     this.bus.on("view:change",  () => this._draw());
     this.bus.on("display:change", () => this._draw());
-    this._scheduleDetect(true); // inicial
+    this._scheduleDetect(true);
   }
   _scheduleDetect(force = false){
-    if (force){
-      this._detect();
-      return;
-    }
+    if (force){ this._detect(); return; }
     if (this._pendingDetect) clearTimeout(this._pendingDetect);
     this._pendingDetect = setTimeout(() => { this._pendingDetect = null; this._detect(); }, 60);
   }
   _detect(){
     this._syncGeomParams();
+    this._recomputeSkeletons();
     this.dets = detect(this.state.geometries, {
       mode: this.state.mode,
       N: this.state.N,
@@ -799,7 +966,7 @@ class App {
 }
 
 // ============================================================
-// 4. TESTS (zonas complicadas)
+// TESTS
 // ============================================================
 function runTests(){
   console.group("%cTests · dominio geométrico", "color:#60a5fa;font-weight:bold");
@@ -809,27 +976,25 @@ function runTests(){
   };
   const approx = (a,b,eps=1e-6) => Math.abs(a-b) < eps;
 
-  // 1. Rectas perpendiculares → 1 cruce
+  // Módulo 1: detector
   const l1 = new Recta({x1:-1,y1:0,x2:1,y2:0});
   const l2 = new Recta({x1:0,y1:-1,x2:0,y2:1});
   let dets = detect(
-    [{id:"a",visible:true,role:"restriction",geom:l1},
-     {id:"b",visible:true,role:"restriction",geom:l2}],
+    [{id:"a",visible:true,role:"restriction",geom:l1,showSkeleton:false},
+     {id:"b",visible:true,role:"restriction",geom:l2,showSkeleton:false}],
     {mode:"A",N:200,epsD:0.05,epsA:0.15,dMax:0.5,normMode:"none",normScale:1});
   const cruces = dets.filter(d => d.type==="cruce");
   t("perpendiculares → 1 cruce", cruces.length===1, `got ${cruces.length}`);
   if (cruces.length) t("cruce en (0,0)", approx(cruces[0].x,0,0.02) && approx(cruces[0].y,0,0.02), JSON.stringify(cruces[0]));
 
-  // 2. Rectas paralelas (misma y) → 0 cruces
   const l3 = new Recta({x1:-1,y1:0.5,x2:1,y2:0.5});
   dets = detect(
-    [{id:"a",visible:true,role:"restriction",geom:l1},
-     {id:"b",visible:true,role:"restriction",geom:l3}],
+    [{id:"a",visible:true,role:"restriction",geom:l1,showSkeleton:false},
+     {id:"b",visible:true,role:"restriction",geom:l3,showSkeleton:false}],
     {mode:"A",N:200,epsD:0.05,epsA:0.15,dMax:1.0,normMode:"none",normScale:1});
   t("paralelas → 0 cruces", dets.filter(d=>d.type==="cruce").length===0);
   t("paralelas → al menos 1 cercanía", dets.some(d=>d.type==="cercania"));
 
-  // 3. Tangencia: recta y=0 con círculo radio 1 centro (0,1)
   const circulo = {
     eval(t){
       const th = t*2*Math.PI;
@@ -837,22 +1002,20 @@ function runTests(){
     }
   };
   dets = detect(
-    [{id:"a",visible:true,role:"restriction",geom:l1},
-     {id:"b",visible:true,role:"restriction",geom:circulo}],
+    [{id:"a",visible:true,role:"restriction",geom:l1,showSkeleton:false},
+     {id:"b",visible:true,role:"restriction",geom:circulo,showSkeleton:false}],
     {mode:"A",N:400,epsD:0.08,epsA:0.25,dMax:0.5,normMode:"none",normScale:1});
   const tan = dets.filter(d=>d.type==="tangencia");
   t("tangencia detectada (1)", tan.length===1, `got ${tan.length} types=${dets.map(d=>d.type).join(",")}`);
   if (tan.length) t("tangencia en (0,0)", approx(tan[0].x,0,0.03) && approx(tan[0].y,0,0.03), JSON.stringify(tan[0]));
 
-  // 4. Curvas lejanas → 0 detecciones
   const lejos = new Recta({x1:10,y1:10,x2:12,y2:10});
   dets = detect(
-    [{id:"a",visible:true,role:"restriction",geom:l1},
-     {id:"b",visible:true,role:"restriction",geom:lejos}],
+    [{id:"a",visible:true,role:"restriction",geom:l1,showSkeleton:false},
+     {id:"b",visible:true,role:"restriction",geom:lejos,showSkeleton:false}],
     {mode:"A",N:200,epsD:0.05,epsA:0.15,dMax:0.5,normMode:"none",normScale:1});
   t("lejanas → 0", dets.length===0, `got ${dets.length}`);
 
-  // 5. Muestreo por arco uniforme en Bézier
   const bz = new Bezier({pts:[[0,0],[3,0],[3,3],[0,3]]});
   const sp = sampleByArcLength(bz, 100);
   const dists = [];
@@ -861,7 +1024,6 @@ function runTests(){
   const maxDev = Math.max(...dists.map(d=>Math.abs(d-avg)));
   t("sampler: desviación < 2% del paso", maxDev/avg < 0.02, `avg=${avg.toFixed(4)} dev=${maxDev.toFixed(4)}`);
 
-  // 6. Normalización unite preserva ángulo
   const diag = new Recta({x1:0,y1:0,x2:1,y2:1});
   const rawPts = sampleByArcLength(diag, 20).map(s=>s.p);
   const norm = normalizePoints(rawPts, "unite", 5);
@@ -869,35 +1031,71 @@ function runTests(){
   const tNorm = [norm[1][0]-norm[0][0], norm[1][1]-norm[0][1]];
   t("unite preserva ángulo", approx(angleBetween(tRaw,tNorm), 0, 1e-6));
 
-  // 7. Clasificador: tabla de casos
   t("clasif: d<ε_d, no paralelo → cruce",     classify(0.01, 1.0, 0.05, 0.15)==="cruce");
   t("clasif: d<ε_d, paralelo → tangencia",    classify(0.01, 0.05, 0.05, 0.15)==="tangencia");
   t("clasif: d>ε_d, paralelo → cercanía",     classify(0.5, 0.05, 0.05, 0.15)==="cercania");
   t("clasif: d>ε_d, no paralelo → paso",      classify(0.5, 1.0, 0.05, 0.15)==="paso");
 
-  // 8. Modo B filtra por roles
   const st = [
-    {id:"a",visible:true,role:"objective",  geom:l1},
-    {id:"b",visible:true,role:"restriction",geom:l2},
-    {id:"c",visible:true,role:"restriction",geom:l3},
+    {id:"a",visible:true,role:"objective",  geom:l1, showSkeleton:false},
+    {id:"b",visible:true,role:"restriction",geom:l2, showSkeleton:false},
+    {id:"c",visible:true,role:"restriction",geom:l3, showSkeleton:false},
   ];
   dets = detect(st, {mode:"B",N:200,epsD:0.05,epsA:0.15,dMax:0.6,normMode:"none",normScale:1});
   const pares = new Set(dets.map(d=>[d.a,d.b].sort().join("-")));
   t("modo B: solo objetivo×restricción", ![...pares].includes("b-c"));
 
+  // Módulo 2: esqueleto
+  console.group("Tests · esqueleto de región");
+  const sq = new Poligono({cx:0.5, cy:0.5, w:1, h:1});
+  const sk = computeSkeleton(sq.vertices, {resolution: 120, tolerance: 0.03});
+  t("esqueleto de cuadrado no vacío", sk.points.length > 20, `got ${sk.points.length}`);
+  let onDiag = 0;
+  for (const p of sk.points){
+    if (Math.abs(Math.abs(p.x-0.5) - Math.abs(p.y-0.5)) < 0.05) onDiag++;
+  }
+  t("mayoría en diagonales del cuadrado", onDiag / sk.points.length > 0.7, `${(100*onDiag/sk.points.length).toFixed(1)}%`);
+
+  const rect = new Poligono({cx:0, cy:0, w:4, h:1});
+  const sk2 = computeSkeleton(rect.vertices, {resolution: 160, tolerance: 0.03});
+  t("esqueleto de rectángulo no vacío", sk2.points.length > 20, `got ${sk2.points.length}`);
+  // Comprobar que hay puntos cerca de la línea central y=0
+  let onCenter = 0;
+  for (const p of sk2.points){
+    if (Math.abs(p.y) < 0.1) onCenter++;
+  }
+  t("rectángulo: hay eje central en y=0", onCenter > 10, `got ${onCenter}`);
+
+  const lejosDelBorde = computeSkeleton(new Poligono({cx:0,cy:0,w:1,h:1}).vertices, {resolution: 100, tolerance: 0.02});
+  let allInside = true;
+  for (const p of lejosDelBorde.points){
+    if (!pointInPolygon(p.x, p.y, [[-0.5,-0.5],[0.5,-0.5],[0.5,0.5],[-0.5,0.5]])){
+      allInside = false; break;
+    }
+  }
+  t("puntos del esqueleto dentro del polígono", allInside);
+  console.groupEnd();
+
   console.groupEnd();
 }
 
 // ============================================================
-// 5. BOOT
+// BOOT
 // ============================================================
 window.addEventListener("DOMContentLoaded", () => {
   runTests();
   const app = new App();
   app.wire();
-  // auto-fit tras el primer render
+
+  const panel = document.getElementById("panel");
+  const btnToggle = document.getElementById("toggle-panel");
+  btnToggle.addEventListener("click", () => panel.classList.toggle("hidden"));
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "p" || e.key === "P") panel.classList.toggle("hidden");
+  });
+
   requestAnimationFrame(() => app.renderer.fitToGeometries(app.state.geometries));
-  window.__app = app; // para inspección en consola
+  window.__app = app;
 });
 </script>
 </body>
