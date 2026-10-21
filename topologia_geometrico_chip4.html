@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>CFDA-F · chequeo geométrico + comparador de ángulos + topologías</title>
+<style>
+  :root{--bg:#0f1115;--fg:#e5e7eb;--muted:#9ca3af;--panel:#161922;--border:#2a2f3a;--ok:#22c55e;--warn:#eab308;--fail:#ef4444;--info:#22d3ee;--phi:#f472b6;--winner:#fbbf24}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden}
+  #app{position:relative;height:100vh;width:100vw}
+  #cv{position:absolute;inset:0;display:block;background:var(--bg);cursor:grab;width:100%;height:100%}
+  #cv.dragging{cursor:grabbing}
+  #panel{position:fixed;top:60px;right:12px;bottom:12px;width:480px;max-width:calc(100vw - 24px);overflow-y:auto;padding:12px;background:rgba(22,25,34,.96);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:8px;font-size:13px;z-index:10;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:transform .22s ease,opacity .22s ease}
+  #panel.hidden{transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none}
+  #toggle-panel{position:fixed;top:12px;right:12px;z-index:20;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:18px;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+  #panel::-webkit-scrollbar{width:8px}
+  #panel::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:4px}
+  .section{margin-bottom:16px}
+  .section h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .row label{flex:1;color:var(--muted);font-size:12px}
+  .row input[type=range]{flex:2}
+  .row .val{min-width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px}
+  .row select{background:#2a2f3a;color:var(--fg);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px;flex:2}
+  hr{border:0;border-top:1px solid var(--border);margin:12px 0}
+  button{background:#2a2f3a;color:var(--fg);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px}
+  button:hover{background:#353b4a}
+  button.primary{background:#1e3a5f;border-color:#2a4a7f}
+  button.primary:hover{background:#2a4a7f}
+  .scenarios{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .scenarios button{font-size:11px;padding:6px 4px}
+  .check{padding:8px 10px;border-radius:6px;margin-bottom:6px;border-left:4px solid var(--border);background:#1c2030}
+  .check.pass{border-left-color:var(--ok)}
+  .check.warn{border-left-color:var(--warn)}
+  .check.fail{border-left-color:var(--fail)}
+  .check .head{display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px}
+  .check .icon{font-size:14px;width:16px;text-align:center}
+  .check.pass .icon{color:var(--ok)}
+  .check.warn .icon{color:var(--warn)}
+  .check.fail .icon{color:var(--fail)}
+  .check .msg{margin-top:4px;font-size:11px;color:var(--muted);line-height:1.4}
+  .check .detail{margin-top:2px;font-size:10px;color:#6b7280;font-family:ui-monospace,monospace;word-break:break-all}
+  .mode-badge{display:inline-block;padding:2px 6px;border-radius:3px;background:#1e3a5f;color:#93c5fd;font-size:10px;margin-left:6px;text-transform:uppercase;letter-spacing:.05em}
+  .cmp-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+  .cmp-table th{text-align:left;padding:5px 4px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+  .cmp-table td{padding:5px 4px;border-bottom:1px solid rgba(42,47,58,.5);font-variant-numeric:tabular-nums}
+  .cmp-table tr.phi td{background:rgba(244,114,182,.10);color:#fbcfe8}
+  .cmp-table tr.winner td{background:rgba(251,191,36,.13);color:#fde68a;font-weight:600}
+  .cmp-table tr.coinc td{opacity:.5;text-decoration:line-through}
+  .cmp-table td.num{text-align:right;font-family:ui-monospace,monospace}
+  .cmp-table tr.row-link{cursor:pointer}
+  .cmp-table tr.row-link:hover td{background:rgba(34,211,238,.10)}
+  .cmp-note{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+  .cmp-winner{font-size:12px;padding:8px 10px;border-radius:6px;margin-top:8px;background:rgba(251,191,36,.12);border-left:3px solid var(--winner);line-height:1.5}
+  .cmp-winner strong{color:var(--winner)}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv"></canvas>
+  <aside id="panel">
+    <div class="section" id="scenarios-section"></div>
+    <div class="section" id="params-section"></div>
+    <div class="section" id="checks-section"></div>
+    <div class="section" id="comparison-section"></div>
+    <div class="section" id="topology-section"></div>
+  </aside>
+  <button id="toggle-panel" title="Mostrar/ocultar panel (P)">☰</button>
+</div>
+<script>
+"use strict";
+const hypot = Math.hypot;
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const DEG = 180/Math.PI;
+const RAD = Math.PI/180;
+
+// ============================================================
+// GEOMETRÍA
+// ============================================================
+class Geometry { constructor(cfg){ this.cfg = cfg; } eval(){ throw new Error("abstract"); } }
+class EspiralLog extends Geometry {
+  constructor(cfg){ super(cfg); }
+  eval(t){
+    const {cx,cy,rMin,b,thetaMax,offset} = this.cfg;
+    const th = t*thetaMax, r = rMin*Math.exp(b*th), a = th+offset;
+    const th2 = th+0.001, r2 = rMin*Math.exp(b*th2), a2 = th2+offset;
+    return { p:[cx+r*Math.cos(a), cy+r*Math.sin(a)], d:[r2*Math.cos(a2)-r*Math.cos(a), r2*Math.sin(a2)-r*Math.sin(a)] };
+  }
+}
+class EspiralArq extends Geometry {
+  constructor(cfg){ super(cfg); }
+  eval(t){
+    const {cx,cy,a:r0,b,thetaMax,offset} = this.cfg;
+    const th = t*thetaMax, r = r0+b*th, a = th+offset;
+    const th2 = th+0.001, r2 = r0+b*th2, a2 = th2+offset;
+    return { p:[cx+r*Math.cos(a), cy+r*Math.sin(a)], d:[r2*Math.cos(a2)-r*Math.cos(a), r2*Math.sin(a2)-r*Math.sin(a)] };
+  }
+}
+class Recta extends Geometry {
+  constructor(cfg){ super(cfg); }
+  eval(t){
+    const {x1,y1,x2,y2} = this.cfg;
+    return { p:[x1+(x2-x1)*t, y1+(y2-y1)*t], d:[x2-x1, y2-y1] };
+  }
+}
+class Poligono extends Geometry {
+  constructor(cfg){ super(cfg); }
+  get vertices(){
+    const {cx,cy,w,h} = this.cfg;
+    return [[cx-w/2,cy-h/2],[cx+w/2,cy-h/2],[cx+w/2,cy+h/2],[cx-w/2,cy+h/2]];
+  }
+  eval(t){
+    const v = this.vertices, n = v.length, cum = [0];
+    for (let i=0;i<n;i++) cum.push(cum[i] + hypot(v[(i+1)%n][0]-v[i][0], v[(i+1)%n][1]-v[i][1]));
+    const L = clamp(t,0,1)*cum[n];
+    let i = 0;
+    while (i < n-1 && cum[i+1] < L) i++;
+    const a = v[i], b = v[(i+1)%n], sl = cum[i+1]-cum[i] || 1, f = (L-cum[i])/sl;
+    return { p:[a[0]+f*(b[0]-a[0]), a[1]+f*(b[1]-a[1])], d:[b[0]-a[0], b[1]-a[1]] };
+  }
+}
+
+// ============================================================
+// SAMPLER + DETECCIÓN
+// ============================================================
+function sampleByArcLength(geom, N){
+  const M = N*6, rawPts = [], rawTs = [];
+  for (let i=0;i<=M;i++){ const t = i/M, e = geom.eval(t); rawPts.push(e.p); rawTs.push(t); }
+  const cum = new Float64Array(M+1);
+  for (let i=1;i<=M;i++) cum[i] = cum[i-1] + hypot(rawPts[i][0]-rawPts[i-1][0], rawPts[i][1]-rawPts[i-1][1]);
+  const L = cum[M] || 1, out = [];
+  let j = 0;
+  for (let i=0;i<N;i++){
+    const target = (i/(N-1))*L;
+    while (j < M && cum[j+1] < target) j++;
+    const t0 = cum[j], t1 = cum[j+1], f = t1 > t0 ? (target-t0)/(t1-t0) : 0;
+    out.push({ t: rawTs[j]+f*(rawTs[j+1]-rawTs[j]), p: rawPts[j] && geom.eval(rawTs[j]+f*(rawTs[j+1]-rawTs[j])).p });
+  }
+  return out;
+}
+function computeTangents(pts){
+  return pts.map((p,i) => {
+    const a = pts[Math.max(0,i-1)], b = pts[Math.min(pts.length-1,i+1)];
+    const dx = b[0]-a[0], dy = b[1]-a[1], L = hypot(dx,dy) || 1;
+    return [dx/L, dy/L];
+  });
+}
+function findDistanceMinima(A, B, dedupeR, maxD){
+  const N = A.length, M = B.length, D = [];
+  for (let i=0;i<N;i++){ const row = new Float32Array(M); for (let j=0;j<M;j++) row[j] = hypot(A[i][0]-B[j][0], A[i][1]-B[j][1]); D.push(row); }
+  const cands = [];
+  for (let i=0;i<N;i++) for (let j=0;j<M;j++){
+    const v = D[i][j];
+    if (v > maxD) continue;
+    let isMin = true;
+    for (let di=-2;di<=2 && isMin;di++) for (let dj=-2;dj<=2;dj++){
+      if (di===0 && dj===0) continue;
+      const ii = i+di, jj = j+dj;
+      if (ii<0||ii>=N||jj<0||jj>=M) continue;
+      if (D[ii][jj] < v-1e-9){ isMin = false; break; }
+    }
+    if (isMin) cands.push({ i, j, d:v, p:[(A[i][0]+B[j][0])/2, (A[i][1]+B[j][1])/2] });
+  }
+  cands.sort((a,b) => a.d-b.d);
+  const kept = [];
+  for (const c of cands) if (kept.every(k => hypot(k.p[0]-c.p[0], k.p[1]-c.p[1]) > dedupeR)) kept.push(c);
+  return kept;
+}
+function angleBetween(u, v){
+  const nu = hypot(u[0],u[1]), nv = hypot(v[0],v[1]);
+  if (nu < 1e-12 || nv < 1e-12) return 0;
+  return Math.acos(clamp((u[0]*v[0]+u[1]*v[1])/(nu*nv), -1, 1));
+}
+function classify(d, angle, epsD, epsA){
+  const t = d < epsD, p = angle < epsA;
+  if (t && !p) return "cruce";
+  if (t &&  p) return "tangencia";
+  if (!t && p) return "cercania";
+  return "paso";
+}
+function detectArms(arms, opts){
+  const { N, epsD, epsA, dMax } = opts;
+  const prep = arms.map(a => {
+    const pts = sampleByArcLength(a.geom, N).map(r => r.p);
+    return { id:a.id, pts, tans: computeTangents(pts) };
+  });
+  const dets = [], dedupeR = Math.max(epsD*3, 0.02);
+  for (let i=0;i<prep.length;i++) for (let j=i+1;j<prep.length;j++){
+    const A = prep[i], B = prep[j];
+    for (const m of findDistanceMinima(A.pts, B.pts, dedupeR, dMax)){
+      const ang = angleBetween(A.tans[m.i], B.tans[m.j]);
+      const type = classify(m.d, ang, epsD, epsA);
+      if (type === "paso") continue;
+      dets.push({ x:m.p[0], y:m.p[1], d:m.d, angle:ang, type, a:A.id, b:B.id });
+    }
+  }
+  return dets;
+}
+
+// ============================================================
+// ESQUELETO
+// ============================================================
+function pointInPolygon(px, py, verts){
+  let inside = false, n = verts.length;
+  for (let i=0, j=n-1; i<n; j=i++){
+    const xi = verts[i][0], yi = verts[i][1], xj = verts[j][0], yj = verts[j][1];
+    if (((yi > py) !== (yj > py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) inside = !inside;
+  }
+  return inside;
+}
+function distToSegment(px, py, ax, ay, bx, by){
+  const dx = bx-ax, dy = by-ay, l2 = dx*dx+dy*dy;
+  const t = l2 > 0 ? clamp(((px-ax)*dx+(py-ay)*dy)/l2, 0, 1) : 0;
+  return Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
+}
+function computeSkeleton(vertices, opts = {}){
+  const { resolution = 100, tolerance = 0.05 } = opts;
+  const n = vertices.length;
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  for (const [x,y] of vertices){ if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; }
+  const cell = Math.max(maxX-minX, maxY-minY) / resolution;
+  const nx = Math.ceil((maxX-minX)/cell)+1, ny = Math.ceil((maxY-minY)/cell)+1;
+  const diff = new Float64Array(nx*ny).fill(1e9), dmin = new Float64Array(nx*ny).fill(-1);
+  for (let j=0;j<ny;j++) for (let i=0;i<nx;i++){
+    const px = minX+i*cell, py = minY+j*cell;
+    if (!pointInPolygon(px, py, vertices)) continue;
+    let d1 = Infinity, d2 = Infinity;
+    for (let e=0;e<n;e++){
+      const a = vertices[e], b = vertices[(e+1)%n];
+      const d = distToSegment(px, py, a[0], a[1], b[0], b[1]);
+      if (d < d1){ d2 = d1; d1 = d; } else if (d < d2){ d2 = d; }
+    }
+    const idx = j*nx+i; diff[idx] = d2-d1; dmin[idx] = d1;
+  }
+  const pts = [];
+  for (let j=1;j<ny-1;j++) for (let i=1;i<nx-1;i++){
+    const idx = j*nx+i;
+    if (dmin[idx] < 0) continue;
+    const v = diff[idx];
+    if (v > tolerance) continue;
+    let isMin = true;
+    for (let dj=-1;dj<=1 && isMin;dj++) for (let di=-1;di<=1;di++){
+      if (dj===0 && di===0) continue;
+      const nidx = (j+dj)*nx+(i+di);
+      if (dmin[nidx] < 0) continue;
+      if (diff[nidx] < v-1e-9){ isMin = false; break; }
+    }
+    if (isMin) pts.push({ x: minX+i*cell, y: minY+j*cell, d: dmin[idx] });
+  }
+  return { points: pts, cell, bbox: {minX,minY,maxX,maxY} };
+}
+
+// ============================================================
+// CHECKS INDIVIDUALES
+// ============================================================
+function checkCoincidences(angles, tolDeg){
+  const groups = [], used = new Array(angles.length).fill(false);
+  for (let i=0;i<angles.length;i++){
+    if (used[i]) continue;
+    const g = [i]; used[i] = true;
+    for (let j=i+1;j<angles.length;j++){
+      if (used[j]) continue;
+      let d = Math.abs(angles[i]-angles[j])*DEG; d = d%360; if (d>180) d = 360-d;
+      if (d < tolDeg){ g.push(j); used[j] = true; }
+    }
+    if (g.length > 1) groups.push(g);
+  }
+  return groups;
+}
+function checkResonances(angles, tolDeg){
+  const RES = [45,60,90,120,135,180], flags = [];
+  let minDistance = { value: Infinity, sep: 0, target: 0 };
+  for (let i=0;i<angles.length;i++) for (let j=i+1;j<angles.length;j++){
+    let sep = Math.abs(angles[i]-angles[j])*DEG; sep = sep%360; if (sep>180) sep = 360-sep;
+    if (sep < 1e-6) continue;
+    for (const r of RES){
+      const d = Math.abs(sep-r);
+      if (d < minDistance.value) minDistance = { value:d, sep, target:r };
+      if (d < tolDeg){ flags.push({ i, j, sep, target:r, diff:d }); break; }
+    }
+  }
+  return { flags, minDistance };
+}
+function checkSkeletonCoverage(skeleton, arms, threshold){
+  const armPts = [];
+  for (const a of arms){ for (const s of sampleByArcLength(a.geom, 80)) armPts.push(s.p); }
+  if (!armPts.length || !skeleton.points.length) return { total:0, covered:0, pct:1, worst:[] };
+  let covered = 0; const worst = [];
+  for (const sk of skeleton.points){
+    let best = Infinity;
+    for (const [x,y] of armPts){ const d = hypot(sk.x-x, sk.y-y); if (d<best) best = d; }
+    if (best <= threshold) covered++; else worst.push({ x:sk.x, y:sk.y, d:best });
+  }
+  return { total: skeleton.points.length, covered, pct: covered/skeleton.points.length, worst: worst.sort((a,b)=>b.d-a.d).slice(0,5) };
+}
+function checkBoundary(arms, chip){
+  const v = chip.vertices; let inside = 0, outside = 0;
+  for (const a of arms) for (const s of sampleByArcLength(a.geom, 60)){
+    if (pointInPolygon(s.p[0], s.p[1], v)) inside++; else outside++;
+  }
+  return { inside, outside };
+}
+function checkSelfPitch(geom, N, minArcSep){
+  const pts = sampleByArcLength(geom, N).map(s => s.p);
+  if (pts.length < minArcSep+2) return { minD: Infinity };
+  let minD = Infinity;
+  for (let i=0;i<pts.length;i++) for (let j=i+minArcSep;j<pts.length;j++){
+    const d = hypot(pts[i][0]-pts[j][0], pts[i][1]-pts[j][1]);
+    if (d < minD) minD = d;
+  }
+  return { minD };
+}
+function actualMinGapRad(angles){
+  if (angles.length < 2) return 2*Math.PI;
+  const T = 2*Math.PI, s = angles.map(a => ((a%T)+T)%T).sort((a,b)=>a-b);
+  let m = T;
+  for (let i=0;i<s.length;i++){
+    const g = i === s.length-1 ? (s[0]+T) - s[i] : s[i+1] - s[i];
+    if (g > 1e-9 && g < m) m = g;
+  }
+  return m;
+}
+function rMinMinimum(angleStepRad, _b, w){
+  const sh = Math.sin(angleStepRad/2);
+  return sh <= 1e-9 ? Infinity : w/sh;
+}
+function empiricalMinDistForAngle(deg, N, rMin, rMax, b){
+  const thetaMax = Math.log(rMax/rMin)/b, sampled = [];
+  for (let k=0;k<N;k++){
+    const offset = ((k*deg)*RAD) % (2*Math.PI);
+    const g = new EspiralLog({cx:0,cy:0,rMin,b,thetaMax,offset});
+    sampled.push(sampleByArcLength(g, 90).map(s => s.p));
+  }
+  let minD = Infinity;
+  for (let i=0;i<N;i++) for (let j=i+1;j<N;j++){
+    const A = sampled[i], B = sampled[j];
+    for (const p of A) for (const q of B){ const d = hypot(p[0]-q[0], p[1]-q[1]); if (d<minD) minD = d; }
+  }
+  return minD;
+}
+
+// ============================================================
+// GENERADORES DE TOPOLOGÍA
+// ============================================================
+function topoMultiSpiral(cfg){
+  const {n, angleDeg, b, rMin, rMax, spiralType} = cfg, arms = [];
+  for (let k=0;k<n;k++){
+    const off = ((k*angleDeg)*RAD) % (2*Math.PI);
+    let g;
+    if (spiralType === "log"){
+      const thMax = Math.log(rMax/rMin)/b;
+      g = new EspiralLog({cx:0,cy:0,rMin,b,thetaMax:thMax,offset:off});
+    } else {
+      const bA = (rMax-rMin)/(4*Math.PI), thMax = (rMax-rMin)/bA;
+      g = new EspiralArq({cx:0,cy:0,a:rMin,b:bA,thetaMax:thMax,offset:off});
+    }
+    arms.push({ id:`s${k}`, geom:g });
+  }
+  return { id:"multi-spiral", label:`espiral ×${n}`, arms };
+}
+function topoSerpentine(cfg){
+  const {chipW, chipH, rows} = cfg, arms = [], m = 0.2;
+  const yStep = (chipH-2*m)/rows;
+  for (let i=0;i<rows;i++){
+    const y = -chipH/2+m+(i+0.5)*yStep, ltr = i%2 === 0;
+    const x1 = ltr ? -chipW/2+m : chipW/2-m, x2 = ltr ? chipW/2-m : -chipW/2+m;
+    arms.push({ id:`r${i}`, geom: new Recta({x1,y1:y,x2,y2:y}) });
+    if (i < rows-1){
+      const yN = -chipH/2+m+(i+1.5)*yStep, xE = ltr ? chipW/2-m : -chipW/2+m;
+      arms.push({ id:`t${i}`, geom: new Recta({x1:xE,y1:y,x2:xE,y2:yN}) });
+    }
+  }
+  return { id:"serpentine", label:`serpentina ×${rows}`, arms };
+}
+function topoStar(cfg){
+  const {n, rMin, rMax} = cfg, arms = [];
+  for (let k=0;k<n;k++){
+    const a = k*2*Math.PI/n;
+    arms.push({ id:`sp${k}`, geom: new Recta({
+      x1: rMin*Math.cos(a), y1: rMin*Math.sin(a),
+      x2: rMax*Math.cos(a), y2: rMax*Math.sin(a),
+    })});
+  }
+  return { id:"star", label:`estrella ×${n}`, arms };
+}
+function topoGrid(cfg){
+  const {chipW, chipH, cols, rows} = cfg, m = 0.2, arms = [];
+  for (let i=0;i<rows;i++){
+    const y = -chipH/2+m+(i+1)*(chipH-2*m)/(rows+1);
+    arms.push({ id:`h${i}`, geom: new Recta({x1:-chipW/2+m, y1:y, x2:chipW/2-m, y2:y}) });
+  }
+  for (let j=0;j<cols;j++){
+    const x = -chipW/2+m+(j+1)*(chipW-2*m)/(cols+1);
+    arms.push({ id:`v${j}`, geom: new Recta({x1:x, y1:-chipH/2+m, x2:x, y2:chipH/2-m}) });
+  }
+  return { id:"grid", label:`rejilla ${cols}×${rows}`, arms };
+}
+function topoHilbert(cfg){
+  const {order, chipW, chipH} = cfg, size = 1<<order, rawPts = [];
+  for (let d=0; d<size*size; d++){
+    let rx, ry, t = d, x = 0, y = 0;
+    for (let s=1; s<size; s*=2){
+      rx = 1 & Math.floor(t/2);
+      ry = 1 & (t ^ rx);
+      if (ry === 0){
+        if (rx === 1){ x = s-1-x; y = s-1-y; }
+        const tmp = x; x = y; y = tmp;
+      }
+      x += s*rx; y += s*ry;
+      t = Math.floor(t/4);
+    }
+    rawPts.push([x, y]);
+  }
+  const maxV = size-1 || 1, m = 0.5;
+  const avail = Math.min(chipW-2*m, chipH-2*m), sc = avail/maxV;
+  const pts = rawPts.map(([x,y]) => [x*sc - avail/2, y*sc - avail/2]);
+  const arms = [];
+  for (let i=1;i<pts.length;i++){
+    arms.push({ id:`h${i}`, geom: new Recta({x1:pts[i-1][0], y1:pts[i-1][1], x2:pts[i][0], y2:pts[i][1]}) });
+  }
+  return { id:"hilbert", label:`Hilbert orden ${order}`, arms };
+}
+
+function computeTopologyMetrics(topo, chip, skeleton, channelWidth, coverageThreshold){
+  const epsD = 2*channelWidth;
+  const dets = detectArms(topo.arms, { N: 80, epsD, epsA: 0.15, dMax: epsD*1.5 });
+  const tang = dets.filter(d => d.type === "tangencia").length;
+  const cru = dets.filter(d => d.type === "cruce").length;
+  const cer = dets.filter(d => d.type === "cercania").length;
+  let minSpacing = Infinity;
+  for (const d of dets) if (d.d < minSpacing) minSpacing = d.d;
+  let totalLength = 0;
+  for (const a of topo.arms){
+    const p = sampleByArcLength(a.geom, 100);
+    for (let i=1;i<p.length;i++) totalLength += hypot(p[i].p[0]-p[i-1].p[0], p[i].p[1]-p[i-1].p[1]);
+  }
+  const cov = skeleton ? checkSkeletonCoverage(skeleton, topo.arms, coverageThreshold) : null;
+  const bnd = checkBoundary(topo.arms, chip);
+  return {
+    id: topo.id, label: topo.label, topo,
+    armCount: topo.arms.length,
+    tangencias: tang, cruces: cru, cercanias: cer,
+    minSpacing, totalLength,
+    coverage: cov ? cov.pct : null,
+    maxGap: cov && cov.worst.length ? cov.worst[0].d : 0,
+    outside: bnd.outside,
+    ok: tang === 0 && cru === 0 && bnd.outside === 0,
+  };
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+class CanvasRenderer {
+  constructor(canvas){
+    this.cv = canvas; this.ctx = canvas.getContext("2d");
+    this.view = { cx: 0, cy: 0, scale: 50 };
+    this._bindPanZoom();
+    window.addEventListener("resize", () => this.resize());
+    this.resize();
+  }
+  resize(){
+    const dpr = window.devicePixelRatio || 1;
+    const r = this.cv.getBoundingClientRect();
+    this.cv.width = Math.floor(r.width*dpr); this.cv.height = Math.floor(r.height*dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  worldToScreen([x,y]){ return [(x-this.view.cx)*this.view.scale+this.cv.clientWidth/2, -(y-this.view.cy)*this.view.scale+this.cv.clientHeight/2]; }
+  screenToWorld([sx,sy]){ return [(sx-this.cv.clientWidth/2)/this.view.scale+this.view.cx, -(sy-this.cv.clientHeight/2)/this.view.scale+this.view.cy]; }
+  fitToBounds(b){
+    const w = b.maxX-b.minX || 1, h = b.maxY-b.minY || 1;
+    this.view.cx = (b.minX+b.maxX)/2; this.view.cy = (b.minY+b.maxY)/2;
+    this.view.scale = Math.min(this.cv.clientWidth/(w*1.2), this.cv.clientHeight/(h*1.2));
+  }
+  _bindPanZoom(){
+    const cv = this.cv; let drag = null;
+    cv.addEventListener("mousedown", e => { drag = { x:e.offsetX, y:e.offsetY, cx:this.view.cx, cy:this.view.cy }; cv.classList.add("dragging"); });
+    window.addEventListener("mousemove", e => {
+      if (!drag) return;
+      this.view.cx = drag.cx-(e.offsetX-drag.x)/this.view.scale;
+      this.view.cy = drag.cy+(e.offsetY-drag.y)/this.view.scale;
+    });
+    window.addEventListener("mouseup", () => { drag = null; cv.classList.remove("dragging"); });
+    cv.addEventListener("wheel", e => {
+      e.preventDefault();
+      const f = e.deltaY < 0 ? 1.15 : 1/1.15, m = [e.offsetX, e.offsetY];
+      const b = this.screenToWorld(m);
+      this.view.scale *= f;
+      const a = this.screenToWorld(m);
+      this.view.cx += b[0]-a[0]; this.view.cy += b[1]-a[1];
+    }, { passive:false });
+  }
+  draw(state){
+    const ctx = this.ctx, W = this.cv.clientWidth, H = this.cv.clientHeight;
+    ctx.clearRect(0,0,W,H);
+    this._grid(W,H);
+    if (state.chip){
+      const v = state.chip.vertices;
+      ctx.beginPath();
+      v.forEach(([x,y],i) => { const [sx,sy] = this.worldToScreen([x,y]); i===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy); });
+      ctx.closePath(); ctx.fillStyle = "rgba(6,182,212,0.04)"; ctx.fill();
+      ctx.strokeStyle = "#06b6d4"; ctx.lineWidth = 2; ctx.stroke();
+    }
+    if (state.skeleton && state.showSkeleton){
+      ctx.fillStyle = "rgba(251,191,36,0.35)";
+      for (const p of state.skeleton.points){ const [sx,sy] = this.worldToScreen([p.x,p.y]); ctx.fillRect(sx-1,sy-1,2,2); }
+    }
+    if (state.arms){
+      const single = state.spiralMode === "single";
+      state.arms.forEach((a, k) => {
+        const pts = sampleByArcLength(a.geom, single ? 400 : 140);
+        ctx.beginPath();
+        pts.forEach(({p},i) => { const [sx,sy] = this.worldToScreen(p); i===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy); });
+        if (single) ctx.strokeStyle = "#22d3ee";
+        else ctx.strokeStyle = `hsl(${(k*360/state.arms.length)%360}, 75%, 62%)`;
+        ctx.lineWidth = single ? 2.2 : 1.8;
+        ctx.stroke();
+      });
+    }
+    if (state.dets && state.dets.length){
+      const colors = { cruce:"#ef4444", tangencia:"#22c55e", cercania:"#eab308" };
+      for (const d of state.dets){
+        const [sx,sy] = this.worldToScreen([d.x,d.y]);
+        ctx.beginPath(); ctx.arc(sx, sy, d.type === "cruce" ? 6 : 4, 0, Math.PI*2);
+        ctx.fillStyle = colors[d.type] || "#a855f7"; ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
+  }
+  _grid(W,H){
+    const ctx = this.ctx, step = niceStep(60/this.view.scale);
+    const x0 = this.screenToWorld([0,0])[0], x1 = this.screenToWorld([W,0])[0];
+    const y0 = this.screenToWorld([0,H])[1], y1 = this.screenToWorld([0,0])[1];
+    ctx.strokeStyle = "rgba(255,255,255,0.04)"; ctx.lineWidth = 1; ctx.beginPath();
+    for (let x=Math.ceil(x0/step)*step; x<=x1; x+=step){ const [sx] = this.worldToScreen([x,0]); ctx.moveTo(sx,0); ctx.lineTo(sx,H); }
+    for (let y=Math.ceil(y0/step)*step; y<=y1; y+=step){ const [,sy] = this.worldToScreen([0,y]); ctx.moveTo(0,sy); ctx.lineTo(W,sy); }
+    ctx.stroke();
+  }
+}
+function niceStep(raw){ const p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/p; return p*(n<1.5?1:n<3.5?2:n<7.5?5:10); }
+
+// ============================================================
+// APLICACIÓN
+// ============================================================
+class ChipApp {
+  constructor(){
+    this.state = {
+      chipW:10, chipH:10, spiralMode:"multi",
+      nArms:8, angleDeg:137.50776, spiralType:"log", bLog:0.3,
+      rMin:1.0, rMax:4.5, channelWidth:0.05,
+      epsA:0.15, dMax:0.6, resTolDeg:1.5, coincTolDeg:2,
+      coverageThreshold:0.8, showSkeleton:true,
+      chip:null, arms:[], dets:[], skeleton:null, checks:null,
+      comparisonResults:null, topologyResults:null,
+    };
+    this.renderer = new CanvasRenderer(document.getElementById("cv"));
+    this._buildScenarios();
+    this._buildParams();
+    this._rebuild(true);
+    window.addEventListener("resize", () => this._rebuild(false));
+  }
+  _rebuild(fit){
+    const S = this.state;
+    S.chip = new Poligono({cx:0, cy:0, w:S.chipW, h:S.chipH});
+    S.arms = [];
+    const angles = [];
+    if (S.spiralMode === "single"){
+      let g;
+      if (S.spiralType === "log"){ const th = Math.log(S.rMax/S.rMin)/S.bLog; g = new EspiralLog({cx:0,cy:0,rMin:S.rMin,b:S.bLog,thetaMax:th,offset:0}); }
+      else { const bA = (S.rMax-S.rMin)/(4*Math.PI); const th = (S.rMax-S.rMin)/bA; g = new EspiralArq({cx:0,cy:0,a:S.rMin,b:bA,thetaMax:th,offset:0}); }
+      S.arms.push({ id:"arm0", geom:g });
+    } else {
+      for (let k=0;k<S.nArms;k++){
+        const off = ((k*S.angleDeg)%360)*RAD;
+        angles.push(off);
+        let g;
+        if (S.spiralType === "log"){ const th = Math.log(S.rMax/S.rMin)/S.bLog; g = new EspiralLog({cx:0,cy:0,rMin:S.rMin,b:S.bLog,thetaMax:th,offset:off}); }
+        else { const bA = (S.rMax-S.rMin)/(4*Math.PI); const th = (S.rMax-S.rMin)/bA; g = new EspiralArq({cx:0,cy:0,a:S.rMin,b:bA,thetaMax:th,offset:off}); }
+        S.arms.push({ id:`arm${k}`, geom:g });
+      }
+    }
+    const epsD = 2*S.channelWidth;
+    S.dets = S.spiralMode === "multi" ? detectArms(S.arms, { N:130, epsD, epsA:S.epsA, dMax:S.dMax }) : [];
+    S.skeleton = S.showSkeleton ? computeSkeleton(S.chip.vertices, { resolution:100, tolerance:0.05 }) : null;
+    S.checks = this._runChecks(angles, epsD);
+    this.renderer.draw(S);
+    if (fit){ const h = Math.max(S.chipW, S.chipH)/2; this.renderer.fitToBounds({minX:-h, minY:-h, maxX:h, maxY:h}); }
+    this._updateChecksUI();
+  }
+  _runChecks(angles, epsD){
+    const S = this.state;
+    const c = {
+      boundary: checkBoundary(S.arms, S.chip),
+      coverage: S.skeleton ? checkSkeletonCoverage(S.skeleton, S.arms, S.coverageThreshold) : null,
+      coincidences: [], resonance: { flags: [], minDistance: { value: Infinity } },
+      tangencias: [], cruces: [], cercanias: [], pitch: null,
+      actualAngle: S.angleDeg % 360,
+    };
+    if (S.spiralMode === "multi"){
+      c.coincidences = checkCoincidences(angles, S.coincTolDeg);
+      c.resonance = checkResonances(angles, S.resTolDeg);
+      c.tangencias = S.dets.filter(d => d.type === "tangencia");
+      c.cruces = S.dets.filter(d => d.type === "cruce");
+      c.cercanias = S.dets.filter(d => d.type === "cercania");
+    } else {
+      const th = S.arms[0].geom.cfg.thetaMax, turns = th/(2*Math.PI);
+      c.pitch = checkSelfPitch(S.arms[0].geom, 300, Math.max(4, Math.floor(300/(2*Math.max(turns,1)))));
+      c.turns = turns;
+    }
+    return c;
+  }
+  _buildScenarios(){
+    const root = document.getElementById("scenarios-section");
+    root.innerHTML = ""; const h = document.createElement("h3"); h.textContent = "Escenarios rápidos"; root.appendChild(h);
+    const grid = document.createElement("div"); grid.className = "scenarios";
+    for (const [label, val] of [["φ (137.5°)",137.50776],["72° (5-fold)",72],["90° (4-fold)",90],["120° (3-fold)",120],["180° (2-fold)",180],["Aleatorio",null]]){
+      const b = document.createElement("button"); b.textContent = label;
+      b.onclick = () => {
+        this.state.angleDeg = val === null ? Math.random()*360 : val;
+        if (this.state.spiralMode !== "multi") this.state.spiralMode = "multi";
+        this._rebuild(false); this._buildParams();
+      };
+      grid.appendChild(b);
+    }
+    root.appendChild(grid);
+  }
+  _buildParams(){
+    const root = document.getElementById("params-section");
+    root.innerHTML = ""; const S = this.state;
+    const h = document.createElement("h3"); h.textContent = "Parámetros"; root.appendChild(h);
+    const rowMode = document.createElement("div"); rowMode.className = "row";
+    const lM = document.createElement("label"); lM.textContent = "Modo espiral";
+    const selM = document.createElement("select");
+    for (const [k,v] of [["multi","multi-brazo"],["single","espiral única"]]){ const o = document.createElement("option"); o.value = k; o.textContent = v; selM.appendChild(o); }
+    selM.value = S.spiralMode;
+    selM.onchange = () => { S.spiralMode = selM.value; this._rebuild(false); this._buildParams(); };
+    rowMode.append(lM, selM); root.appendChild(rowMode);
+    const slider = (label, key, min, max, step, fmt) => {
+      const inp = document.createElement("input"); inp.type = "range"; inp.min = min; inp.max = max; inp.step = step; inp.value = S[key];
+      const val = document.createElement("span"); val.className = "val"; val.textContent = fmt(S[key]);
+      inp.oninput = () => { S[key] = parseFloat(inp.value); val.textContent = fmt(S[key]); this._debounce(); };
+      const r = document.createElement("div"); r.className = "row";
+      const l = document.createElement("label"); l.textContent = label;
+      r.append(l, inp, val); root.appendChild(r);
+    };
+    slider("Chip ancho","chipW",4,20,0.5,v=>v.toFixed(1));
+    slider("Chip alto","chipH",4,20,0.5,v=>v.toFixed(1));
+    if (S.spiralMode === "multi"){
+      slider("Brazos N","nArms",3,34,1,v=>v|0);
+      slider("Ángulo (°)","angleDeg",1,359,0.5,v=>v.toFixed(1)+"°");
+    }
+    const rT = document.createElement("div"); rT.className = "row";
+    const lT = document.createElement("label"); lT.textContent = "Tipo espiral";
+    const sT = document.createElement("select");
+    for (const [k,v] of [["log","logarítmica"],["arq","arquímedes"]]){ const o = document.createElement("option"); o.value = k; o.textContent = v; sT.appendChild(o); }
+    sT.value = S.spiralType; sT.onchange = () => { S.spiralType = sT.value; this._debounce(); };
+    rT.append(lT, sT); root.appendChild(rT);
+    slider("b (crecimiento)","bLog",0.03,0.4,0.01,v=>v.toFixed(2));
+    slider("r mínimo","rMin",0.2,3.0,0.05,v=>v.toFixed(2));
+    slider("r máximo","rMax",1.5,7.0,0.1,v=>v.toFixed(1));
+    slider("Ancho canal w","channelWidth",0.02,0.5,0.01,v=>v.toFixed(2));
+    if (S.spiralMode === "multi") slider("Tol. resonancia","resTolDeg",0.5,5,0.5,v=>v.toFixed(1)+"°");
+    const btn = document.createElement("button"); btn.className = "primary"; btn.textContent = "Recalcular";
+    btn.style.marginTop = "8px"; btn.style.width = "100%"; btn.onclick = () => this._rebuild(false);
+    root.appendChild(btn);
+  }
+  _debounce(){
+    if (this._pending) clearTimeout(this._pending);
+    this._pending = setTimeout(() => { this._pending = null; this._rebuild(false); }, 120);
+  }
+  _updateChecksUI(){
+    const root = document.getElementById("checks-section");
+    root.innerHTML = ""; const C = this.state.checks, S = this.state;
+    if (!C) return;
+    const h = document.createElement("h3");
+    h.innerHTML = `Resultados del chequeo <span class="mode-badge">${S.spiralMode === "multi" ? "multi-brazo" : "espiral única"}</span>`;
+    root.appendChild(h);
+    const card = (status, label, msg, detail) => {
+      const div = document.createElement("div"); div.className = "check " + status;
+      const icon = status === "pass" ? "✓" : status === "warn" ? "!" : "✗";
+      div.innerHTML = `<div class="head"><span class="icon">${icon}</span><span>${label}</span></div><div class="msg">${msg}</div>${detail ? `<div class="detail">${detail}</div>` : ""}`;
+      root.appendChild(div);
+    };
+    let fails = 0, warns = 0;
+    if (S.spiralMode === "multi"){
+      const angles = []; for (let k=0;k<S.nArms;k++) angles.push(((k*S.angleDeg)*RAD) % (2*Math.PI));
+      const dMin = actualMinGapRad(angles), rMinMin = rMinMinimum(dMin, S.bLog, S.channelWidth);
+      const ok = S.rMin >= rMinMin || !isFinite(rMinMin);
+      card(ok ? "pass" : "fail", "rMin mínimo (no solape)",
+        `actual: ${S.rMin.toFixed(2)} · mínimo: ${isFinite(rMinMin) ? rMinMin.toFixed(3) : "∞"}`,
+        `w/sin(Δ_min/2), Δ_min = ${(dMin*DEG).toFixed(2)}°`);
+      if (!ok) fails++;
+      const isG = Math.abs(C.actualAngle - 137.50776) < 0.5;
+      card(isG ? "pass" : "warn", "Ángulo filotaxis",
+        `${C.actualAngle.toFixed(2)}° ${isG ? "(φ)" : "(esperado 137.507°)"}`, `N = ${S.nArms}`);
+      if (C.coincidences.length === 0) card("pass", "Coincidencias", "Ninguna");
+      else { card("fail", "Coincidencias", `${C.coincidences.length} grupo(s)`, C.coincidences.map(g => `[${g.join(",")}]`).join(" · ")); fails++; }
+      if (C.resonance.flags.length === 0) card("pass", "Resonancias", `Ninguna (mín Δ ${C.resonance.minDistance.value.toFixed(2)}°)`);
+      else { card("warn", "Resonancias", `${C.resonance.flags.length} par(es) cerca`, `umbral ${S.resTolDeg}°`); warns++; }
+      if (C.tangencias.length === 0 && C.cercanias.length === 0) card("pass", "Sombras térmicas", "Ninguna");
+      else if (C.tangencias.length > 0){ card("fail", "Sombras térmicas", `${C.tangencias.length} tangencia(s)`, `sube rMin > ${rMinMin.toFixed(2)}`); fails++; }
+      else { card("warn", "Sombras térmicas", `${C.cercanias.length} cercanía(s)`); warns++; }
+      if (C.cruces.length === 0) card("pass", "Cruces", "Ninguno");
+      else { card("warn", "Cruces", `${C.cruces.length} (probable ruido)`); warns++; }
+    } else {
+      const pMin = C.pitch ? C.pitch.minD : Infinity, need = 2*S.channelWidth;
+      if (!isFinite(pMin)){ card("warn", "Pitch", "Sin vueltas suficientes"); warns++; }
+      else if (pMin >= need) card("pass", "Pitch entre coils", `${pMin.toFixed(3)} ≥ ${need.toFixed(3)}`, `vueltas ${(C.turns||0).toFixed(2)}`);
+      else { card("fail", "Pitch entre coils", `${pMin.toFixed(3)} < ${need.toFixed(3)}`, "aumenta b"); fails++; }
+    }
+    if (C.boundary.outside === 0) card("pass", "Frontera", "Todos dentro");
+    else { card("fail", "Frontera", `${C.boundary.outside} fuera`); fails++; }
+    if (C.coverage){
+      const pct = (C.coverage.pct*100).toFixed(1), thr = (S.coverageThreshold*100).toFixed(0);
+      let st = "pass"; if (C.coverage.pct < S.coverageThreshold*0.6) st = "fail"; else if (C.coverage.pct < S.coverageThreshold) st = "warn";
+      if (st !== "pass") warns++;
+      card(st, "Cobertura esqueleto", `${pct}% (umbral ${thr}%)`, C.coverage.worst.length ? `peor gap ${C.coverage.worst[0].d.toFixed(2)}` : "todos cerca");
+    } else card("warn", "Cobertura", "Desactivada");
+    const tot = document.createElement("div");
+    tot.style.cssText = "margin-top:10px;padding:10px;border-radius:6px;font-weight:600;text-align:center;";
+    if (fails > 0){ tot.style.background = "rgba(239,68,68,0.15)"; tot.style.color = "#ef4444"; tot.textContent = `${fails} fallo(s) crítico(s)`; }
+    else if (warns > 0){ tot.style.background = "rgba(234,179,8,0.15)"; tot.style.color = "#eab308"; tot.textContent = `${warns} advertencia(s)`; }
+    else { tot.style.background = "rgba(34,197,94,0.15)"; tot.style.color = "#22c55e"; tot.textContent = "Todo OK"; }
+    root.appendChild(tot);
+  }
+
+  // ========== COMPARADOR DE ÁNGULOS ==========
+  _buildComparisonButton(){
+    const root = document.getElementById("comparison-section");
+    root.innerHTML = "";
+    const h = document.createElement("h3"); h.textContent = "Comparador de ángulos"; root.appendChild(h);
+    const note = document.createElement("div"); note.className = "cmp-note";
+    note.innerHTML = "Compara varios ángulos irracionales con los mismos N, b, w, rMin, rMax. Gana el que permita el rMin más bajo sin solape.";
+    root.appendChild(note);
+    const btn = document.createElement("button"); btn.className = "primary"; btn.textContent = "▶ Comparar ángulos";
+    btn.style.marginTop = "8px"; btn.style.width = "100%";
+    btn.onclick = () => this._compareAngles();
+    root.appendChild(btn);
+  }
+  _compareAngles(){
+    const S = this.state;
+    if (S.spiralMode !== "multi"){ alert("Solo aplica a multi-brazo."); return; }
+    const candidates = [
+      { name:"φ (golden)", deg:137.50776 },
+      { name:"φ + 0.1°", deg:137.60776 },
+      { name:"φ − 0.1°", deg:137.40776 },
+      { name:"360/e", deg:360/Math.E },
+      { name:"360/π", deg:360/Math.PI },
+      { name:"360/√7", deg:360/Math.sqrt(7) },
+      { name:"√2 angle", deg:360*(Math.SQRT2-1) },
+      { name:"360/√5", deg:360/Math.sqrt(5) },
+      { name:"99.5°", deg:99.5 },
+      { name:"77.96°", deg:77.96 },
+      { name:"uniform 360/N", deg:360/S.nArms },
+      { name:"90° (rational)", deg:90 },
+      { name:"120° (rational)", deg:120 },
+    ];
+    const results = candidates.map(c => {
+      const angles = []; for (let k=0;k<S.nArms;k++) angles.push(((k*c.deg)*RAD) % (2*Math.PI));
+      const coinc = checkCoincidences(angles, S.coincTolDeg);
+      let minDist = 0, rMinNeeded = Infinity;
+      if (coinc.length === 0){
+        minDist = empiricalMinDistForAngle(c.deg, S.nArms, S.rMin, S.rMax, S.bLog);
+        rMinNeeded = S.rMin * (2*S.channelWidth) / minDist;
+      }
+      return { name:c.name, deg:c.deg, coincGroups:coinc.length, minDist, rMinNeeded, isPhi: Math.abs(c.deg-137.50776) < 0.01 };
+    });
+    results.sort((a,b) => {
+      if (a.coincGroups !== b.coincGroups) return a.coincGroups - b.coincGroups;
+      return a.rMinNeeded - b.rMinNeeded;
+    });
+    S.comparisonResults = results;
+    this._renderComparison(results);
+  }
+  _renderComparison(results){
+    const root = document.getElementById("comparison-section");
+    root.innerHTML = ""; const S = this.state;
+    const h = document.createElement("h3"); h.textContent = "Comparador de ángulos"; root.appendChild(h);
+    const note = document.createElement("div"); note.className = "cmp-note";
+    note.textContent = `N=${S.nArms}, b=${S.bLog.toFixed(2)}, w=${S.channelWidth.toFixed(2)}, rMin=${S.rMin.toFixed(2)}. Menor rMin requerido = mejor empaquetado.`;
+    root.appendChild(note);
+    const table = document.createElement("table"); table.className = "cmp-table";
+    table.innerHTML = `<thead><tr><th>Ángulo</th><th style="text-align:right">Grados</th><th style="text-align:right">d_min</th><th style="text-align:right">rMin req.</th><th>Estado</th></tr></thead>`;
+    const tbody = document.createElement("tbody");
+    const valid = results.filter(r => r.coincGroups === 0);
+    const wname = valid.length ? valid[0].name : null;
+    for (const r of results){
+      const tr = document.createElement("tr");
+      if (r.isPhi) tr.classList.add("phi");
+      if (r.name === wname) tr.classList.add("winner");
+      if (r.coincGroups > 0) tr.classList.add("coinc");
+      let status, stext;
+      if (r.coincGroups > 0){ status = "fail"; stext = "coincide"; }
+      else if (r.rMinNeeded > S.rMin){ status = "fail"; stext = "solapa"; }
+      else if (r.rMinNeeded > S.rMin*0.8){ status = "warn"; stext = "ajustado"; }
+      else { status = "pass"; stext = "ok"; }
+      const sc = status === "pass" ? "var(--ok)" : status === "warn" ? "var(--warn)" : "var(--fail)";
+      tr.innerHTML = `<td>${r.name}</td><td class="num">${r.deg.toFixed(3)}°</td><td class="num">${r.coincGroups > 0 ? "—" : r.minDist.toFixed(3)}</td><td class="num">${r.coincGroups > 0 ? "—" : (isFinite(r.rMinNeeded) ? r.rMinNeeded.toFixed(3) : "∞")}</td><td style="color:${sc};font-weight:600">${stext}</td>`;
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody); root.appendChild(table);
+    const phi = results.find(r => r.isPhi), w = valid[0];
+    const v = document.createElement("div"); v.className = "cmp-winner";
+    if (!w) v.innerHTML = `<strong>Sin válidos.</strong> Todos coinciden. Cambia N.`;
+    else if (w.isPhi) v.innerHTML = `<strong>φ gana.</strong> Con N=${S.nArms}, φ da mayor d_min (${w.minDist.toFixed(3)}) y menor rMin requerido (${w.rMinNeeded.toFixed(3)}).`;
+    else {
+      const phiR = phi ? phi.rMinNeeded : Infinity;
+      const delta = isFinite(phiR) && isFinite(w.rMinNeeded) ? ((phiR-w.rMinNeeded)/w.rMinNeeded*100).toFixed(1) : "∞";
+      v.innerHTML = `<strong>φ NO gana.</strong> Mejor: <strong>${w.name}</strong> (${w.deg.toFixed(3)}°), rMin req. ${w.rMinNeeded.toFixed(3)} vs φ ${isFinite(phiR) ? phiR.toFixed(3) : "∞"}. φ necesita <strong>+${delta}%</strong> rMin. La analogía con Vogel (puntos) no se sostiene para espirales con ancho.`;
+    }
+    root.appendChild(v);
+    const btn = document.createElement("button"); btn.className = "primary"; btn.textContent = "Recalcular";
+    btn.style.marginTop = "8px"; btn.style.width = "100%"; btn.onclick = () => this._compareAngles();
+    root.appendChild(btn);
+  }
+
+  // ========== COMPARADOR DE TOPOLOGÍAS ==========
+  _buildTopologyButton(){
+    const root = document.getElementById("topology-section");
+    root.innerHTML = "";
+    const h = document.createElement("h3"); h.textContent = "Comparador de topologías"; root.appendChild(h);
+    const note = document.createElement("div"); note.className = "cmp-note";
+    note.innerHTML = "Genera 5 topologías (espiral, serpentina, estrella, rejilla, Hilbert) con los mismos chip, w y cobertura. Mide solapes, d_min, longitud total, cobertura y hueco máximo. Click en una fila para previsualizarla.";
+    root.appendChild(note);
+    const btn = document.createElement("button"); btn.className = "primary"; btn.textContent = "▶ Comparar topologías";
+    btn.style.marginTop = "8px"; btn.style.width = "100%";
+    btn.onclick = () => this._compareTopologies();
+    root.appendChild(btn);
+  }
+  _compareTopologies(){
+    const S = this.state;
+    const chip = new Poligono({cx:0, cy:0, w:S.chipW, h:S.chipH});
+    const skeleton = computeSkeleton(chip.vertices, { resolution: 80, tolerance: 0.05 });
+    const cfg = {
+      chipW:S.chipW, chipH:S.chipH,
+      n:S.nArms, angleDeg:S.angleDeg, b:S.bLog, rMin:S.rMin, rMax:S.rMax,
+      spiralType:S.spiralType,
+      rows:S.nArms, cols:Math.max(2, Math.floor(S.nArms/2)),
+      order: Math.min(3, Math.max(1, Math.floor(Math.log2(S.nArms)))),
+    };
+    const topos = [
+      topoMultiSpiral(cfg),
+      topoSerpentine(cfg),
+      topoStar(cfg),
+      topoGrid(cfg),
+      topoHilbert(cfg),
+    ];
+    const results = topos.map(t => computeTopologyMetrics(t, chip, skeleton, S.channelWidth, S.coverageThreshold));
+    results.sort((a,b) => {
+      if (a.ok !== b.ok) return a.ok ? -1 : 1;
+      const ca = a.coverage ?? 0, cb = b.coverage ?? 0;
+      if (Math.abs(ca-cb) > 0.03) return cb - ca;
+      return b.minSpacing - a.minSpacing;
+    });
+    S.topologyResults = results;
+    this._renderTopologyComparison(results);
+  }
+  _renderTopologyComparison(results){
+    const root = document.getElementById("topology-section");
+    root.innerHTML = ""; const S = this.state;
+    const h = document.createElement("h3"); h.textContent = "Comparador de topologías"; root.appendChild(h);
+    const note = document.createElement("div"); note.className = "cmp-note";
+    note.innerHTML = `chip ${S.chipW}×${S.chipH}, w=${S.channelWidth.toFixed(2)}, cobertura umbral ${(S.coverageThreshold*100).toFixed(0)}%. <span style="color:#22d3ee">Click en fila → previsualizar en canvas</span>`;
+    root.appendChild(note);
+    const table = document.createElement("table"); table.className = "cmp-table";
+    table.innerHTML = `<thead><tr><th>Topología</th><th style="text-align:right">Brazos</th><th style="text-align:right">d_min</th><th style="text-align:right">L_total</th><th style="text-align:right">Cob.</th><th style="text-align:right">Gap máx</th><th>Estado</th></tr></thead>`;
+    const tbody = document.createElement("tbody");
+    const winner = results.find(r => r.ok);
+    for (const r of results){
+      const tr = document.createElement("tr"); tr.className = "row-link";
+      if (r === winner) tr.classList.add("winner");
+      if (!r.ok) tr.classList.add("coinc");
+      let status, stext;
+      if (!r.ok){ status = "fail"; stext = r.cruces > 0 ? "cruza" : r.tangencias > 0 ? "tangencia" : r.outside > 0 ? "fuera" : "falla"; }
+      else if (r.coverage != null && r.coverage < S.coverageThreshold*0.6){ status = "warn"; stext = "cob. baja"; }
+      else if (r.coverage != null && r.coverage < S.coverageThreshold){ status = "warn"; stext = "ajustado"; }
+      else { status = "pass"; stext = "ok"; }
+      const sc = status === "pass" ? "var(--ok)" : status === "warn" ? "var(--warn)" : "var(--fail)";
+      tr.innerHTML = `<td>${r.label}</td><td class="num">${r.armCount}</td><td class="num">${isFinite(r.minSpacing) ? r.minSpacing.toFixed(3) : "—"}</td><td class="num">${r.totalLength.toFixed(1)}</td><td class="num">${r.coverage != null ? (r.coverage*100).toFixed(0)+"%" : "—"}</td><td class="num">${r.maxGap ? r.maxGap.toFixed(2) : "—"}</td><td style="color:${sc};font-weight:600">${stext}</td>`;
+      tr.onclick = () => this._previewTopology(r.topo);
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody); root.appendChild(table);
+    const v = document.createElement("div"); v.className = "cmp-winner";
+    if (winner){
+      v.innerHTML = `<strong>Gana: ${winner.label}</strong> — cobertura ${(winner.coverage*100).toFixed(0)}%, d_min ${winner.minSpacing.toFixed(3)}, L=${winner.totalLength.toFixed(1)}. Criterio: sin solapes, luego mayor cobertura, luego mayor separación.`;
+    } else {
+      v.innerHTML = `<strong>Ninguna topología válida</strong> con estos parámetros. Ajusta chip o channelWidth.`;
+    }
+    root.appendChild(v);
+    const btn = document.createElement("button"); btn.className = "primary"; btn.textContent = "Recalcular topologías";
+    btn.style.marginTop = "8px"; btn.style.width = "100%"; btn.onclick = () => this._compareTopologies();
+    root.appendChild(btn);
+    const back = document.createElement("button"); back.textContent = "← Volver a mi configuración";
+    back.style.marginTop = "6px"; back.style.width = "100%"; back.onclick = () => this._rebuild(false);
+    root.appendChild(back);
+  }
+  _previewTopology(topo){
+    const S = this.state;
+    S.arms = topo.arms;
+    const epsD = 2*S.channelWidth;
+    S.dets = detectArms(S.arms, { N: 80, epsD, epsA: S.epsA, dMax: S.dMax });
+    this.renderer.draw(S);
+  }
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+window.addEventListener("DOMContentLoaded", () => {
+  const app = new ChipApp();
+  app._buildComparisonButton();
+  app._buildTopologyButton();
+  window.__app = app;
+  const panel = document.getElementById("panel");
+  const btn = document.getElementById("toggle-panel");
+  btn.addEventListener("click", () => panel.classList.toggle("hidden"));
+  window.addEventListener("keydown", e => { if (e.key === "p" || e.key === "P") panel.classList.toggle("hidden"); });
+});
+</script>
+</body>
+</html>

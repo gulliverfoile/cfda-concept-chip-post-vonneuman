@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Chequeo geométrico CFDA-F · disipador fractal φ + comparador de ángulos</title>
+<style>
+  :root {
+    --bg:#0f1115; --fg:#e5e7eb; --muted:#9ca3af; --panel:#161922; --border:#2a2f3a;
+    --ok:#22c55e; --warn:#eab308; --fail:#ef4444; --info:#22d3ee; --phi:#f472b6; --winner:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden}
+  #app{position:relative;height:100vh;width:100vw}
+  #cv{position:absolute;inset:0;display:block;background:var(--bg);cursor:grab;width:100%;height:100%}
+  #cv.dragging{cursor:grabbing}
+  #panel{position:fixed;top:60px;right:12px;bottom:12px;width:460px;max-width:calc(100vw - 24px);overflow-y:auto;padding:12px;background:rgba(22,25,34,.96);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:8px;font-size:13px;z-index:10;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:transform .22s ease,opacity .22s ease}
+  #panel.hidden{transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none}
+  #toggle-panel{position:fixed;top:12px;right:12px;z-index:20;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:18px;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+  #panel::-webkit-scrollbar{width:8px}
+  #panel::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:4px}
+  .section{margin-bottom:16px}
+  .section h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .row label{flex:1;color:var(--muted);font-size:12px}
+  .row input[type=range]{flex:2}
+  .row .val{min-width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px}
+  .row select{background:#2a2f3a;color:var(--fg);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px;flex:2}
+  hr{border:0;border-top:1px solid var(--border);margin:12px 0}
+  button{background:#2a2f3a;color:var(--fg);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px}
+  button:hover{background:#353b4a}
+  button.primary{background:#1e3a5f;border-color:#2a4a7f}
+  button.primary:hover{background:#2a4a7f}
+  .scenarios{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .scenarios button{font-size:11px;padding:6px 4px}
+  .check{padding:8px 10px;border-radius:6px;margin-bottom:6px;border-left:4px solid var(--border);background:#1c2030}
+  .check.pass{border-left-color:var(--ok)}
+  .check.warn{border-left-color:var(--warn)}
+  .check.fail{border-left-color:var(--fail)}
+  .check .head{display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px}
+  .check .icon{font-size:14px;width:16px;text-align:center}
+  .check.pass .icon{color:var(--ok)}
+  .check.warn .icon{color:var(--warn)}
+  .check.fail .icon{color:var(--fail)}
+  .check .msg{margin-top:4px;font-size:11px;color:var(--muted);line-height:1.4}
+  .check .detail{margin-top:2px;font-size:10px;color:#6b7280;font-family:ui-monospace,monospace;word-break:break-all}
+  .mode-badge{display:inline-block;padding:2px 6px;border-radius:3px;background:#1e3a5f;color:#93c5fd;font-size:10px;margin-left:6px;text-transform:uppercase;letter-spacing:.05em}
+
+  /* Tabla de comparación */
+  .cmp-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+  .cmp-table th{text-align:left;padding:5px 4px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+  .cmp-table td{padding:5px 4px;border-bottom:1px solid rgba(42,47,58,.5);font-variant-numeric:tabular-nums}
+  .cmp-table tr.phi td{background:rgba(244,114,182,.10);color:#fbcfe8}
+  .cmp-table tr.winner td{background:rgba(251,191,36,.13);color:#fde68a;font-weight:600}
+  .cmp-table tr.coinc td{opacity:.5;text-decoration:line-through}
+  .cmp-table td.num{text-align:right;font-family:ui-monospace,monospace}
+  .cmp-note{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+  .cmp-winner{font-size:12px;padding:8px 10px;border-radius:6px;margin-top:8px;background:rgba(251,191,36,.12);border-left:3px solid var(--winner);line-height:1.5}
+  .cmp-winner strong{color:var(--winner)}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv"></canvas>
+  <aside id="panel">
+    <div class="section" id="scenarios-section"></div>
+    <div class="section" id="params-section"></div>
+    <div class="section" id="checks-section"></div>
+    <div class="section" id="comparison-section"></div>
+  </aside>
+  <button id="toggle-panel" title="Mostrar/ocultar panel (P)">☰</button>
+</div>
+<script>
+"use strict";
+
+const hypot = Math.hypot;
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const DEG = 180/Math.PI;
+const RAD = Math.PI/180;
+
+// ============================================================
+// GEOMETRÍA
+// ============================================================
+class Geometry {
+  constructor(cfg){ this.cfg = cfg; }
+  eval(_t){ throw new Error("abstract"); }
+}
+
+class EspiralLog extends Geometry {
+  constructor(cfg){ super(cfg); }
+  eval(t){
+    const {cx, cy, rMin, b, thetaMax, offset} = this.cfg;
+    const th = t * thetaMax;
+    const r = rMin * Math.exp(b * th);
+    const angle = th + offset;
+    const dt = 0.001;
+    const th2 = th + dt;
+    const r2 = rMin * Math.exp(b * th2);
+    const angle2 = th2 + offset;
+    return {
+      p: [cx + r*Math.cos(angle), cy + r*Math.sin(angle)],
+      d: [r2*Math.cos(angle2) - r*Math.cos(angle), r2*Math.sin(angle2) - r*Math.sin(angle)]
+    };
+  }
+}
+
+class EspiralArq extends Geometry {
+  constructor(cfg){ super(cfg); }
+  eval(t){
+    const {cx, cy, a, b, thetaMax, offset} = this.cfg;
+    const th = t * thetaMax;
+    const r = a + b * th;
+    const angle = th + offset;
+    const dt = 0.001;
+    const th2 = th + dt;
+    const r2 = a + b * th2;
+    const angle2 = th2 + offset;
+    return {
+      p: [cx + r*Math.cos(angle), cy + r*Math.sin(angle)],
+      d: [r2*Math.cos(angle2) - r*Math.cos(angle), r2*Math.sin(angle2) - r*Math.sin(angle)]
+    };
+  }
+}
+
+class Poligono extends Geometry {
+  constructor(cfg){ super(cfg); }
+  get vertices(){
+    const {cx, cy, w, h} = this.cfg;
+    return [
+      [cx-w/2, cy-h/2], [cx+w/2, cy-h/2],
+      [cx+w/2, cy+h/2], [cx-w/2, cy+h/2],
+    ];
+  }
+  eval(t){
+    const v = this.vertices;
+    const n = v.length;
+    const cum = [0];
+    for (let i=0;i<n;i++){
+      const a = v[i], b = v[(i+1)%n];
+      cum.push(cum[i] + Math.hypot(b[0]-a[0], b[1]-a[1]));
+    }
+    const L = clamp(t,0,1) * cum[n];
+    let i = 0;
+    while (i < n-1 && cum[i+1] < L) i++;
+    const a = v[i], b = v[(i+1)%n];
+    const segLen = cum[i+1] - cum[i] || 1;
+    const f = (L - cum[i]) / segLen;
+    return {
+      p: [a[0] + f*(b[0]-a[0]), a[1] + f*(b[1]-a[1])],
+      d: [b[0]-a[0], b[1]-a[1]]
+    };
+  }
+}
+
+// ============================================================
+// SAMPLER Y DETECCIÓN
+// ============================================================
+function sampleByArcLength(geom, N){
+  const M = N*6;
+  const rawPts = new Array(M+1), rawTs = new Array(M+1);
+  for (let i=0;i<=M;i++){
+    const t = i/M;
+    const e = geom.eval(t);
+    rawPts[i] = e.p; rawTs[i] = t;
+  }
+  const cum = new Float64Array(M+1);
+  for (let i=1;i<=M;i++){
+    cum[i] = cum[i-1] + hypot(rawPts[i][0]-rawPts[i-1][0], rawPts[i][1]-rawPts[i-1][1]);
+  }
+  const L = cum[M] || 1;
+  const out = new Array(N);
+  let j = 0;
+  for (let i=0;i<N;i++){
+    const target = (i/(N-1)) * L;
+    while (j < M && cum[j+1] < target) j++;
+    const t0 = cum[j], t1 = cum[j+1];
+    const f = t1 > t0 ? (target - t0)/(t1 - t0) : 0;
+    const tt = rawTs[j] + f*(rawTs[j+1]-rawTs[j]);
+    out[i] = { t:tt, p: geom.eval(tt).p };
+  }
+  return out;
+}
+
+function computeTangents(pts){
+  const n = pts.length;
+  const t = new Array(n);
+  for (let i=0;i<n;i++){
+    const a = pts[Math.max(0,i-1)], b = pts[Math.min(n-1,i+1)];
+    let dx = b[0]-a[0], dy = b[1]-a[1];
+    const L = hypot(dx,dy) || 1;
+    t[i] = [dx/L, dy/L];
+  }
+  return t;
+}
+
+function findDistanceMinima(A, B, dedupeR, maxD){
+  const N = A.length, M = B.length;
+  const D = new Array(N);
+  for (let i=0;i<N;i++){
+    const row = new Float32Array(M);
+    const [ax, ay] = A[i];
+    for (let j=0;j<M;j++){
+      row[j] = hypot(ax-B[j][0], ay-B[j][1]);
+    }
+    D[i] = row;
+  }
+  const cands = [];
+  for (let i=0;i<N;i++){
+    for (let j=0;j<M;j++){
+      const v = D[i][j];
+      if (v > maxD) continue;
+      let isMin = true;
+      for (let di=-2; di<=2 && isMin; di++){
+        for (let dj=-2; dj<=2; dj++){
+          if (di===0 && dj===0) continue;
+          const ii = i+di, jj = j+dj;
+          if (ii<0||ii>=N||jj<0||jj>=M) continue;
+          if (D[ii][jj] < v - 1e-9){ isMin = false; break; }
+        }
+      }
+      if (isMin) cands.push({ i, j, d:v, p:[(A[i][0]+B[j][0])/2, (A[i][1]+B[j][1])/2] });
+    }
+  }
+  cands.sort((a,b) => a.d - b.d);
+  const kept = [];
+  for (const c of cands){
+    if (kept.every(k => hypot(k.p[0]-c.p[0], k.p[1]-c.p[1]) > dedupeR)) kept.push(c);
+  }
+  return kept;
+}
+
+function angleBetween(u, v){
+  const nu = hypot(u[0],u[1]), nv = hypot(v[0],v[1]);
+  if (nu < 1e-12 || nv < 1e-12) return 0;
+  const c = clamp((u[0]*v[0] + u[1]*v[1])/(nu*nv), -1, 1);
+  return Math.acos(Math.abs(c));
+}
+
+function classify(d, angle, epsD, epsA){
+  const touching = d < epsD;
+  const parallel = angle < epsA;
+  if (touching && !parallel) return "cruce";
+  if (touching &&  parallel) return "tangencia";
+  if (!touching && parallel) return "cercania";
+  return "paso";
+}
+
+function detectArms(arms, opts){
+  const { N, epsD, epsA, dMax } = opts;
+  const prepped = [];
+  for (const a of arms){
+    const raw = sampleByArcLength(a.geom, N);
+    const pts = raw.map(r => r.p);
+    const tans = computeTangents(pts);
+    prepped.push({ id: a.id, pts, tans });
+  }
+  const dets = [];
+  const dedupeR = Math.max(epsD*3, 0.02);
+  for (let i=0;i<prepped.length;i++){
+    for (let j=i+1;j<prepped.length;j++){
+      const A = prepped[i], B = prepped[j];
+      const minima = findDistanceMinima(A.pts, B.pts, dedupeR, dMax);
+      for (const m of minima){
+        const ang = angleBetween(A.tans[m.i], B.tans[m.j]);
+        const type = classify(m.d, ang, epsD, epsA);
+        if (type === "paso") continue;
+        dets.push({
+          x: m.p[0], y: m.p[1], d: m.d, angle: ang, type,
+          a: A.id, b: B.id
+        });
+      }
+    }
+  }
+  return dets;
+}
+
+// ============================================================
+// ESQUELETO
+// ============================================================
+function pointInPolygon(px, py, verts){
+  let inside = false;
+  const n = verts.length;
+  for (let i=0, j=n-1; i<n; j=i++){
+    const xi = verts[i][0], yi = verts[i][1];
+    const xj = verts[j][0], yj = verts[j][1];
+    if (((yi > py) !== (yj > py)) &&
+        (px < (xj - xi) * (py - yi) / (yj - yi) + xi)){
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function distToSegment(px, py, ax, ay, bx, by){
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx*dx + dy*dy;
+  const t = len2 > 0 ? clamp(((px-ax)*dx + (py-ay)*dy) / len2, 0, 1) : 0;
+  const cx = ax + t*dx, cy = ay + t*dy;
+  return Math.hypot(px-cx, py-cy);
+}
+
+function computeSkeleton(vertices, opts = {}){
+  const { resolution = 100, tolerance = 0.05 } = opts;
+  const n = vertices.length;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x,y] of vertices){
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  const W = maxX - minX, H = maxY - minY;
+  const cell = Math.max(W, H) / resolution;
+  const nx = Math.ceil(W / cell) + 1;
+  const ny = Math.ceil(H / cell) + 1;
+  const diff = new Float64Array(nx * ny).fill(1e9);
+  const dmin = new Float64Array(nx * ny).fill(-1);
+  for (let j=0;j<ny;j++){
+    for (let i=0;i<nx;i++){
+      const px = minX + i*cell;
+      const py = minY + j*cell;
+      if (!pointInPolygon(px, py, vertices)) continue;
+      let d1 = Infinity, d2 = Infinity;
+      for (let e=0;e<n;e++){
+        const a = vertices[e], b = vertices[(e+1)%n];
+        const d = distToSegment(px, py, a[0], a[1], b[0], b[1]);
+        if (d < d1){ d2 = d1; d1 = d; }
+        else if (d < d2){ d2 = d; }
+      }
+      const idx = j*nx + i;
+      diff[idx] = d2 - d1;
+      dmin[idx] = d1;
+    }
+  }
+  const pts = [];
+  for (let j=1;j<ny-1;j++){
+    for (let i=1;i<nx-1;i++){
+      const idx = j*nx + i;
+      if (dmin[idx] < 0) continue;
+      const v = diff[idx];
+      if (v > tolerance) continue;
+      let isMin = true;
+      for (let dj=-1; dj<=1 && isMin; dj++){
+        for (let di=-1; di<=1; di++){
+          if (dj===0 && di===0) continue;
+          const nidx = (j+dj)*nx + (i+di);
+          if (dmin[nidx] < 0) continue;
+          if (diff[nidx] < v - 1e-9){ isMin = false; break; }
+        }
+      }
+      if (!isMin) continue;
+      pts.push({ x: minX + i*cell, y: minY + j*cell, d: dmin[idx] });
+    }
+  }
+  return { points: pts, cell, bbox: {minX, minY, maxX, maxY} };
+}
+
+// ============================================================
+// CHECKS
+// ============================================================
+function checkCoincidences(angles, tolDeg){
+  const groups = [];
+  const used = new Array(angles.length).fill(false);
+  for (let i=0;i<angles.length;i++){
+    if (used[i]) continue;
+    const group = [i];
+    used[i] = true;
+    for (let j=i+1;j<angles.length;j++){
+      if (used[j]) continue;
+      let diff = Math.abs(angles[i] - angles[j]) * DEG;
+      diff = diff % 360;
+      if (diff > 180) diff = 360 - diff;
+      if (diff < tolDeg){ group.push(j); used[j] = true; }
+    }
+    if (group.length > 1) groups.push(group);
+  }
+  return groups;
+}
+
+function checkResonances(angles, tolDeg){
+  const RESONANCES = [45, 60, 90, 120, 135, 180];
+  const tol = tolDeg;
+  const flags = [];
+  let minDistance = { value: Infinity, sep: 0, target: 0 };
+  for (let i=0;i<angles.length;i++){
+    for (let j=i+1;j<angles.length;j++){
+      let sep = Math.abs(angles[i] - angles[j]) * DEG;
+      sep = sep % 360;
+      if (sep > 180) sep = 360 - sep;
+      if (sep < 1e-6) continue;
+      for (const r of RESONANCES){
+        const d = Math.abs(sep - r);
+        if (d < minDistance.value){
+          minDistance = { value: d, sep, target: r };
+        }
+        if (d < tol){
+          flags.push({ i, j, sep, target: r, diff: d });
+          break;
+        }
+      }
+    }
+  }
+  return { flags, minDistance };
+}
+
+function checkSkeletonCoverage(skeleton, arms, threshold){
+  const armPts = [];
+  for (const a of arms){
+    const pts = sampleByArcLength(a.geom, 80).map(s => s.p);
+    armPts.push(...pts);
+  }
+  if (armPts.length === 0 || skeleton.points.length === 0) return { total: 0, covered: 0, pct: 1, worst: [] };
+  let covered = 0;
+  const worst = [];
+  for (const sk of skeleton.points){
+    let best = Infinity;
+    for (const [x,y] of armPts){
+      const d = hypot(sk.x - x, sk.y - y);
+      if (d < best) best = d;
+    }
+    if (best <= threshold) covered++;
+    else worst.push({ x: sk.x, y: sk.y, d: best });
+  }
+  return {
+    total: skeleton.points.length,
+    covered,
+    pct: skeleton.points.length > 0 ? covered / skeleton.points.length : 1,
+    worst: worst.sort((a,b) => b.d - a.d).slice(0, 5),
+  };
+}
+
+function checkBoundary(arms, chip){
+  const verts = chip.vertices;
+  let inside = 0, outside = 0;
+  const outsidePts = [];
+  for (const a of arms){
+    const pts = sampleByArcLength(a.geom, 60).map(s => s.p);
+    for (const p of pts){
+      if (pointInPolygon(p[0], p[1], verts)) inside++;
+      else { outside++; if (outsidePts.length < 8) outsidePts.push(p); }
+    }
+  }
+  return { inside, outside, outsidePts };
+}
+
+function checkSelfPitch(geom, N, minArcSep){
+  const pts = sampleByArcLength(geom, N).map(s => s.p);
+  if (pts.length < minArcSep + 2) return { minD: Infinity, minPt: null };
+  let minD = Infinity, minPt = null;
+  for (let i = 0; i < pts.length; i++){
+    for (let j = i + minArcSep; j < pts.length; j++){
+      const d = hypot(pts[i][0]-pts[j][0], pts[i][1]-pts[j][1]);
+      if (d < minD){
+        minD = d;
+        minPt = [(pts[i][0]+pts[j][0])/2, (pts[i][1]+pts[j][1])/2];
+      }
+    }
+  }
+  return { minD, minPt };
+}
+
+// Min angular gap real (no aproximación 2π/N) para un conjunto de ángulos.
+// Ignora coincidencias (gap ~ 0) para no romper la fórmula.
+function actualMinGapRad(angles){
+  if (angles.length < 2) return 2 * Math.PI;
+  const TWO_PI = 2 * Math.PI;
+  const sorted = angles.map(a => ((a % TWO_PI) + TWO_PI) % TWO_PI).sort((a, b) => a - b);
+  let minGap = TWO_PI;
+  for (let i = 0; i < sorted.length; i++){
+    let gap;
+    if (i === sorted.length - 1){
+      gap = (sorted[0] + TWO_PI) - sorted[i];
+    } else {
+      gap = sorted[i+1] - sorted[i];
+    }
+    if (gap > 1e-9 && gap < minGap) minGap = gap;
+  }
+  return minGap;
+}
+
+// rMin mínimo para que dos brazos a la misma r no se solapen.
+// Derivación: a r=rMin, separación de centros = 2·rMin·sin(Δ/2).
+// Need > 2w → rMin > w / sin(Δ/2).
+function rMinMinimum(angleStepRad, _b, channelWidth){
+  const sinHalf = Math.sin(angleStepRad / 2);
+  if (sinHalf <= 1e-9) return Infinity;
+  return channelWidth / sinHalf;
+}
+
+// Distancia mínima real entre espirales (version empírica) para un candidato.
+// Retorna minDist at current rMin, y rMinNeeded para lograr distancia 2w.
+function empiricalMinDistForAngle(deg, N, rMin, rMax, b){
+  const thetaMax = Math.log(rMax / rMin) / b;
+  const arms = [];
+  for (let k = 0; k < N; k++){
+    const offsetRad = ((k * deg) * RAD) % (2 * Math.PI);
+    const geom = new EspiralLog({
+      cx: 0, cy: 0, rMin, b, thetaMax, offset: offsetRad,
+    });
+    arms.push(geom);
+  }
+  const samplesPerArm = 90;
+  const sampled = arms.map(g => sampleByArcLength(g, samplesPerArm).map(s => s.p));
+  let minDist = Infinity;
+  for (let i = 0; i < N; i++){
+    for (let j = i + 1; j < N; j++){
+      const A = sampled[i], B = sampled[j];
+      for (let si = 0; si < A.length; si++){
+        for (let sj = 0; sj < B.length; sj++){
+          const d = hypot(A[si][0]-B[sj][0], A[si][1]-B[sj][1]);
+          if (d < minDist) minDist = d;
+        }
+      }
+    }
+  }
+  return minDist;
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+class CanvasRenderer {
+  constructor(canvas){
+    this.cv = canvas;
+    this.ctx = canvas.getContext("2d");
+    this.view = { cx: 0, cy: 0, scale: 50 };
+    this._bindPanZoom();
+    window.addEventListener("resize", () => this.resize());
+    this.resize();
+  }
+  resize(){
+    const dpr = window.devicePixelRatio || 1;
+    const r = this.cv.getBoundingClientRect();
+    this.cv.width  = Math.floor(r.width  * dpr);
+    this.cv.height = Math.floor(r.height * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  worldToScreen([x,y]){
+    return [
+      (x - this.view.cx) * this.view.scale + this.cv.clientWidth/2,
+      -(y - this.view.cy) * this.view.scale + this.cv.clientHeight/2
+    ];
+  }
+  screenToWorld([sx,sy]){
+    return [
+      (sx - this.cv.clientWidth/2)/this.view.scale + this.view.cx,
+      -(sy - this.cv.clientHeight/2)/this.view.scale + this.view.cy
+    ];
+  }
+  fitToBounds(bbox){
+    const w = bbox.maxX - bbox.minX || 1;
+    const h = bbox.maxY - bbox.minY || 1;
+    const W = this.cv.clientWidth, H = this.cv.clientHeight;
+    this.view.cx = (bbox.minX + bbox.maxX) / 2;
+    this.view.cy = (bbox.minY + bbox.maxY) / 2;
+    this.view.scale = Math.min(W/(w*1.2), H/(h*1.2));
+  }
+  _bindPanZoom(){
+    const cv = this.cv;
+    let drag = null;
+    cv.addEventListener("mousedown", e => {
+      drag = { x:e.offsetX, y:e.offsetY, cx:this.view.cx, cy:this.view.cy };
+      cv.classList.add("dragging");
+    });
+    window.addEventListener("mousemove", e => {
+      if (!drag) return;
+      this.view.cx = drag.cx - (e.offsetX - drag.x)/this.view.scale;
+      this.view.cy = drag.cy + (e.offsetY - drag.y)/this.view.scale;
+    });
+    window.addEventListener("mouseup", () => { drag = null; cv.classList.remove("dragging"); });
+    cv.addEventListener("wheel", e => {
+      e.preventDefault();
+      const f = e.deltaY < 0 ? 1.15 : 1/1.15;
+      const mouse = [e.offsetX, e.offsetY];
+      const before = this.screenToWorld(mouse);
+      this.view.scale *= f;
+      const after = this.screenToWorld(mouse);
+      this.view.cx += before[0] - after[0];
+      this.view.cy += before[1] - after[1];
+    }, { passive:false });
+  }
+  draw(state){
+    const ctx = this.ctx;
+    const W = this.cv.clientWidth, H = this.cv.clientHeight;
+    ctx.clearRect(0,0,W,H);
+    this._drawGrid(W,H);
+
+    if (state.chip){
+      const verts = state.chip.vertices;
+      ctx.beginPath();
+      for (let i=0;i<verts.length;i++){
+        const [sx,sy] = this.worldToScreen(verts[i]);
+        if (i===0) ctx.moveTo(sx,sy);
+        else ctx.lineTo(sx,sy);
+      }
+      ctx.closePath();
+      ctx.fillStyle = "rgba(6,182,212,0.04)";
+      ctx.fill();
+      ctx.strokeStyle = "#06b6d4";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    if (state.skeleton && state.showSkeleton){
+      ctx.fillStyle = "rgba(251,191,36,0.35)";
+      for (const p of state.skeleton.points){
+        const [sx,sy] = this.worldToScreen([p.x, p.y]);
+        ctx.fillRect(sx-1, sy-1, 2, 2);
+      }
+    }
+
+    if (state.arms){
+      const single = state.spiralMode === "single";
+      for (let k=0;k<state.arms.length;k++){
+        const a = state.arms[k];
+        const pts = sampleByArcLength(a.geom, single ? 400 : 140);
+        ctx.beginPath();
+        let started = false;
+        for (const {p} of pts){
+          const [sx,sy] = this.worldToScreen(p);
+          if (!started){ ctx.moveTo(sx,sy); started = true; }
+          else ctx.lineTo(sx,sy);
+        }
+        if (single){
+          ctx.strokeStyle = "#22d3ee";
+        } else {
+          const hue = (k * 360 / state.arms.length) % 360;
+          ctx.strokeStyle = `hsl(${hue}, 75%, 62%)`;
+        }
+        ctx.lineWidth = single ? 2.2 : 1.8;
+        ctx.stroke();
+      }
+    }
+
+    if (state.dets && state.dets.length){
+      const colors = { cruce:"#ef4444", tangencia:"#22c55e", cercania:"#eab308" };
+      for (const d of state.dets){
+        const [sx,sy] = this.worldToScreen([d.x, d.y]);
+        ctx.beginPath();
+        ctx.arc(sx, sy, d.type === "cruce" ? 6 : 4, 0, Math.PI*2);
+        ctx.fillStyle = colors[d.type] || "#a855f7";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.5)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  }
+  _drawGrid(W,H){
+    const ctx = this.ctx;
+    const step = niceStep(60 / this.view.scale);
+    const x0 = this.screenToWorld([0,0])[0];
+    const x1 = this.screenToWorld([W,0])[0];
+    const y0 = this.screenToWorld([0,H])[1];
+    const y1 = this.screenToWorld([0,0])[1];
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = Math.ceil(x0/step)*step; x <= x1; x += step){
+      const [sx] = this.worldToScreen([x,0]); ctx.moveTo(sx,0); ctx.lineTo(sx,H);
+    }
+    for (let y = Math.ceil(y0/step)*step; y <= y1; y += step){
+      const [,sy] = this.worldToScreen([0,y]); ctx.moveTo(0,sy); ctx.lineTo(W,sy);
+    }
+    ctx.stroke();
+  }
+}
+function niceStep(raw){
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw/p;
+  return p * (n<1.5?1 : n<3.5?2 : n<7.5?5 : 10);
+}
+
+// ============================================================
+// APLICACIÓN
+// ============================================================
+class ChipApp {
+  constructor(){
+    this.state = {
+      chipW: 10, chipH: 10,
+      spiralMode: "multi",
+      nArms: 8,
+      angleDeg: 137.50776,
+      spiralType: "log",
+      bLog: 0.3,
+      rMin: 1.0,
+      rMax: 4.5,
+      channelWidth: 0.05,
+      epsA: 0.15,
+      dMax: 0.6,
+      resTolDeg: 1.5,
+      coincTolDeg: 2,
+      coverageThreshold: 0.8,
+      showSkeleton: true,
+      chip: null, arms: [], dets: [], skeleton: null, checks: null,
+      comparisonResults: null,
+    };
+    this.renderer = new CanvasRenderer(document.getElementById("cv"));
+    this._buildScenarios();
+    this._buildParams();
+    this._rebuild(true);
+    window.addEventListener("resize", () => this._rebuild(false));
+  }
+
+  _rebuild(fit){
+    const S = this.state;
+    S.chip = new Poligono({cx:0, cy:0, w:S.chipW, h:S.chipH});
+    S.arms = [];
+    const angles = [];
+
+    if (S.spiralMode === "single"){
+      let geom;
+      if (S.spiralType === "log"){
+        const thetaMax = Math.log(S.rMax / S.rMin) / S.bLog;
+        geom = new EspiralLog({cx:0, cy:0, rMin: S.rMin, b: S.bLog, thetaMax, offset: 0});
+      } else {
+        const b = (S.rMax - S.rMin) / (4*Math.PI);
+        const thetaMax = (S.rMax - S.rMin) / b;
+        geom = new EspiralArq({cx:0, cy:0, a: S.rMin, b, thetaMax, offset: 0});
+      }
+      S.arms.push({ id: "arm0", geom, angleDeg: 0 });
+    } else {
+      for (let k=0; k<S.nArms; k++){
+        const offset = (k * S.angleDeg) % 360;
+        const offsetRad = offset * RAD;
+        angles.push(offsetRad);
+        let geom;
+        if (S.spiralType === "log"){
+          const thetaMax = Math.log(S.rMax / S.rMin) / S.bLog;
+          geom = new EspiralLog({cx:0, cy:0, rMin: S.rMin, b: S.bLog, thetaMax, offset: offsetRad});
+        } else {
+          const b = (S.rMax - S.rMin) / (4*Math.PI);
+          const thetaMax = (S.rMax - S.rMin) / b;
+          geom = new EspiralArq({cx:0, cy:0, a: S.rMin, b, thetaMax, offset: offsetRad});
+        }
+        S.arms.push({ id: `arm${k}`, geom, angleDeg: offset });
+      }
+    }
+
+    const epsD = 2 * S.channelWidth;
+    S.dets = (S.spiralMode === "multi")
+      ? detectArms(S.arms, { N: 130, epsD, epsA: S.epsA, dMax: S.dMax })
+      : [];
+    S.skeleton = S.showSkeleton ? computeSkeleton(S.chip.vertices, {
+      resolution: 100, tolerance: 0.05,
+    }) : null;
+    S.checks = this._runChecks(angles, epsD);
+    this.renderer.draw(S);
+    if (fit){
+      const half = Math.max(S.chipW, S.chipH) / 2;
+      this.renderer.fitToBounds({minX:-half, minY:-half, maxX:half, maxY:half});
+    }
+    this._updateChecksUI();
+  }
+
+  _runChecks(angles, epsD){
+    const S = this.state;
+    const checks = {
+      boundary: checkBoundary(S.arms, S.chip),
+      coverage: S.skeleton ? checkSkeletonCoverage(S.skeleton, S.arms, S.coverageThreshold) : null,
+      coincidences: [],
+      resonance: { flags: [], minDistance: { value: Infinity } },
+      tangencias: [], cruces: [], cercanias: [],
+      pitch: null,
+      actualAngle: S.angleDeg % 360,
+    };
+
+    if (S.spiralMode === "multi"){
+      checks.coincidences = checkCoincidences(angles, S.coincTolDeg);
+      checks.resonance = checkResonances(angles, S.resTolDeg);
+      checks.tangencias = S.dets.filter(d => d.type === "tangencia");
+      checks.cruces = S.dets.filter(d => d.type === "cruce");
+      checks.cercanias = S.dets.filter(d => d.type === "cercania");
+    } else {
+      const thetaMax = S.arms[0].geom.cfg.thetaMax;
+      const turns = thetaMax / (2*Math.PI);
+      const N = 300;
+      const minArcSep = Math.max(4, Math.floor(N / (2 * Math.max(turns, 1))));
+      checks.pitch = checkSelfPitch(S.arms[0].geom, N, minArcSep);
+      checks.turns = turns;
+    }
+    return checks;
+  }
+
+  _buildScenarios(){
+    const root = document.getElementById("scenarios-section");
+    root.innerHTML = "";
+    const h = document.createElement("h3"); h.textContent = "Escenarios rápidos"; root.appendChild(h);
+    const grid = document.createElement("div"); grid.className = "scenarios";
+    const scenarios = [
+      ["φ (137.5°)", 137.50776],
+      ["72° (5-fold)", 72],
+      ["90° (4-fold)", 90],
+      ["120° (3-fold)", 120],
+      ["180° (2-fold)", 180],
+      ["Aleatorio", null],
+    ];
+    for (const [label, val] of scenarios){
+      const btn = document.createElement("button");
+      btn.textContent = label;
+      btn.onclick = () => {
+        this.state.angleDeg = (val === null) ? Math.random() * 360 : val;
+        if (this.state.spiralMode !== "multi") this.state.spiralMode = "multi";
+        this._rebuild(false);
+        this._buildParams();
+      };
+      grid.appendChild(btn);
+    }
+    root.appendChild(grid);
+  }
+
+  _buildParams(){
+    const root = document.getElementById("params-section");
+    root.innerHTML = "";
+    const S = this.state;
+    const h = document.createElement("h3"); h.textContent = "Parámetros"; root.appendChild(h);
+
+    const rowMode = document.createElement("div"); rowMode.className = "row";
+    const lMode = document.createElement("label"); lMode.textContent = "Modo espiral";
+    const selMode = document.createElement("select");
+    for (const [k,v] of [["multi","multi-brazo (N espirales)"],["single","espiral única (1 curva)"]]){
+      const o = document.createElement("option"); o.value = k; o.textContent = v; selMode.appendChild(o);
+    }
+    selMode.value = S.spiralMode;
+    selMode.onchange = () => {
+      S.spiralMode = selMode.value;
+      this._rebuild(false);
+      this._buildParams();
+    };
+    rowMode.append(lMode, selMode);
+    root.appendChild(rowMode);
+
+    const slider = (label, key, min, max, step, fmt) => {
+      const inp = document.createElement("input");
+      inp.type = "range"; inp.min = min; inp.max = max; inp.step = step; inp.value = S[key];
+      const val = document.createElement("span"); val.className = "val"; val.textContent = fmt(S[key]);
+      inp.oninput = () => {
+        S[key] = parseFloat(inp.value);
+        val.textContent = fmt(S[key]);
+        this._debounceRebuild();
+      };
+      const row = document.createElement("div");
+      row.className = "row";
+      const l = document.createElement("label"); l.textContent = label;
+      row.append(l, inp, val);
+      root.appendChild(row);
+    };
+
+    slider("Chip ancho",  "chipW", 4, 20, 0.5, v => v.toFixed(1));
+    slider("Chip alto",   "chipH", 4, 20, 0.5, v => v.toFixed(1));
+
+    if (S.spiralMode === "multi"){
+      slider("Brazos N", "nArms", 3, 34, 1, v => v|0);
+      slider("Ángulo (°)", "angleDeg", 1, 359, 0.5, v => v.toFixed(1)+"°");
+    }
+
+    const rowType = document.createElement("div"); rowType.className = "row";
+    const lType = document.createElement("label"); lType.textContent = "Tipo espiral";
+    const selType = document.createElement("select");
+    for (const [k,v] of [["log","logarítmica"],["arq","arquímedes"]]){
+      const o = document.createElement("option"); o.value = k; o.textContent = v; selType.appendChild(o);
+    }
+    selType.value = S.spiralType;
+    selType.onchange = () => { S.spiralType = selType.value; this._debounceRebuild(); };
+    rowType.append(lType, selType);
+    root.appendChild(rowType);
+
+    slider("b (crecimiento)", "bLog", 0.03, 0.4, 0.01, v => v.toFixed(2));
+    slider("r mínimo",        "rMin", 0.2, 3.0, 0.05, v => v.toFixed(2));
+    slider("r máximo",        "rMax", 1.5, 7.0, 0.1, v => v.toFixed(1));
+    slider("Ancho canal w",   "channelWidth", 0.02, 0.5, 0.01, v => v.toFixed(2));
+
+    if (S.spiralMode === "multi"){
+      slider("Tol. resonancia", "resTolDeg", 0.5, 5, 0.5, v => v.toFixed(1)+"°");
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "primary";
+    btn.textContent = "Recalcular";
+    btn.style.marginTop = "8px";
+    btn.style.width = "100%";
+    btn.onclick = () => this._rebuild(false);
+    root.appendChild(btn);
+  }
+
+  _debounceRebuild(){
+    if (this._pending) clearTimeout(this._pending);
+    this._pending = setTimeout(() => { this._pending = null; this._rebuild(false); }, 120);
+  }
+
+  _updateChecksUI(){
+    const root = document.getElementById("checks-section");
+    root.innerHTML = "";
+    const C = this.state.checks;
+    const S = this.state;
+    if (!C) return;
+
+    const h = document.createElement("h3");
+    h.innerHTML = `Resultados del chequeo <span class="mode-badge">${S.spiralMode === "multi" ? "multi-brazo" : "espiral única"}</span>`;
+    root.appendChild(h);
+
+    const card = (status, label, message, detail) => {
+      const div = document.createElement("div");
+      div.className = "check " + status;
+      const icon = status === "pass" ? "✓" : status === "warn" ? "!" : "✗";
+      div.innerHTML = `<div class="head"><span class="icon">${icon}</span><span>${label}</span></div>
+        <div class="msg">${message}</div>
+        ${detail ? `<div class="detail">${detail}</div>` : ""}`;
+      root.appendChild(div);
+    };
+
+    let fails = 0, warns = 0;
+
+    if (S.spiralMode === "multi"){
+      const angles = [];
+      for (let k = 0; k < S.nArms; k++) angles.push(((k * S.angleDeg) * RAD) % (2 * Math.PI));
+      const deltaMin = actualMinGapRad(angles);
+      const rMinMin = rMinMinimum(deltaMin, S.bLog, S.channelWidth);
+      const okRMin = S.rMin >= rMinMin || !isFinite(rMinMin);
+      card(okRMin ? "pass" : "fail",
+        "rMin mínimo (no solape)",
+        `actual: ${S.rMin.toFixed(2)} · mínimo: ${isFinite(rMinMin) ? rMinMin.toFixed(3) : "∞"}`,
+        `w/sin(Δ_min/2), Δ_min = ${(deltaMin*DEG).toFixed(2)}° (gap angular real, no 2π/N)`
+      );
+      if (!okRMin) fails++;
+
+      const isGolden = Math.abs(C.actualAngle - 137.50776) < 0.5;
+      card(isGolden ? "pass" : "warn",
+        "Ángulo de filotaxis",
+        `${C.actualAngle.toFixed(2)}° ${isGolden ? "(φ verificado)" : "(esperado 137.507°)"}`,
+        `N = ${S.nArms} brazos`);
+
+      if (C.coincidences.length === 0){
+        card("pass", "Coincidencias entre brazos", "Ninguna");
+      } else {
+        const detail = C.coincidences.map(g => `grupo de ${g.length}: [${g.join(",")}]`).join(" · ");
+        card("fail", "Coincidencias entre brazos",
+          `${C.coincidences.length} grupo(s) coincidente(s)`, detail);
+        fails++;
+      }
+
+      if (C.resonance.flags.length === 0){
+        const md = C.resonance.minDistance;
+        const msg = md.value !== Infinity
+          ? `Ninguna (mín. separación a resonancia: ${md.value.toFixed(2)}°)`
+          : "Ninguna";
+        card("pass", "Resonancias fuertes", msg, `umbral: ${S.resTolDeg}°`);
+      } else {
+        card("warn", "Resonancias fuertes",
+          `${C.resonance.flags.length} par(es) cerca de resonancia`,
+          C.resonance.flags.slice(0, 3).map(f => `${f.sep.toFixed(1)}°≈${f.target}°`).join(" · "));
+        warns++;
+      }
+
+      if (C.tangencias.length === 0 && C.cercanias.length === 0){
+        card("pass", "Sombras térmicas", "Ninguna", "separación entre brazos > 2w");
+      } else if (C.tangencias.length > 0){
+        card("fail", "Sombras térmicas",
+          `${C.tangencias.length} tangencia(s) — canales en contacto`,
+          `sube rMin > ${isFinite(rMinMin) ? rMinMin.toFixed(2) : "∞"} o baja channelWidth`);
+        fails++;
+      } else {
+        const minD = Math.min(...C.cercanias.map(c => c.d));
+        card("warn", "Sombras térmicas",
+          `${C.cercanias.length} cercanía(s), d mín = ${minD.toFixed(3)}`);
+        warns++;
+      }
+
+      if (C.cruces.length === 0){
+        card("pass", "Cruces entre brazos", "Ninguno");
+      } else {
+        card("warn", "Cruces entre brazos", `${C.cruces.length} cruce(s)`,
+          "nota: espirales iguales rotadas no se cruzan; posible ruido del clasificador");
+        warns++;
+      }
+    } else {
+      const pitchMin = C.pitch ? C.pitch.minD : Infinity;
+      const need = 2 * S.channelWidth;
+      const turns = C.turns || 0;
+      if (!isFinite(pitchMin)){
+        card("warn", "Pitch entre coils", "No hay suficientes vueltas",
+          `vueltas actuales: ${turns.toFixed(2)}`);
+        warns++;
+      } else if (pitchMin >= need){
+        card("pass", "Pitch entre coils",
+          `mínimo: ${pitchMin.toFixed(3)} ≥ 2w = ${need.toFixed(3)}`,
+          `vueltas: ${turns.toFixed(2)}`);
+      } else {
+        card("fail", "Pitch entre coils",
+          `mínimo: ${pitchMin.toFixed(3)} < 2w = ${need.toFixed(3)} — coils se tocan`,
+          "aumenta b o baja channelWidth");
+        fails++;
+      }
+    }
+
+    if (C.boundary.outside === 0){
+      card("pass", "Integridad de frontera", "Todos los brazos dentro del chip");
+    } else {
+      card("fail", "Integridad de frontera",
+        `${C.boundary.outside} punto(s) fuera del chip`,
+        "aumentar chip o reducir rMax");
+      fails++;
+    }
+
+    if (C.coverage){
+      const pct = (C.coverage.pct * 100).toFixed(1);
+      const thr = (S.coverageThreshold * 100).toFixed(0);
+      let status = "pass";
+      if (C.coverage.pct < S.coverageThreshold * 0.6) status = "fail";
+      else if (C.coverage.pct < S.coverageThreshold) status = "warn";
+      if (status !== "pass") warns++;
+      card(status, "Cobertura del esqueleto", `${pct}% (umbral: ${thr}%)`,
+        C.coverage.worst.length > 0
+          ? `${C.coverage.worst.length} punto(s) peor cubierto(s), d max = ${C.coverage.worst[0].d.toFixed(2)}`
+          : "todos los puntos del esqueleto cerca de un canal");
+    } else {
+      card("warn", "Cobertura del esqueleto", "Desactivada");
+    }
+
+    const total = document.createElement("div");
+    total.style.cssText = "margin-top:10px;padding:10px;border-radius:6px;font-weight:600;text-align:center;";
+    if (fails > 0){
+      total.style.background = "rgba(239,68,68,0.15)";
+      total.style.color = "#ef4444";
+      total.textContent = `${fails} fallo(s) crítico(s) — diseño geométricamente inviable`;
+    } else if (warns > 0){
+      total.style.background = "rgba(234,179,8,0.15)";
+      total.style.color = "#eab308";
+      total.textContent = `${warns} advertencia(s) — coherente con reservas`;
+    } else {
+      total.style.background = "rgba(34,197,94,0.15)";
+      total.style.color = "#22c55e";
+      total.textContent = "Todo OK — consistente con las afirmaciones geométricas del paper";
+    }
+    root.appendChild(total);
+  }
+
+  // ============================================================
+  // COMPARADOR DE ÁNGULOS
+  // ============================================================
+  _compareAngles(){
+    const S = this.state;
+    if (S.spiralMode !== "multi"){
+      alert("El comparador solo aplica a modo multi-brazo.");
+      return;
+    }
+    const candidates = [
+      { name: "φ (golden)",     deg: 137.50776 },
+      { name: "φ + 0.1°",       deg: 137.60776 },
+      { name: "φ − 0.1°",       deg: 137.40776 },
+      { name: "360/e",          deg: 360 / Math.E },
+      { name: "360/π",          deg: 360 / Math.PI },
+      { name: "360/√7",         deg: 360 / Math.sqrt(7) },
+      { name: "√2 angle",       deg: 360 * (Math.SQRT2 - 1) },
+      { name: "360/√5",         deg: 360 / Math.sqrt(5) },
+      { name: "99.5°",          deg: 99.5 },
+      { name: "77.96°",         deg: 77.96 },
+      { name: "uniform 360/N",  deg: 360 / S.nArms },
+      { name: "90° (rational)", deg: 90 },
+      { name: "120° (rational)",deg: 120 },
+    ];
+
+    const results = [];
+    for (const cand of candidates){
+      const angles = [];
+      for (let k = 0; k < S.nArms; k++) angles.push(((k * cand.deg) * RAD) % (2 * Math.PI));
+      const coinc = checkCoincidences(angles, S.coincTolDeg);
+      let minDist = 0, rMinNeeded = Infinity;
+      if (coinc.length === 0){
+        minDist = empiricalMinDistForAngle(cand.deg, S.nArms, S.rMin, S.rMax, S.bLog);
+        rMinNeeded = S.rMin * (2 * S.channelWidth) / minDist;
+      }
+      results.push({
+        name: cand.name,
+        deg: cand.deg,
+        coincGroups: coinc.length,
+        minDist,
+        rMinNeeded,
+        isPhi: Math.abs(cand.deg - 137.50776) < 0.01,
+      });
+    }
+
+    results.sort((a, b) => {
+      if (a.coincGroups !== b.coincGroups) return a.coincGroups - b.coincGroups;
+      if (a.rMinNeeded !== b.rMinNeeded) return a.rMinNeeded - b.rMinNeeded;
+      return 0;
+    });
+
+    S.comparisonResults = results;
+    this._renderComparison(results);
+  }
+
+  _renderComparison(results){
+    const root = document.getElementById("comparison-section");
+    root.innerHTML = "";
+    const S = this.state;
+    const h = document.createElement("h3"); h.textContent = "Comparador de ángulos"; root.appendChild(h);
+    const note = document.createElement("div");
+    note.className = "cmp-note";
+    note.textContent = `N=${S.nArms}, b=${S.bLog.toFixed(2)}, w=${S.channelWidth.toFixed(2)}, rMin=${S.rMin.toFixed(2)}. Compara la distancia mínima real entre espirales a rMin actual. Menor rMin requerido = mejor empaquetado.`;
+    root.appendChild(note);
+
+    const table = document.createElement("table");
+    table.className = "cmp-table";
+    const thead = document.createElement("thead");
+    thead.innerHTML = `<tr>
+      <th>Ángulo</th>
+      <th style="text-align:right">Grados</th>
+      <th style="text-align:right">d_min</th>
+      <th style="text-align:right">rMin req.</th>
+      <th>Estado</th>
+    </tr>`;
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    const valid = results.filter(r => r.coincGroups === 0);
+    const winnerName = valid.length > 0 ? valid[0].name : null;
+
+    for (const r of results){
+      const tr = document.createElement("tr");
+      if (r.isPhi) tr.classList.add("phi");
+      if (r.name === winnerName) tr.classList.add("winner");
+      if (r.coincGroups > 0) tr.classList.add("coinc");
+
+      let status, statusText;
+      if (r.coincGroups > 0){
+        status = "fail"; statusText = "coincide";
+      } else if (r.rMinNeeded > S.rMin){
+        status = "fail"; statusText = "solapa";
+      } else if (r.rMinNeeded > S.rMin * 0.8){
+        status = "warn"; statusText = "ajustado";
+      } else {
+        status = "pass"; statusText = "ok";
+      }
+
+      const statusColor = status === "pass" ? "var(--ok)" : status === "warn" ? "var(--warn)" : "var(--fail)";
+      const dStr = r.coincGroups > 0 ? "—" : r.minDist.toFixed(3);
+      const rStr = r.coincGroups > 0 ? "—" : (isFinite(r.rMinNeeded) ? r.rMinNeeded.toFixed(3) : "∞");
+
+      tr.innerHTML = `
+        <td>${r.name}</td>
+        <td class="num">${r.deg.toFixed(3)}°</td>
+        <td class="num">${dStr}</td>
+        <td class="num">${rStr}</td>
+        <td style="color:${statusColor};font-weight:600">${statusText}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    root.appendChild(table);
+
+    // Verdict
+    const phiRow = results.find(r => r.isPhi);
+    const winnerRow = valid[0];
+    const verdict = document.createElement("div");
+    verdict.className = "cmp-winner";
+    if (!winnerRow){
+      verdict.innerHTML = `<strong>Sin candidatos válidos.</strong> Todos los ángulos probados tienen coincidencias. Cambia N.`;
+    } else if (winnerRow.isPhi){
+      verdict.innerHTML = `<strong>φ gana.</strong> Con N=${S.nArms}, φ (${phiRow.deg.toFixed(3)}°) da la mayor distancia mínima (${winnerRow.minDist.toFixed(3)}) y permite el rMin más bajo (${winnerRow.rMinNeeded.toFixed(3)}). El paper se sostiene en este N.`;
+    } else {
+      const phiRMin = phiRow ? phiRow.rMinNeeded : Infinity;
+      const delta = isFinite(phiRMin) && isFinite(winnerRow.rMinNeeded)
+        ? ((phiRMin - winnerRow.rMinNeeded) / winnerRow.rMinNeeded * 100).toFixed(1)
+        : "∞";
+      verdict.innerHTML = `<strong>φ NO gana.</strong> El mejor es <strong>${winnerRow.name}</strong> (${winnerRow.deg.toFixed(3)}°) con rMin requerido ${winnerRow.rMinNeeded.toFixed(3)}, frente a ${isFinite(phiRMin) ? phiRMin.toFixed(3) : "∞"} para φ. φ necesita <strong>+${delta}%</strong> más rMin. El paper asume que φ es óptimo por analogía con Vogel (puntos), pero para <em>espirales con grosor</em> no lo es con N=${S.nArms}.`;
+    }
+    root.appendChild(verdict);
+
+    const btn = document.createElement("button");
+    btn.className = "primary";
+    btn.textContent = "Volver a comparar";
+    btn.style.marginTop = "8px";
+    btn.style.width = "100%";
+    btn.onclick = () => this._compareAngles();
+    root.appendChild(btn);
+  }
+
+  _buildComparisonButton(){
+    const root = document.getElementById("comparison-section");
+    root.innerHTML = "";
+    const h = document.createElement("h3"); h.textContent = "Comparador de ángulos"; root.appendChild(h);
+    const note = document.createElement("div");
+    note.className = "cmp-note";
+    note.innerHTML = "Prueba varios ángulos irracionales (y uniforme) con los <strong>mismos N, b, w, rMin, rMax</strong>. Mide la distancia mínima real entre espirales y calcula qué rMin haría falta para no solapar. Gana el que permita el rMin más bajo.";
+    root.appendChild(note);
+    const btn = document.createElement("button");
+    btn.className = "primary";
+    btn.textContent = "▶ Comparar ángulos";
+    btn.style.marginTop = "8px";
+    btn.style.width = "100%";
+    btn.onclick = () => this._compareAngles();
+    root.appendChild(btn);
+  }
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+window.addEventListener("DOMContentLoaded", () => {
+  const app = new ChipApp();
+  app._buildComparisonButton();
+  window.__app = app;
+
+  const panel = document.getElementById("panel");
+  const btnToggle = document.getElementById("toggle-panel");
+  btnToggle.addEventListener("click", () => panel.classList.toggle("hidden"));
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "p" || e.key === "P") panel.classList.toggle("hidden");
+  });
+});
+</script>
+</body>
+</html>
