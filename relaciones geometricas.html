@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Explorador de puntos notables · curvas 2D</title>
+<style>
+  :root {
+    --bg:#0f1115; --fg:#e5e7eb; --muted:#9ca3af; --panel:#161922; --border:#2a2f3a;
+    --cruce:#ef4444; --tangencia:#22c55e; --cercania:#eab308; --paso:#a855f7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+  #app{display:flex;height:100vh}
+  #cv{flex:1;display:block;background:var(--bg);cursor:grab}
+  #cv.dragging{cursor:grabbing}
+  #panel{width:400px;overflow-y:auto;padding:12px;background:var(--panel);border-left:1px solid var(--border);font-size:13px}
+  .section{margin-bottom:16px}
+  .section h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .row label{flex:1;color:var(--muted)}
+  .row input[type=range]{flex:2}
+  .row .val{min-width:52px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px}
+  .geom{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+  .geom-header{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1c2030;cursor:pointer;user-select:none}
+  .geom-header .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .geom-header .name{flex:1;font-weight:600}
+  .geom-header .role{font-size:10px;padding:2px 6px;border-radius:3px;background:#2a2f3a;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
+  .geom-header .role.objective{background:#1e3a5f;color:#93c5fd}
+  .geom-header .role.restriction{background:#3f1f1f;color:#fca5a5}
+  .geom-header .role.none{background:#1f2937;color:#6b7280}
+  .geom-header .vis{font-size:14px;color:var(--muted);cursor:pointer;width:20px;text-align:center}
+  .geom-header .vis.off{opacity:.3}
+  .geom-body{padding:8px 10px;display:none}
+  .geom.open .geom-body{display:block}
+  .result{padding:6px 8px;border-radius:4px;margin-bottom:4px;cursor:pointer;font-size:12px;border-left:3px solid}
+  .result:hover{background:#1f2432}
+  .result.cruce{border-color:var(--cruce)}
+  .result.tangencia{border-color:var(--tangencia)}
+  .result.cercania{border-color:var(--cercania)}
+  .result.paso{border-color:var(--paso)}
+  .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
+  .badge.cruce{background:var(--cruce);color:#fff}
+  .badge.tangencia{background:var(--tangencia);color:#000}
+  .badge.cercania{background:var(--cercania);color:#000}
+  .badge.paso{background:var(--paso);color:#fff}
+  button{background:#2a2f3a;color:var(--fg);border:1px solid var(--border);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px}
+  button:hover{background:#353b4a}
+  select{background:#2a2f3a;color:var(--fg);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .filters label{display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:2px 6px;border-radius:3px;background:#1c2030}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv"></canvas>
+  <aside id="panel">
+    <div class="section" id="global-section"></div>
+    <div class="section" id="geoms-section"></div>
+    <div class="section" id="results-section"></div>
+  </aside>
+</div>
+<script>
+"use strict";
+
+// ============================================================
+// PORTS (contratos implícitos en JS)
+// ------------------------------------------------------------
+// RendererPort:
+//   draw(state, detections)
+//   worldToScreen(p) -> [sx,sy]
+//   screenToWorld([sx,sy]) -> p
+//   fitToGeometries(states)
+//   setHighlight(idx)
+//
+// ControlsPort:
+//   mount(container, app)   // construye DOM, suscribe al bus
+//
+// BusPort (EventBus abajo):
+//   on(ev, fn), off(ev, fn), emit(ev, data)
+//
+// El dominio NO importa DOM ni canvas. Los adaptadores SÍ.
+// ============================================================
+
+// ============================================================
+// 0. UTILS
+// ============================================================
+const hypot = Math.hypot;
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const DEG = 180/Math.PI;
+
+class EventBus {
+  constructor(){ this.h = new Map(); }
+  on(ev, fn){ if(!this.h.has(ev)) this.h.set(ev, new Set()); this.h.get(ev).add(fn); return () => this.off(ev, fn); }
+  off(ev, fn){ this.h.get(ev)?.delete(fn); }
+  emit(ev, data){ this.h.get(ev)?.forEach(fn => fn(data)); }
+}
+
+// ============================================================
+// 1. DOMINIO (puro, sin DOM)
+// ============================================================
+
+// ------------------------------------------------------------
+// 1.1 Geometrías
+// Cada una implementa eval(t) -> {p:[x,y], d:[dx,dy]} con t en [0,1].
+// d() no necesita estar normalizado; el sampler lo normaliza.
+// ------------------------------------------------------------
+class Geometry {
+  constructor(cfg){ this.cfg = cfg; }
+  eval(_t){ throw new Error("abstract"); }
+}
+
+class Recta extends Geometry {
+  eval(t){
+    const {x1,y1,x2,y2} = this.cfg;
+    return { p:[x1+(x2-x1)*t, y1+(y2-y1)*t], d:[x2-x1, y2-y1] };
+  }
+}
+
+// [DECISIÓN] Espiral de Arquímedes r = a + b·θ
+// Alternativas: espiral logarítmica (auto-similar), espiral de Fermat (r²=θ)
+// Cambiar si: quieres que las ramas se separen geométricamente (logarítmica)
+class Espiral extends Geometry {
+  eval(t){
+    const {cx,cy,a,b,thetaMax} = this.cfg;
+    const th = t * thetaMax;
+    const r  = a + b*th;
+    return {
+      p:[cx + r*Math.cos(th), cy + r*Math.sin(th)],
+      d:[b*Math.cos(th) - r*Math.sin(th), b*Math.sin(th) + r*Math.cos(th)]
+    };
+  }
+}
+
+// [DECISIÓN] Bifurcación de Murray: 3 segmentos (padre + 2 hijos), ángulo simétrico.
+// Ley: r0³ = r1³ + r2³, ángulo óptimo ~74.93° para flujo laminar.
+// Alternativa: ángulo asimétrico, o radio asimétrico (r1≠r2).
+// Cambiar si: quieres estudiar asimetría de bifurcación.
+class Murray extends Geometry {
+  eval(t){
+    const {ox,oy,len,angleDeg} = this.cfg;
+    const half = (angleDeg*Math.PI/180)/2;
+    if (t < 1/3){
+      const s = t*3;
+      return { p:[ox, oy - s*len], d:[0, -1] };
+    } else if (t < 2/3){
+      const s = (t - 1/3)*3;
+      const ex = ox - Math.sin(half)*len, ey = oy + Math.cos(half)*len;
+      return { p:[ox + (ex-ox)*s, oy + (ey-oy)*s], d:[ex-ox, ey-oy] };
+    } else {
+      const s = (t - 2/3)*3;
+      const ex = ox + Math.sin(half)*len, ey = oy + Math.cos(half)*len;
+      return { p:[ox + (ex-ox)*s, oy + (ey-oy)*s], d:[ex-ox, ey-oy] };
+    }
+  }
+}
+
+// [DECISIÓN] Clotoide (Euler): curvatura lineal con la longitud.
+// Se integra numéricamente al construir; eval(t) interpola tabla.
+// Alternativa: solo el tramo inicial aproximado por polinomios.
+// Cambiar si: necesitas precisión analítica (raro).
+class Clotoide extends Geometry {
+  constructor(cfg){
+    super(cfg);
+    const M = 2000;
+    const {x,y,heading,length,kMax} = cfg;
+    const ds = length/M;
+    let px = x, py = y, th = heading;
+    const pts = [[px,py]], tans = [[Math.cos(th), Math.sin(th)]];
+    for (let i=0;i<M;i++){
+      const s  = (i+0.5)*ds;
+      const k  = kMax * s / length;
+      const th2 = th + k*ds*0.5;
+      px += Math.cos(th2)*ds;
+      py += Math.sin(th2)*ds;
+      th = th + k*ds;
+      pts.push([px,py]);
+      tans.push([Math.cos(th), Math.sin(th)]);
+    }
+    this._pts = pts; this._tans = tans;
+  }
+  eval(t){
+    const M = this._pts.length - 1;
+    const i = clamp(t,0,1) * M;
+    const i0 = Math.floor(i), i1 = Math.min(M, i0+1);
+    const f = i - i0;
+    const p0 = this._pts[i0], p1 = this._pts[i1];
+    const t0 = this._tans[i0], t1 = this._tans[i1];
+    return {
+      p:[p0[0]+f*(p1[0]-p0[0]), p0[1]+f*(p1[1]-p0[1])],
+      d:[t0[0]+f*(t1[0]-t0[0]), t0[1]+f*(t1[1]-t0[1])]
+    };
+  }
+}
+
+// [DECISIÓN] Bézier cúbica con 4 puntos de control.
+// Alternativas: B-spline, NURBS, polinomio de Hermite.
+// Cambiar si: quieres control local (B-spline) o pesos (NURBS).
+class Bezier extends Geometry {
+  eval(t){
+    const [p0,p1,p2,p3] = this.cfg.pts;
+    const u = 1-t, a = u*u*u, b = 3*u*u*t, c = 3*u*t*t, d = t*t*t;
+    const x  = a*p0[0] + b*p1[0] + c*p2[0] + d*p3[0];
+    const y  = a*p0[1] + b*p1[1] + c*p2[1] + d*p3[1];
+    const dx = 3*u*u*(p1[0]-p0[0]) + 6*u*t*(p2[0]-p1[0]) + 3*t*t*(p3[0]-p2[0]);
+    const dy = 3*u*u*(p1[1]-p0[1]) + 6*u*t*(p2[1]-p1[1]) + 3*t*t*(p3[1]-p2[1]);
+    return { p:[x,y], d:[dx,dy] };
+  }
+}
+
+// ------------------------------------------------------------
+// 1.2 Sampler por longitud de arco
+// [DECISIÓN] Muestreo uniforme en arco, no en parámetro.
+// Alternativa: muestreo en parámetro (más rápido, malo en Bézier/clotoide).
+// Cambiar si: la velocidad importa y las curvas son casi rectas.
+// ------------------------------------------------------------
+function sampleByArcLength(geom, N){
+  const M = N*8;
+  const rawPts = new Array(M+1), rawTs = new Array(M+1);
+  for (let i=0;i<=M;i++){
+    const t = i/M;
+    const e = geom.eval(t);
+    rawPts[i] = e.p; rawTs[i] = t;
+  }
+  const cum = new Float64Array(M+1);
+  for (let i=1;i<=M;i++){
+    cum[i] = cum[i-1] + hypot(rawPts[i][0]-rawPts[i-1][0], rawPts[i][1]-rawPts[i-1][1]);
+  }
+  const L = cum[M] || 1;
+  const out = new Array(N);
+  let j = 0;
+  for (let i=0;i<N;i++){
+    const target = (i/(N-1)) * L;
+    while (j < M && cum[j+1] < target) j++;
+    const t0 = cum[j], t1 = cum[j+1];
+    const f = t1 > t0 ? (target - t0)/(t1 - t0) : 0;
+    const tt = rawTs[j] + f*(rawTs[j+1]-rawTs[j]);
+    out[i] = { t:tt, p: geom.eval(tt).p };
+  }
+  return out;
+}
+
+// ------------------------------------------------------------
+// 1.3 Normalización
+// [DECISIÓN] Tres modos:
+//   none   → identidad
+//   unite  → isotrópico /scale (preserva ángulos; no-op para detección
+//            si epsD también escala)
+//   minmax → no isotrópico (rompe ángulos; útil solo para display)
+// Alternativa: normalizar por longitud de arco, o por centroide.
+// Cambiar si: quieres que geometrías muy dispares convivan visualmente.
+// ------------------------------------------------------------
+function normalizePoints(pts, mode, scale){
+  if (mode === "none") return pts.map(p => [p[0], p[1]]);
+  if (mode === "unite"){
+    const s = 1/scale;
+    return pts.map(p => [p[0]*s, p[1]*s]);
+  }
+  if (mode === "minmax"){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for (const [x,y] of pts){ if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; }
+    const w = maxX-minX || 1, h = maxY-minY || 1;
+    return pts.map(([x,y]) => [(x-minX)/w, (y-minY)/h]);
+  }
+  return pts.map(p => [p[0], p[1]]);
+}
+
+// [DECISIÓN] Tangentes por diferencia central tras normalizar.
+// Alternativa: usar la tangente analítica de eval() (más precisa pero no
+// refleja la normalización).
+// Cambiar si: la normalización es none y quieres precisión analítica.
+function computeTangents(pts){
+  const n = pts.length;
+  const t = new Array(n);
+  for (let i=0;i<n;i++){
+    let a = pts[Math.max(0,i-1)], b = pts[Math.min(n-1,i+1)];
+    let dx = b[0]-a[0], dy = b[1]-a[1];
+    const L = hypot(dx,dy) || 1;
+    t[i] = [dx/L, dy/L];
+  }
+  return t;
+}
+
+// ------------------------------------------------------------
+// 1.4 Detector (opción C: mínimos de distancia)
+// ------------------------------------------------------------
+// [DECISIÓN] Matriz de distancias O(N·M), mínimos no estrictos, deduplicado.
+// Alternativas:
+//   - Spatial hash: O(N) por par, pero código más largo.
+//   - Refinamiento sub-muestreo: más preciso pero lento.
+// Cambiar si: N sube de 800 o necesitas precisión sub-píxel.
+// ------------------------------------------------------------
+function findDistanceMinima(A, B, dedupeR){
+  const N = A.length, M = B.length;
+  const D = new Array(N);
+  for (let i=0;i<N;i++){
+    const row = new Float32Array(M);
+    const [ax, ay] = A[i];
+    for (let j=0;j<M;j++){
+      row[j] = hypot(ax-B[j][0], ay-B[j][1]);
+    }
+    D[i] = row;
+  }
+  const EPS = 1e-9;
+  const cands = [];
+  for (let i=0;i<N;i++){
+    for (let j=0;j<M;j++){
+      const v = D[i][j];
+      let isMin = true;
+      for (let di=-2; di<=2 && isMin; di++){
+        for (let dj=-2; dj<=2; dj++){
+          if (di===0 && dj===0) continue;
+          const ii = i+di, jj = j+dj;
+          if (ii<0||ii>=N||jj<0||jj>=M) continue;
+          if (D[ii][jj] < v - EPS){ isMin = false; break; }
+        }
+      }
+      if (isMin) cands.push({ i, j, d:v, p:[(A[i][0]+B[j][0])/2, (A[i][1]+B[j][1])/2] });
+    }
+  }
+  // Deduplicar por proximidad espacial: quedarse con el de menor d
+  cands.sort((a,b) => a.d - b.d);
+  const kept = [];
+  for (const c of cands){
+    if (kept.every(k => hypot(k.p[0]-c.p[0], k.p[1]-c.p[1]) > dedupeR)) kept.push(c);
+  }
+  return kept;
+}
+
+// [DECISIÓN] Ángulo entre tangentes en [0, π/2] (ignora orientación).
+// Alternativa: ángulo con signo [0, 2π) si la orientación importa.
+function angleBetween(u, v){
+  const nu = hypot(u[0],u[1]), nv = hypot(v[0],v[1]);
+  if (nu < 1e-12 || nv < 1e-12) return 0;
+  const c = clamp((u[0]*v[0] + u[1]*v[1])/(nu*nv), -1, 1);
+  return Math.acos(Math.abs(c));
+}
+
+// [DECISIÓN] Clasificador por (d, ángulo) → 4 tipos.
+// Alternativa: 3 tipos (sin "paso cercano"), o umbral adaptativo por escala.
+function classify(d, angle, epsD, epsA){
+  const touching   = d < epsD;
+  const parallel   = angle < epsA;
+  if (touching && !parallel) return "cruce";
+  if (touching &&  parallel) return "tangencia";
+  if (!touching && parallel) return "cercania";
+  return "paso";
+}
+
+// Orquestador del dominio: puro, sin side effects
+function detect(states, opts){
+  const { mode, N, epsD, epsA, dMax, normMode, normScale } = opts;
+  // 1) Muestrear + normalizar + tangentes por geometría visible
+  const prepped = [];
+  for (const s of states){
+    if (!s.visible) continue;
+    if (mode === "B" && s.role === "none") continue;
+    const raw = sampleByArcLength(s.geom, N);
+    const pts = normalizePoints(raw.map(r => r.p), normMode, normScale);
+    const tans = computeTangents(pts);
+    prepped.push({ id: s.id, role: s.role, pts, tans });
+  }
+  // 2) Seleccionar pares
+  const pairs = [];
+  for (let i=0;i<prepped.length;i++){
+    for (let j=i+1;j<prepped.length;j++){
+      const a = prepped[i], b = prepped[j];
+      if (mode === "B"){
+        const ok = (a.role==="objective" && b.role==="restriction") ||
+                   (a.role==="restriction" && b.role==="objective");
+        if (!ok) continue;
+      }
+      pairs.push([a, b]);
+    }
+  }
+  // 3) Detectar
+  const dets = [];
+  const dedupeR = Math.max(epsD*3, 0.02);
+  for (const [a, b] of pairs){
+    const minima = findDistanceMinima(a.pts, b.pts, dedupeR);
+    for (const m of minima){
+      if (m.d > dMax) continue; // cutoff de cercanía
+      const ang = angleBetween(a.tans[m.i], b.tans[m.j]);
+      const type = classify(m.d, ang, epsD, epsA);
+      dets.push({
+        x: m.p[0], y: m.p[1], d: m.d, angle: ang, type,
+        a: a.id, b: b.id
+      });
+    }
+  }
+  return dets;
+}
+
+// ============================================================
+// 2. ADAPTADORES
+// ============================================================
+
+// ------------------------------------------------------------
+// 2.1 CanvasRenderer (implementa RendererPort)
+// ------------------------------------------------------------
+class CanvasRenderer {
+  constructor(canvas, bus){
+    this.cv = canvas;
+    this.ctx = canvas.getContext("2d");
+    this.bus = bus;
+    this.view = { cx: 0, cy: 0, scale: 100 };
+    this.highlight = null;
+    this._bindPanZoom();
+    this._bindHover();
+    window.addEventListener("resize", () => this.resize());
+    this.resize();
+  }
+  resize(){
+    const dpr = window.devicePixelRatio || 1;
+    const r = this.cv.getBoundingClientRect();
+    this.cv.width  = Math.floor(r.width  * dpr);
+    this.cv.height = Math.floor(r.height * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.bus.emit("view:change");
+  }
+  worldToScreen([x,y]){
+    return [
+      (x - this.view.cx) * this.view.scale + this.cv.clientWidth/2,
+      -(y - this.view.cy) * this.view.scale + this.cv.clientHeight/2
+    ];
+  }
+  screenToWorld([sx,sy]){
+    return [
+      (sx - this.cv.clientWidth/2)/this.view.scale + this.view.cx,
+      -(sy - this.cv.clientHeight/2)/this.view.scale + this.view.cy
+    ];
+  }
+  fitToGeometries(states){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for (const s of states){
+      if (!s.visible) continue;
+      const pts = sampleByArcLength(s.geom, 100);
+      for (const {p:[x,y]} of pts){
+        if (x<minX) minX=x; if (x>maxX) maxX=x;
+        if (y<minY) minY=y; if (y>maxY) maxY=y;
+      }
+    }
+    if (!isFinite(minX)) return;
+    const w = maxX-minX || 1, h = maxY-minY || 1;
+    const W = this.cv.clientWidth, H = this.cv.clientHeight;
+    this.view.cx = (minX+maxX)/2;
+    this.view.cy = (minY+maxY)/2;
+    this.view.scale = Math.min(W/(w*1.15), H/(h*1.15));
+    this.bus.emit("view:change");
+  }
+  setHighlight(idx){ this.highlight = idx; this.bus.emit("view:change"); }
+  _bindPanZoom(){
+    const cv = this.cv;
+    let drag = null;
+    cv.addEventListener("mousedown", e => {
+      drag = { x:e.offsetX, y:e.offsetY, cx:this.view.cx, cy:this.view.cy };
+      cv.classList.add("dragging");
+    });
+    window.addEventListener("mousemove", e => {
+      if (!drag) return;
+      this.view.cx = drag.cx - (e.offsetX - drag.x)/this.view.scale;
+      this.view.cy = drag.cy + (e.offsetY - drag.y)/this.view.scale;
+      this.bus.emit("view:change");
+    });
+    window.addEventListener("mouseup", () => {
+      drag = null;
+      cv.classList.remove("dragging");
+    });
+    cv.addEventListener("wheel", e => {
+      e.preventDefault();
+      const f = e.deltaY < 0 ? 1.15 : 1/1.15;
+      const mouse = [e.offsetX, e.offsetY];
+      const before = this.screenToWorld(mouse);
+      this.view.scale *= f;
+      const after = this.screenToWorld(mouse);
+      this.view.cx += before[0] - after[0];
+      this.view.cy += before[1] - after[1];
+      this.bus.emit("view:change");
+    }, { passive:false });
+  }
+  _bindHover(){
+    this.cv.addEventListener("mousemove", e => {
+      if (!this._lastDets) return;
+      const [mx,my] = [e.offsetX, e.offsetY];
+      let best = null, bestD = 12;
+      for (let i=0;i<this._lastDets.length;i++){
+        const d = this._lastDets[i];
+        const [sx,sy] = this.worldToScreen([d.x,d.y]);
+        const dd = hypot(sx-mx, sy-my);
+        if (dd < bestD){ bestD = dd; best = i; }
+      }
+      if (best !== this.highlight){ this.highlight = best; this.bus.emit("view:change"); }
+    });
+  }
+  draw(state, dets){
+    this._lastDets = dets;
+    const ctx = this.ctx;
+    const W = this.cv.clientWidth, H = this.cv.clientHeight;
+    ctx.clearRect(0,0,W,H);
+    // grid
+    this._drawGrid(W,H);
+    // curvas
+    for (const s of state.geometries){
+      if (!s.visible) continue;
+      const pts = sampleByArcLength(s.geom, 300);
+      ctx.beginPath();
+      let started = false;
+      for (const {p} of pts){
+        const [sx,sy] = this.worldToScreen(p);
+        if (!started){ ctx.moveTo(sx,sy); started = true; }
+        else ctx.lineTo(sx,sy);
+      }
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = s.role === "objective" ? 2.5 : 1.5;
+      ctx.setLineDash(s.role === "objective" ? [] : s.role === "none" ? [4,4] : []);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    // detecciones
+    const colors = { cruce:"#ef4444", tangencia:"#22c55e", cercania:"#eab308", paso:"#a855f7" };
+    for (let i=0;i<dets.length;i++){
+      const d = dets[i];
+      if (!state.filters[d.type]) continue;
+      const [sx,sy] = this.worldToScreen([d.x,d.y]);
+      const r = i === this.highlight ? 8 : 5;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI*2);
+      ctx.fillStyle = colors[d.type];
+      ctx.fill();
+      ctx.strokeStyle = i === this.highlight ? "#fff" : "rgba(0,0,0,0.6)";
+      ctx.lineWidth = i === this.highlight ? 2 : 1;
+      ctx.stroke();
+    }
+  }
+  _drawGrid(W,H){
+    const ctx = this.ctx;
+    const step = niceStep(60 / this.view.scale);
+    const x0 = this.screenToWorld([0,0])[0];
+    const x1 = this.screenToWorld([W,0])[0];
+    const y0 = this.screenToWorld([0,H])[1];
+    const y1 = this.screenToWorld([0,0])[1];
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = Math.ceil(x0/step)*step; x <= x1; x += step){
+      const [sx] = this.worldToScreen([x,0]); ctx.moveTo(sx,0); ctx.lineTo(sx,H);
+    }
+    for (let y = Math.ceil(y0/step)*step; y <= y1; y += step){
+      const [,sy] = this.worldToScreen([0,y]); ctx.moveTo(0,sy); ctx.lineTo(W,sy);
+    }
+    ctx.stroke();
+  }
+}
+function niceStep(raw){
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw/p;
+  return p * (n<1.5?1 : n<3.5?2 : n<7.5?5 : 10);
+}
+
+// ------------------------------------------------------------
+// 2.2 ControlsPanel (implementa ControlsPort)
+// ------------------------------------------------------------
+class ControlsPanel {
+  constructor(bus, app){ this.bus = bus; this.app = app; }
+  mount(root){
+    this._buildGlobal(document.getElementById("global-section"));
+    this._buildGeoms(document.getElementById("geoms-section"));
+    this._buildResults(document.getElementById("results-section"));
+  }
+  _buildGlobal(root){
+    const S = this.app.state;
+    const mk = (label, el) => {
+      const row = document.createElement("div");
+      row.className = "row";
+      const l = document.createElement("label"); l.textContent = label;
+      row.appendChild(l); row.appendChild(el);
+      root.appendChild(row);
+    };
+    // modo
+    const modeSel = document.createElement("select");
+    for (const [k,v] of [["A","A · todos contra todos"],["B","B · objetivo × restricción"]]){
+      const o = document.createElement("option"); o.value=k; o.textContent=v; modeSel.appendChild(o);
+    }
+    modeSel.value = S.mode;
+    modeSel.onchange = () => { S.mode = modeSel.value; this.bus.emit("state:change"); this._refreshRoles(); };
+    mk("Modo", modeSel);
+    root.appendChild(document.createElement("hr")).style.borderColor = "#2a2f3a";
+
+    const slider = (label, key, min, max, step, fmt = v=>v.toFixed(2), after) => {
+      const wrap = document.createElement("div");
+      wrap.style.display = "contents";
+      const inp = document.createElement("input");
+      inp.type = "range"; inp.min = min; inp.max = max; inp.step = step; inp.value = S[key];
+      const val = document.createElement("span"); val.className = "val"; val.textContent = fmt(S[key]);
+      inp.oninput = () => { S[key] = parseFloat(inp.value); val.textContent = fmt(S[key]); this.bus.emit("state:change"); after?.(); };
+      const row = document.createElement("div");
+      row.className = "row";
+      const l = document.createElement("label"); l.textContent = label;
+      row.append(l, inp, val);
+      root.appendChild(row);
+    };
+    slider("N muestras",    "N",       100, 800, 50, v => v|0);
+    slider("ε_d (dist)",    "epsD",   0.005, 0.3, 0.005, v => v.toFixed(3));
+    slider("ε_a (ángulo)",  "epsA",   0.01, 0.6, 0.01, v => (v*DEG).toFixed(1)+"°");
+    slider("d_max cutoff",  "dMax",   0.05, 1.5, 0.05, v => v.toFixed(2));
+    // normalización
+    const normRow = document.createElement("div"); normRow.className = "row";
+    const nl = document.createElement("label"); nl.textContent = "Norm";
+    const ns = document.createElement("select");
+    for (const m of ["none","unite","minmax"]){
+      const o = document.createElement("option"); o.value=m; o.textContent=m; ns.appendChild(o);
+    }
+    ns.value = S.normMode;
+    ns.onchange = () => { S.normMode = ns.value; this.bus.emit("state:change"); };
+    normRow.append(nl, ns);
+    root.appendChild(normRow);
+    if (S.normMode !== "none"){
+      slider("scale norm", "normScale", 1, 20, 0.5, v => v.toFixed(1));
+    }
+    // filtros de tipo
+    const f = document.createElement("div"); f.className = "filters";
+    for (const t of ["cruce","tangencia","cercania","paso"]){
+      const lab = document.createElement("label");
+      const cb = document.createElement("input"); cb.type="checkbox"; cb.checked = S.filters[t];
+      cb.onchange = () => { S.filters[t] = cb.checked; this.bus.emit("view:change"); };
+      lab.append(cb, document.createTextNode(t));
+      f.appendChild(lab);
+    }
+    root.appendChild(f);
+    // botón fit
+    const btn = document.createElement("button");
+    btn.textContent = "Ajustar vista";
+    btn.style.marginTop = "8px";
+    btn.onclick = () => this.app.renderer.fitToGeometries(this.app.state.geometries);
+    root.appendChild(btn);
+  }
+  _buildGeoms(root){
+    root.innerHTML = "";
+    const h = document.createElement("h3"); h.textContent = "Geometrías"; root.appendChild(h);
+    for (const g of this.app.state.geometries){
+      root.appendChild(this._buildGeomBlock(g));
+    }
+  }
+  _buildGeomBlock(g){
+    const box = document.createElement("div"); box.className = "geom";
+    const hd = document.createElement("div"); hd.className = "geom-header";
+    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = g.color;
+    const name = document.createElement("span"); name.className = "name"; name.textContent = g.label;
+    const vis = document.createElement("span"); vis.className = "vis" + (g.visible?"":" off"); vis.textContent = g.visible ? "◉" : "○";
+    vis.onclick = (e) => { e.stopPropagation(); g.visible = !g.visible; vis.textContent = g.visible?"◉":"○"; vis.classList.toggle("off", !g.visible); this.bus.emit("state:change"); };
+    const role = document.createElement("span"); role.className = "role " + g.role; role.textContent = g.role;
+    role.onclick = (e) => {
+      e.stopPropagation();
+      const cycle = { "none":"restriction", "restriction":"objective", "objective":"none" };
+      g.role = cycle[g.role];
+      role.className = "role " + g.role; role.textContent = g.role;
+      this.bus.emit("state:change");
+    };
+    hd.append(dot, name, role, vis);
+    const body = document.createElement("div"); body.className = "geom-body";
+    hd.onclick = () => box.classList.toggle("open");
+    // sliders de parámetros
+    for (const [key, spec] of Object.entries(g.paramSpec)){
+      const row = document.createElement("div"); row.className = "row";
+      const l = document.createElement("label"); l.textContent = spec.label;
+      const inp = document.createElement("input"); inp.type="range";
+      inp.min = spec.min; inp.max = spec.max; inp.step = spec.step; inp.value = g.params[key];
+      const val = document.createElement("span"); val.className = "val"; val.textContent = spec.fmt(g.params[key]);
+      inp.oninput = () => { g.params[key] = parseFloat(inp.value); val.textContent = spec.fmt(g.params[key]); this.bus.emit("state:change"); };
+      row.append(l, inp, val);
+      body.appendChild(row);
+    }
+    box.append(hd, body);
+    return box;
+  }
+  _refreshRoles(){ this._buildGeoms(document.getElementById("geoms-section")); }
+  _buildResults(root){
+    this._resultsRoot = root;
+  }
+  updateResults(dets){
+    const root = this._resultsRoot;
+    const old = root.querySelector(".list"); old?.remove();
+    const h = document.createElement("h3"); h.textContent = `Detecciones (${dets.length})`;
+    const list = document.createElement("div"); list.className = "list";
+    for (let i=0;i<dets.length;i++){
+      const d = dets[i];
+      const div = document.createElement("div");
+      div.className = "result " + d.type;
+      div.innerHTML = `<span class="badge ${d.type}">${d.type}</span>
+        (${d.x.toFixed(2)}, ${d.y.toFixed(2)}) · d=${d.d.toFixed(3)} · ∠=${(d.angle*DEG).toFixed(1)}°`;
+      div.onclick = () => this.app.renderer.setHighlight(i);
+      list.appendChild(div);
+    }
+    root.append(h, list);
+  }
+}
+
+// ============================================================
+// 3. APLICACIÓN (wiring)
+// ============================================================
+class App {
+  constructor(){
+    this.bus = new EventBus();
+    this.state = {
+      mode:"A",
+      N: 400,
+      epsD: 0.05,
+      epsA: 0.15,
+      dMax: 0.4,
+      normMode: "none",
+      normScale: 5,
+      filters: { cruce:true, tangencia:true, cercania:true, paso:false },
+      geometries: this._defaultGeometries(),
+    };
+    this.renderer = new CanvasRenderer(document.getElementById("cv"), this.bus);
+    this.controls = new ControlsPanel(this.bus, this);
+    this.dets = [];
+    this._wired = false;
+    this._pendingDetect = null;
+  }
+  _defaultGeometries(){
+    return [
+      this._mkGeom("recta", "Recta", "#60a5fa", "restriction", new Recta({x1:-3,y1:-3,x2:3,y2:3}), {
+        x1:{label:"x1",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        y1:{label:"y1",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        x2:{label:"x2",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+        y2:{label:"y2",min:-8,max:8,step:0.1,fmt:v=>v.toFixed(1)},
+      }),
+      this._mkGeom("espiral", "Espiral", "#f472b6", "restriction", new Espiral({cx:0,cy:0,a:0.3,b:0.35,thetaMax:4*Math.PI}), {
+        cx:{label:"cx",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
+        cy:{label:"cy",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
+        a:{label:"a",min:0.05,max:2,step:0.05,fmt:v=>v.toFixed(2)},
+        b:{label:"b",min:0.05,max:1,step:0.05,fmt:v=>v.toFixed(2)},
+      }),
+      this._mkGeom("murray", "Murray", "#34d399", "restriction", new Murray({ox:0,oy:0,len:2.5,angleDeg:75}), {
+        ox:{label:"ox",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
+        oy:{label:"oy",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
+        len:{label:"len",min:0.5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
+        angleDeg:{label:"ángulo",min:30,max:120,step:1,fmt:v=>v.toFixed(0)+"°"},
+      }),
+      this._mkGeom("clotoide", "Clotoide", "#f59e0b", "restriction", new Clotoide({x:-4,y:1,heading:0,length:6,kMax:0.3}), {
+        x:{label:"x0",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
+        y:{label:"y0",min:-5,max:5,step:0.1,fmt:v=>v.toFixed(1)},
+        heading:{label:"heading",min:-3.14,max:3.14,step:0.1,fmt:v=>v.toFixed(2)},
+        length:{label:"L",min:1,max:10,step:0.5,fmt:v=>v.toFixed(1)},
+        kMax:{label:"k_max",min:0.05,max:1,step:0.05,fmt:v=>v.toFixed(2)},
+      }),
+      this._mkGeom("bezier", "Bézier", "#a78bfa", "restriction", new Bezier({pts:[[-3,2],[-1,4],[1,-4],[3,-2]]}), {
+        // Simplificado: solo mostramos 2 de los 4 puntos para no saturar
+      }),
+    ];
+  }
+  _mkGeom(id, label, color, role, geom, paramSpec){
+    // geom.cfg es la fuente de verdad de params para Recta/Espiral/Murray/Clotoide
+    // Bézier usa pts (array) y no se expone en v1
+    const params = { ...(geom.cfg.pts ? {} : geom.cfg) };
+    return { id, label, color, role, geom, params, paramSpec, visible:true };
+  }
+  _syncGeomParams(){
+    // Tras mover sliders, hay que reconstruir geom.cfg desde params
+    for (const g of this.state.geometries){
+      if (g.id === "bezier") continue;
+      Object.assign(g.geom.cfg, g.params);
+    }
+  }
+  wire(){
+    if (this._wired) return;
+    this._wired = true;
+    this.controls.mount();
+    this.bus.on("state:change", () => this._scheduleDetect());
+    this.bus.on("view:change",  () => this._draw());
+    this.bus.on("display:change", () => this._draw());
+    this._scheduleDetect(true); // inicial
+  }
+  _scheduleDetect(force = false){
+    if (force){
+      this._detect();
+      return;
+    }
+    if (this._pendingDetect) clearTimeout(this._pendingDetect);
+    this._pendingDetect = setTimeout(() => { this._pendingDetect = null; this._detect(); }, 60);
+  }
+  _detect(){
+    this._syncGeomParams();
+    this.dets = detect(this.state.geometries, {
+      mode: this.state.mode,
+      N: this.state.N,
+      epsD: this.state.epsD,
+      epsA: this.state.epsA,
+      dMax: this.state.dMax,
+      normMode: this.state.normMode,
+      normScale: this.state.normScale,
+    });
+    this._draw();
+    this.controls.updateResults(this.dets);
+  }
+  _draw(){
+    this.renderer.draw(this.state, this.dets);
+  }
+}
+
+// ============================================================
+// 4. TESTS (zonas complicadas)
+// ============================================================
+function runTests(){
+  console.group("%cTests · dominio geométrico", "color:#60a5fa;font-weight:bold");
+  const t = (name, cond, extra="") => {
+    if (cond) console.log(`  ✅ ${name}`);
+    else console.error(`  ❌ ${name} ${extra}`);
+  };
+  const approx = (a,b,eps=1e-6) => Math.abs(a-b) < eps;
+
+  // 1. Rectas perpendiculares → 1 cruce
+  const l1 = new Recta({x1:-1,y1:0,x2:1,y2:0});
+  const l2 = new Recta({x1:0,y1:-1,x2:0,y2:1});
+  let dets = detect(
+    [{id:"a",visible:true,role:"restriction",geom:l1},
+     {id:"b",visible:true,role:"restriction",geom:l2}],
+    {mode:"A",N:200,epsD:0.05,epsA:0.15,dMax:0.5,normMode:"none",normScale:1});
+  const cruces = dets.filter(d => d.type==="cruce");
+  t("perpendiculares → 1 cruce", cruces.length===1, `got ${cruces.length}`);
+  if (cruces.length) t("cruce en (0,0)", approx(cruces[0].x,0,0.02) && approx(cruces[0].y,0,0.02), JSON.stringify(cruces[0]));
+
+  // 2. Rectas paralelas (misma y) → 0 cruces
+  const l3 = new Recta({x1:-1,y1:0.5,x2:1,y2:0.5});
+  dets = detect(
+    [{id:"a",visible:true,role:"restriction",geom:l1},
+     {id:"b",visible:true,role:"restriction",geom:l3}],
+    {mode:"A",N:200,epsD:0.05,epsA:0.15,dMax:1.0,normMode:"none",normScale:1});
+  t("paralelas → 0 cruces", dets.filter(d=>d.type==="cruce").length===0);
+  t("paralelas → al menos 1 cercanía", dets.some(d=>d.type==="cercania"));
+
+  // 3. Tangencia: recta y=0 con círculo radio 1 centro (0,1)
+  const circulo = {
+    eval(t){
+      const th = t*2*Math.PI;
+      return { p:[Math.cos(th), 1+Math.sin(th)], d:[-Math.sin(th), Math.cos(th)] };
+    }
+  };
+  dets = detect(
+    [{id:"a",visible:true,role:"restriction",geom:l1},
+     {id:"b",visible:true,role:"restriction",geom:circulo}],
+    {mode:"A",N:400,epsD:0.08,epsA:0.25,dMax:0.5,normMode:"none",normScale:1});
+  const tan = dets.filter(d=>d.type==="tangencia");
+  t("tangencia detectada (1)", tan.length===1, `got ${tan.length} types=${dets.map(d=>d.type).join(",")}`);
+  if (tan.length) t("tangencia en (0,0)", approx(tan[0].x,0,0.03) && approx(tan[0].y,0,0.03), JSON.stringify(tan[0]));
+
+  // 4. Curvas lejanas → 0 detecciones
+  const lejos = new Recta({x1:10,y1:10,x2:12,y2:10});
+  dets = detect(
+    [{id:"a",visible:true,role:"restriction",geom:l1},
+     {id:"b",visible:true,role:"restriction",geom:lejos}],
+    {mode:"A",N:200,epsD:0.05,epsA:0.15,dMax:0.5,normMode:"none",normScale:1});
+  t("lejanas → 0", dets.length===0, `got ${dets.length}`);
+
+  // 5. Muestreo por arco uniforme en Bézier
+  const bz = new Bezier({pts:[[0,0],[3,0],[3,3],[0,3]]});
+  const sp = sampleByArcLength(bz, 100);
+  const dists = [];
+  for (let i=1;i<sp.length;i++) dists.push(hypot(sp[i].p[0]-sp[i-1].p[0], sp[i].p[1]-sp[i-1].p[1]));
+  const avg = dists.reduce((s,x)=>s+x,0)/dists.length;
+  const maxDev = Math.max(...dists.map(d=>Math.abs(d-avg)));
+  t("sampler: desviación < 2% del paso", maxDev/avg < 0.02, `avg=${avg.toFixed(4)} dev=${maxDev.toFixed(4)}`);
+
+  // 6. Normalización unite preserva ángulo
+  const diag = new Recta({x1:0,y1:0,x2:1,y2:1});
+  const rawPts = sampleByArcLength(diag, 20).map(s=>s.p);
+  const norm = normalizePoints(rawPts, "unite", 5);
+  const tRaw = [rawPts[1][0]-rawPts[0][0], rawPts[1][1]-rawPts[0][1]];
+  const tNorm = [norm[1][0]-norm[0][0], norm[1][1]-norm[0][1]];
+  t("unite preserva ángulo", approx(angleBetween(tRaw,tNorm), 0, 1e-6));
+
+  // 7. Clasificador: tabla de casos
+  t("clasif: d<ε_d, no paralelo → cruce",     classify(0.01, 1.0, 0.05, 0.15)==="cruce");
+  t("clasif: d<ε_d, paralelo → tangencia",    classify(0.01, 0.05, 0.05, 0.15)==="tangencia");
+  t("clasif: d>ε_d, paralelo → cercanía",     classify(0.5, 0.05, 0.05, 0.15)==="cercania");
+  t("clasif: d>ε_d, no paralelo → paso",      classify(0.5, 1.0, 0.05, 0.15)==="paso");
+
+  // 8. Modo B filtra por roles
+  const st = [
+    {id:"a",visible:true,role:"objective",  geom:l1},
+    {id:"b",visible:true,role:"restriction",geom:l2},
+    {id:"c",visible:true,role:"restriction",geom:l3},
+  ];
+  dets = detect(st, {mode:"B",N:200,epsD:0.05,epsA:0.15,dMax:0.6,normMode:"none",normScale:1});
+  const pares = new Set(dets.map(d=>[d.a,d.b].sort().join("-")));
+  t("modo B: solo objetivo×restricción", ![...pares].includes("b-c"));
+
+  console.groupEnd();
+}
+
+// ============================================================
+// 5. BOOT
+// ============================================================
+window.addEventListener("DOMContentLoaded", () => {
+  runTests();
+  const app = new App();
+  app.wire();
+  // auto-fit tras el primer render
+  requestAnimationFrame(() => app.renderer.fitToGeometries(app.state.geometries));
+  window.__app = app; // para inspección en consola
+});
+</script>
+</body>
+</html>
