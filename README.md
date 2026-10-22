@@ -5,6 +5,7 @@ Fecha: [22 diciembre 2025]
 Autor: [robe]
 
 DECLARACIÓN:esto es un juguete, una idea q se me fue de las manos, nada de aqui esta probado, nada esta testeado, solo es ¿se podria hacer de otra manera?. este repo es un cajon desastre de ideas, conversaciones con ia destiladas o en bruto, nada, salvo el codigo q funciona, esta probado, testeado, aunk que un software funciona significa que funciona. No que la idea detrás sea válida. si a alguien le sirve q lo use, si no, que lo descarte. se aconseja empezar por el pdf analisis viabilidad arquitectura, pero la agencia es libre, hay codigo, ideas de hardware, critica historica y de produccion de la subjetividad en el capitalismo tardio, narrativa historica..... este repo es la capa teorica y subjetiva sobre la q los otros se sostiene y pdf desde donde emergieron otros repos
+puntualizacion: uso teoria no como teoria cientifica si no como idea: Conocimiento especulativo considerado con independencia de toda aplicación
 
 Este proyecto no se mantiene activamente. Se ofrece 'tal cual' bajo AGPLv3. Haced con él lo que os permita la licencia. No se aceptarán issues ni pull requests.
 en cristiano, a romperle los huevos a otro.
