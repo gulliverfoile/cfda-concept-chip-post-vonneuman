@@ -1,0 +1,634 @@
+═══════════════════════════════════════════════════════════════════════════════
+REGÍMENES DE CAPTURA · SUELO POSIBILITADOR × CAPTURA
+Documento de especificación, metodología y límites
+═══════════════════════════════════════════════════════════════════════════════
+
+
+───────────────────────────────────────────────────────────────────────────────
+ADVERTENCIA PREVIA (leer antes que nada)
+───────────────────────────────────────────────────────────────────────────────
+
+Este documento describe una herramienta heurística, no una teoría. El concepto
+central —"captura"— se usa de forma EQUÍVOCA en cada dominio: significa cosas
+distintas, se mide de formas distintas y tiene valencias normativas distintas.
+La analogía entre la captura biológica y la captura institucional NO es 1:1.
+No es que sean "lo mismo en distintos sustratos". Son fenómenos con mecanismos
+distintos, agentes distintos (o ausencia de agentes) e intenciones distintas.
+
+La herramienta sirve para ORIENTAR: para generar preguntas, para comparar
+configuraciones, para detectar qué casos caen en qué cuadrante. No sirve para
+demostrar nada. Si se usa como si demostrara algo, se está abusando de ella.
+
+Esta advertencia no es un adorno legal. Es la condición de posibilidad de que
+la herramienta sea útil: si se confunde el mapa con el territorio, el mapa
+deja de orientar y empieza a engañar.
+
+
+───────────────────────────────────────────────────────────────────────────────
+1. QUÉ ES
+───────────────────────────────────────────────────────────────────────────────
+
+Una visualización interactiva, en un único archivo HTML, que sitúa una serie
+de casos históricos y naturales en un plano de dos ejes:
+
+    Eje X: suelo posibilitador (0-100)
+    Eje Y: captura (0-100)
+
+Cada caso es un nodo. Cada nodo cae en uno de cuatro cuadrantes. Las aristas
+conectan casos, y son de dos tipos: transferencias intra-dominio (sólidas) y
+analogías cross-dominio (discontinuas, cian).
+
+El objetivo es poner en el mismo plano casos de cuatro dominios (tecnología,
+lenguas, música, biología) para comparar sus configuraciones de suelo y
+captura. La comparación es ANALÓGICA, no ontológica: no afirma que los casos
+sean "lo mismo", sino que ocupan posiciones comparables en un espacio de dos
+dimensiones definido por el analista.
+
+La herramienta nace de una constatación: los tres grafos previos (lenguas de
+España, rizoma de escalas, árbol de la vida) compartían una estructura de tres
+capas —vertical (herencia), horizontal (transferencia), captura (quién
+controla)—, pero solo el de biología visualizaba la tercera. Este meta-árbol
+hace explícita esa dimensión común y la convierte en el eje principal.
+
+
+───────────────────────────────────────────────────────────────────────────────
+2. QUÉ HACE
+───────────────────────────────────────────────────────────────────────────────
+
+FUNCIONALIDAD DE VISUALIZACIÓN
+  · Scatter plot con cuatro cuadrantes coloreados:
+      - Generativa    (alto suelo, baja captura)
+      - Institucional (alto suelo, alta captura)
+      - Inanición     (bajo suelo, baja captura)
+      - Extracción    (bajo suelo, alta captura)
+  · Nodos coloreados por dominio (tecnología, lengua, música, biología).
+  · Radio del nodo proporcional a su grado de conexión.
+  · Anillo punteado en casos con discrepancia alta entre las tres medidas
+    (señala casos atípicos donde una medida dice "capturado" y otra "libre").
+  · Borde naranja punteado en casos no trazables (derivación no reconstruible).
+
+FUNCIONALIDAD DE INTERACCIÓN
+  · Hover sobre nodo → tooltip con nombre, dominio, suelo, captura, cuadrante.
+  · Hover sobre arista → tooltip con el "why" de la conexión.
+  · Click en nodo → panel con las tres medidas (barras), descripción,
+    trazabilidad y conexiones entrantes/salientes.
+  · Click en arista → panel con el "why" y las posiciones de ambos extremos.
+  · Botón Reset → limpia selección y vuelve al estado inicial.
+  · Botón Metodología → abre el modal con la explicación completa.
+  · Botón Tests → ejecuta 22 tests de invariantes y muestra el resultado.
+
+FUNCIONALIDAD DE VERIFICACIÓN
+  · 22 tests que comprueban:
+      - Integridad de datos (IDs únicos, dominios válidos, rangos 0-100).
+      - Que los cuatro cuadrantes estén poblados.
+      - Que los casos clave caigan donde deben (Dartmouth en generativa,
+        Buchnera en institucional, huérfano en inanición, etiquetado en
+        extracción).
+      - Que las analogías cross-dominio existan y conecten los casos
+        comparables.
+      - Que la mitocondria tenga discrepancia alta entre medidas y Buchnera
+        no (el hallazgo biológico que justifica las tres medidas).
+      - Que no haya colisiones en el plano (suelo, captura).
+  · Los tests verifican COHERENCIA INTERNA, no validez empírica. Pasan si
+    los datos son consistentes con las definiciones del analista. No pasan
+    (ni pueden pasar) si las definiciones son correctas. Eso es un problema
+    distinto, y este documento lo aborda en la sección 6.
+
+
+───────────────────────────────────────────────────────────────────────────────
+3. CÓMO LO HACE (arquitectura)
+───────────────────────────────────────────────────────────────────────────────
+
+El archivo se organiza en nueve bloques:
+
+  1. Constantes de dibujo (dimensiones del plot, funciones de proyección).
+  2. Dominio: DOMAINS, CASES, EDGES. Datos puros, sin DOM.
+  3. Funciones puras: quadrantOf, measureDiscrepancy, degreeOf, nodeRadius.
+  4. Estado: { selected, hoverEdge, hoverCase }.
+  5. Render: scatter con cuadrantes, grid, ejes, aristas, nodos, tooltips.
+  6. Tooltips: posicionamiento con corrección de bordes de ventana.
+  7. Panel: fichas de caso y de arista.
+  8. Tests: 22 invariantes sobre los datos.
+  9. Bootstrap: wiring de botones y render inicial.
+
+Decisiones de diseño relevantes:
+
+  · Las posiciones (suelo, captura) están hardcodeadas por caso, no
+    calculadas. Esto es deliberado: son juicios del analista, no outputs
+    de una fórmula. Si se calcularan, la herramienta fingiría una
+    objetividad que no tiene.
+
+  · La captura (eje Y) SÍ se calcula: es la media aritmética de las tres
+    medidas (forma, autonomía, dependencia). Pero las tres medidas son
+    también juicios. El cálculo no añade objetividad; solo hace explícita
+    la regla de agregación.
+
+  · El radio del nodo codifica el grado (número de conexiones). Es la única
+    variable derivada de los datos relacionales, no de los juicios del
+    analista. Sirve para ver qué casos son "centrales" en la red de
+    comparaciones.
+
+  · Las aristas de analogía son discontinuas y cian porque son
+    cualitativamente distintas de las transferencias. Una transferencia
+    afirma "X influyó en Y". Una analogía afirma "X e Y ocupan posiciones
+    comparables". Mezclarlas visualmente sería un error categorial.
+
+  · No hay layout force-directed ni cálculo de posiciones. El plano es
+    fijo. Esto es deliberado: el scatter es un espacio de dos variables,
+    no un grafo de fuerzas. Si se usara force-directed, las posiciones
+    perderían su significado (suelo, captura) y se volverían meramente
+    topológicas.
+
+
+───────────────────────────────────────────────────────────────────────────────
+4. METODOLOGÍA
+───────────────────────────────────────────────────────────────────────────────
+
+4.1 LAS DOS PATAS
+
+El marco parte de dos variables:
+
+  SUELO POSIBILITADOR (X)
+    Recursos, infraestructura, circulación. De escaso a abundante.
+    No es solo dinero: incluye audiencia, substrate metabólico, canales
+    de distribución, comunidad activa. Es la condición material de
+    posibilidad de que algo exista y circule.
+
+  CAPTURA (Y)
+    Grado en que esos recursos vienen con control externo. De autodirigido
+    a heterodirigido. No es intrínsecamente mala: a veces es necesaria
+    (una mitocondria necesita huésped). Pero en todos los casos implica
+    una pérdida de autonomía del caso capturado.
+
+La combinación de ambas produce cuatro regímenes. La hipótesis de trabajo
+—no demostrada, solo orientativa— es que cada régimen tiene una dinámica
+distinta de producción de novedad:
+
+  · Generativa:    exploración sin agenda dirigida. Produce derivaciones
+                   no planeadas. Dartmouth, folk oral, bacteria libre.
+  · Institucional: exploración orientada a fines. Produce innovación
+                   incremental dentro de un paradigma. DARPA, estándar
+                   nacional, Buchnera.
+  · Inanición:     la semilla existe pero no circula. Muere por falta de
+                   suelo, no por captura. Solomonoff huérfano, dialecto
+                   sin Estado.
+  · Extracción:    recursos escasos y controlados. El trabajo existe pero
+                   el valor se extrae sin retorno. Etiquetado humano.
+
+4.2 LAS TRES MEDIDAS (heredadas de la biología)
+
+Para cada caso se estiman tres medidas, todas en dirección "captura"
+(0 = libre, 100 = capturado):
+
+  FORMA
+    Cuánto de la forma original se ha perdido.
+    · Biología: % de genoma perdido.
+    · Lenguas: % de rasgos fonéticos perdidos respecto al estadio anterior.
+    · Música: % del núcleo rítmico/melódico perdido.
+    · Tecnología: % de la agenda original de investigación perdida.
+
+  AUTONOMÍA
+    Cuánta capacidad de decisión se ha perdido.
+    · Biología: capacidad de división autónoma.
+    · Lenguas: capacidad de transmitirse sin institución.
+    · Música: capacidad de circular sin plataforma.
+    · Tecnología: capacidad de investigar sin funder.
+
+  DEPENDENCIA
+    Cuánto se necesita del exterior para funcionar.
+    · Biología: % de funciones metabólicas importadas del huésped.
+    · Lenguas: % de vocabulario tomado del estándar.
+    · Música: % de ingresos de la plataforma.
+    · Tecnología: % de presupuesto del funder.
+
+La captura (eje Y) es la media aritmética de las tres. La regla de
+agregación es arbitraria: podría ser la mediana, el máximo, o una media
+ponderada. Se elige la media aritmética por simplicidad, no por justificación
+teórica. Cualquier lector puede recalcular con otra regla y ver si los
+cuadrantes cambian. Si cambian mucho, la herramienta es frágil; si cambian
+poco, es robusta a la regla de agregación. (Spoiler: cambian poco para los
+casos extremos, cambian más para los casos medios.)
+
+La justificación de usar TRES medidas en lugar de una es biológica y se
+exporta a los demás dominios: las tres discrepan en casos atípicos, y esa
+discrepancia es informativa. El caso clave es la mitocondria: perdió el 95%
+del genoma (forma = captura alta) pero conservó la maquinaria de división
+(autonomía = captura baja). Si solo se mostrara una medida, ese hallazgo
+desaparecería. Los casos con discrepancia alta (rango entre medidas > 35)
+llevan un anillo punteado: señalan que ahí hay algo interesante, una tensión
+entre dimensiones de la captura.
+
+4.3 LA TERCERA PATA: TRAZABILIDAD
+
+Para cada caso se marca si su derivación es rastreable 70 años después:
+
+  · Trazable: se puede seguir qué vino de dónde. Dartmouth → LISP → IA
+    simbólica. Solomonoff → ML → transformers. Buchnera → filogenética
+    de gamma-proteobacterias.
+  · No trazable: la tradición oral o la falta de archivo impiden seguir
+    la cadena. Folk, dialecto sin Estado, trabajo de etiquetado.
+
+La trazabilidad no es una variable del plano (no es un eje). Es una
+condición de posibilidad del análisis comparativo: solo se puede comparar
+lo que se puede seguir. Los casos no trazables llevan borde naranja
+punteado para recordar que su posición en el plano es más frágil.
+
+4.4 LAS ARISTAS
+
+Dos tipos:
+
+  TRANSFERENCIA (intra-dominio, sólida)
+    Afirma "X influyó en Y" o "X desciende de Y". Es una afirmación
+    histórica o genética, potencialmente verificable con fuentes.
+    Ejemplo: bacteria → mitocondria (endosimbiosis primaria).
+
+  ANALOGÍA (cross-dominio, discontinua)
+    Afirma "X e Y ocupan posiciones comparables en el plano". NO afirma
+    que X influyera en Y ni que sean lo mismo. Es una comparación
+    heurística. Ejemplo: Dartmouth ↔ bacteria libre (ambos en generativa).
+
+La distinción es crucial. Una transferencia mal puesta es un error factual.
+Una analogía mal puesta es un error de encuadre. El documento y la
+visualización insisten en la distinción para que el lector no confunda
+ambas cosas.
+
+4.5 LOS CUATRO CUADRANTES
+
+  GENERATIVA (X ≥ 50, Y < 50)
+    Alto suelo, baja captura. Recursos abundantes sin agenda dirigida.
+    La exploración produce derivaciones no planeadas. Casos: Dartmouth,
+    Bell Labs, bacteria libre, folk oral, lengua oral viva, fusión,
+    Paulinella.
+
+  INSTITUCIONAL (X ≥ 50, Y ≥ 50)
+    Alto suelo, alta captura. Recursos abundantes con agenda. La
+    exploración se orienta hacia fines específicos. Casos: DARPA,
+    plataforma, estándar nacional, género de plataforma, mitocondria,
+    Buchnera.
+
+  INANICIÓN (X < 50, Y < 50)
+    Bajo suelo, baja captura. Recursos escasos pero libres. La semilla
+    existe pero no circula. Casos: Solomonoff huérfano, dialecto sin
+    Estado.
+
+  EXTRACCIÓN (X < 50, Y ≥ 50)
+    Bajo suelo, alta captura. Recursos escasos y controlados. El trabajo
+    existe pero el valor se extrae sin retorno. Caso: trabajo de
+    etiquetado.
+
+La hipótesis —repetimos: orientativa, no demostrada— es que los dos
+primeros cuadrantes son los que producen novedad a largo plazo, pero por
+mecanismos distintos: la generativa por exploración libre, la institucional
+por orientación sostenida. Los dos segundos producen pérdida de novedad:
+la inanición por falta de recursos, la extracción por captura del valor.
+
+4.6 POR QUÉ DARTMOUTH ES MÁS LIMPIO QUE BELL LABS
+
+Ambos ilustran la pata generativa. Dartmouth es más limpio como caso
+porque tiene menos ruido:
+
+  · Menos dinero ($7.500 de Rockefeller vs rentas de monopolio de AT&T).
+  · Menos tiempo (2 meses vs 30 años).
+  · Sin capa industrial (sin AT&T, sin consent decree).
+  · Captura casi nula: Morison solo marcó lo "respetable" (meter
+    psicólogos para evitar especulación). No hubo agenda dirigida.
+  · Resultado trazable en 70 años: LISP, IA simbólica, y por contraste
+    la resurrección de la IA probabilística.
+
+Bell Labs ilustra la misma pata pero con más capas: el decreto de
+consentimiento de 1956 atenúa la captura de AT&T, lo que hace del caso
+un ejemplo de "captura forzadamente baja" más que de "captura ausente".
+Es un caso más rico pero menos limpio para ilustrar la pata generativa
+en estado puro.
+
+
+───────────────────────────────────────────────────────────────────────────────
+5. INTENCIÓN
+───────────────────────────────────────────────────────────────────────────────
+
+La herramienta tiene tres intenciones, en orden de importancia:
+
+5.1 HACER EXPLÍCITA UNA DIMENSIÓN COMÚN
+
+Los tres grafos previos compartían una estructura de tres capas
+(vertical/horizontal/captura), pero solo el de biología visualizaba la
+tercera. Este meta-árbol hace explícita esa capa y la convierte en el eje
+principal. La intención es que el lector vea que "captura" no es una
+categoría biológica que se exporta a otros dominios, sino una categoría
+analítica que en cada dominio adopta formas distintas.
+
+5.2 COMPARAR CONFIGURACIONES, NO CASOS
+
+La herramienta no compara "Dartmouth" con "bacteria". Compara la
+CONFIGURACIÓN (alto suelo, baja captura) en la que ambos caen. La
+comparación es entre posiciones en un espacio, no entre entidades. Esto es
+deliberado: permite ver que casos aparentemente dispares comparten régimen,
+y que casos aparentemente similares (por ejemplo, dos lenguas) pueden caer
+en cuadrantes distintos.
+
+5.3 GENERAR PREGUNTAS, NO RESPUESTAS
+
+La herramienta no demuestra que la configuración generativa produzca
+novedad. Orienta la mirada hacia esa posibilidad y permite formular
+preguntas: ¿por qué Solomonoff no encontró suelo? ¿Por qué Buchnera está
+más capturada que la mitocondria pese a ser 12 veces más joven? ¿Qué
+diferencia hay entre la captura institucional de DARPA y la captura de
+plataforma? La herramienta no responde; sugiere dónde mirar.
+
+5.4 INTENCIÓN NORMATIVA (EXPLÍCITA)
+
+Hay una intención normativa, y conviene hacerla explícita: la herramienta
+trata la captura como algo que, en el régimen institucional y de extracción,
+tiende a sofocar la novedad. Esto es un juicio de valor, no un hecho
+empírico. En biología, la captura (genoma reducido) no es "mala": Buchnera
+es un éxito evolutivo en su nicho. En instituciones, la captura se presenta
+como algo que merece crítica: el funder que orienta la investigación, la
+plataforma que extrae valor, el estándar que margina la variación. La
+misma palabra lleva valencias opuestas en cada dominio. La herramienta NO
+resuelve esta asimetría; la señala en la sección 6.
+
+
+───────────────────────────────────────────────────────────────────────────────
+6. LÍMITES Y HONESTIDAD (la sección importante)
+───────────────────────────────────────────────────────────────────────────────
+
+6.1 EL PROBLEMA DE LA EQUIVOCIDAD DE "CAPTURA"
+
+La palabra "captura" se usa en cuatro sentidos distintos:
+
+  · BIOLÓGICO: pérdida de autonomía por integración física y transferencia
+    genética. No hay agente. Es un proceso estocástico + selección. Las
+    medidas son mecanísticas y cuantificables.
+
+  · INSTITUCIONAL: pérdida de autonomía por dependencia de un funder con
+    agenda. Hay agente. Es un proceso político. Las medidas son
+    interpretativas y ordinales.
+
+  · DE PLATAFORMA: pérdida de autonomía por diseño (ToS, API, rentas).
+    Hay agente. Es un proceso económico. Las medidas son interpretativas
+    y ordinales.
+
+  · LINGÜÍSTICO/MUSICAL: pérdida de variación por estandarización o por
+    algoritmo. Hay agente (academia, plataforma). Es un proceso
+    sociotécnico. Las medidas son interpretativas y ordinales.
+
+Estos cuatro sentidos comparten un aire de familia (pérdida de autonomía
+bajo condiciones de dependencia), pero NO comparten esencia. La herramienta
+los trata como si fueran la misma variable latente. Eso es una decisión
+analítica, no un hecho. Si el lector considera que la equivocidad es
+demasiado grande, la herramienta pierde valor. Si considera que el aire de
+familia es suficiente para orientar, la herramienta sirve.
+
+6.2 BIOLOGÍA ≠ INSTITUCIÓN (diferencias específicas)
+
+La captura biológica NO es análoga 1:1 a la captura institucional. Las
+diferencias son de mecanismo, de agente y de intención:
+
+  MECANISMO
+    · Biología: integración física + transferencia genética + deriva
+      (Muller's ratchet) + selección. El genoma se reduce porque los
+      genes se vuelven redundantes cuando el huésped provee la función.
+      No hay "decisión" de capturar.
+    · Institución: contrato, financiación, agenda, incentivos, normas.
+      El funder decide qué financia y qué no. La captura es el resultado
+      de decisiones.
+
+  AGENTE
+    · Biología: no hay agente capturador. El huésped no "quiere" capturar
+      al simbionte. La integración es emergente.
+    · Institución: hay agente capturador. El funder, la plataforma, la
+      academia tienen intereses y los persiguen.
+
+  INTENCIÓN
+    · Biología: no hay intención. La reducción del genoma no es un fin;
+      es una consecuencia.
+    · Institución: hay intención. El funder quiere orientar la
+      investigación; la plataforma quiere extraer valor; la academia
+      quiere fijar la norma.
+
+  VALENCIA NORMATIVA
+    · Biología: la captura no es buena ni mala. Es un rasgo evolutivo.
+      Buchnera es un éxito en su nicho.
+    · Institución: la captura se presenta como algo que merece crítica.
+      El funder que orienta, la plataforma que extrae, el estándar que
+      margina.
+
+  MEDICIÓN
+    · Biología: % genoma perdido, capacidad de división, % funciones
+      importadas. Son cuantificables con precisión.
+    · Institución: % presupuesto del funder, % agenda determinada
+      externamente, % estándar prescrito. Son interpretativos y
+      ordinales.
+
+Estas diferencias no invalidan la comparación, pero la convierten en
+ANALOGÍA, no en identidad. La herramienta afirma: "estos casos ocupan
+posiciones comparables en un espacio de dos dimensiones". No afirma:
+"estos casos son lo mismo". La distinción es la diferencia entre una
+herramienta heurística y una metafísica disfrazada.
+
+6.3 LOS NÚMEROS SON JUICIOS, NO MEDIDAS
+
+Las posiciones (suelo, captura) y las tres medidas son JUICIOS del
+analista, no mediciones. Esto tiene consecuencias:
+
+  · No son replicables en sentido estricto. Otro analista podría asignar
+    números distintos y el plano cambiaría.
+  · No son falsables por observación directa. No hay un experimento que
+    pueda refutar "Dartmouth tiene suelo 70". Solo hay argumentos a favor
+    o en contra del juicio.
+  · No son comparables en magnitud absoluta. "Suelo 70" no significa
+    "el doble de suelo que 35". Es un orden, no una magnitud.
+  · La agregación (captura = media de tres medidas) es arbitraria. Otra
+    regla daría otros números.
+
+La herramienta es honesta sobre esto: no presenta los números como
+mediciones. Los presenta como juicios. El lector puede discrepar de
+cualquier número y la herramienta sigue funcionando como espacio de
+discusión.
+
+6.4 LAS TRES MEDIDAS SE ESTIRAN
+
+Las tres medidas funcionan bien en biología y se estiran metafóricamente
+en los otros dominios:
+
+  · FORMA
+    Biología: % genoma perdido. Preciso.
+    Lenguas: % rasgos fonéticos perdidos. Vago: ¿qué rasgos? ¿respecto a
+    qué estadio?
+    Música: % núcleo rítmico perdido. Muy vago: ¿qué es el núcleo?
+    Tecnología: % agenda original perdida. Muy vago: ¿qué agenda?
+
+  · AUTONOMÍA
+    Biología: capacidad de división. Mecanístico.
+    Lenguas: capacidad de transmitirse sin institución. Sociológico.
+    Música: capacidad de circular sin plataforma. Sociológico.
+    Tecnología: capacidad de investigar sin funder. Sociológico.
+
+  · DEPENDENCIA
+    Biología: % funciones metabólicas importadas. Medible.
+    Lenguas: % vocabulario del estándar. Medible con corpus.
+    Música: % ingresos de plataforma. Medible con datos.
+    Tecnología: % presupuesto del funder. Medible con datos.
+
+El estiramiento es desigual. La biología tiene las tres medidas mejor
+definidas; la música es la que peor. Esto no invalida la comparación, pero
+sí limita su precisión: la herramienta es más fiable en los extremos
+(casos claramente generativos o claramente institucionales) que en los
+medios (casos ambiguos).
+
+6.5 LA ANALOGÍA ES HEURÍSTICA, NO ONTOLÓGICA
+
+La herramienta afirma que casos de distintos dominios ocupan posiciones
+comparables. No afirma que sean lo mismo. La diferencia es la siguiente:
+
+  · Si la analogía fuera ONTOLÓGICA, diría: "Buchnera y la plataforma
+    son el mismo tipo de cosa, solo que en sustratos distintos". Eso
+    sería falso, por las razones de 6.2.
+
+  · Si la analogía es HEURÍSTICA, dice: "Buchnera y la plataforma ocupan
+    posiciones comparables en el plano (alto suelo, alta captura), y esa
+    comparación sugiere preguntas sobre qué comparten y qué no". Eso es
+    lo que la herramienta afirma.
+
+La diferencia entre ambas es la diferencia entre un mapa y un territorio.
+La herramienta es un mapa. No es el territorio.
+
+6.6 LO QUE NO SE PUEDE CONCLUIR
+
+De la herramienta NO se puede concluir:
+
+  · Que la captura biológica y la institucional sean "lo mismo".
+  · Que Dartmouth "cause" la IA moderna (solo que la configuración
+    generativa coincide con la producción de derivaciones no planeadas).
+  · Que Buchnera y la plataforma "sean iguales" (solo que ocupan
+    posiciones comparables).
+  · Que el régimen generativo sea "mejor" que el institucional (la
+    herramienta trata la captura como algo que tiende a sofocar la
+    novedad, pero eso es un juicio de valor, no un hecho).
+  · Que los números (suelo, captura) sean mediciones.
+  · Que los tests que pasan validen la herramienta (validan coherencia
+    interna, no validez empírica).
+
+6.7 QUÉ SÍ SE PUEDE CONCLUIR
+
+De la herramienta SÍ se puede concluir:
+
+  · Que hay configuraciones de suelo y captura que se repiten en dominios
+    distintos. Eso es un hecho sobre el plano, no sobre el mundo.
+  · Que casos aparentemente dispares (Dartmouth, bacteria libre, folk)
+    comparten régimen. Eso es un hecho sobre el plano.
+  · Que casos aparentemente similares (dos lenguas) pueden caer en
+    cuadrantes distintos. Eso es un hecho sobre el plano.
+  · Que hay casos atípicos (mitocondria, dialecto) donde las tres medidas
+    discrepan. Eso es un hecho sobre los datos.
+  · Que la trazabilidad varía mucho entre casos. Eso es un hecho sobre
+    los datos.
+  · Que el marco permite formular preguntas nuevas. Eso es un hecho
+    sobre la utilidad de la herramienta, no sobre el mundo.
+
+6.8 CRITERIOS DE FALSABILIDAD (¿qué haría que la herramienta fallara?)
+
+La herramienta no es falsable en sentido popperiano estricto, porque no
+hace predicciones empíricas. Pero sí tiene criterios de fracaso:
+
+  · Si al revisar los números, los casos clave (Dartmouth, Buchnera,
+    huérfano) NO cayeran en los cuadrantes esperados, la herramienta
+    sería inútil como orientación. (Pasan los tests: caen donde deben.)
+
+  · Si al cambiar la regla de agregación (media → mediana → máximo), los
+    cuadrantes cambiaran drásticamente, la herramienta sería frágil.
+    (No cambian drásticamente para los casos extremos; cambian más para
+    los medios. Eso limita la precisión, no la utilidad.)
+
+  · Si al discutir los números con otros analistas, no hubiera manera de
+    llegar a acuerdos sobre los casos extremos, la herramienta sería
+    idiosincrásica. (En la práctica, los casos extremos son robustos a
+    la discusión; los medios no. Eso es esperable.)
+
+  · Si la distinción entre transferencia y analogía se borrara en el uso,
+    la herramienta se volvería metafísica disfrazada. (El documento y la
+    visualización insisten en la distinción para evitarlo.)
+
+
+───────────────────────────────────────────────────────────────────────────────
+7. CÓMO USARLO CON HONESTIDAD
+───────────────────────────────────────────────────────────────────────────────
+
+  · Usarlo como espacio de discusión, no como tabla de verdad.
+  · Discutir los números, no aceptarlos. Cada número es un juicio.
+  · Distinguir transferencia de analogía. No tratar las analogías como
+    si fueran herencias.
+  · No tratar la captura biológica como paradigma de la institucional
+    (ni al revés). Son parientes, no gemelos.
+  · No concluir que el régimen generativo sea "mejor". Es un régimen
+    con dinámicas propias, no un ideal normativo.
+  · No usar la herramienta para "demostrar" que Dartmouth causó la IA
+    moderna. Usarla para ver que la configuración generativa coincide
+    con la producción de derivaciones no planeadas, y preguntarse por qué.
+  · Aceptar que los tests pasan porque los datos son coherentes con las
+    definiciones, no porque las definiciones sean correctas.
+
+
+───────────────────────────────────────────────────────────────────────────────
+8. GLOSARIO DE TÉRMINOS PROBLEMÁTICOS
+───────────────────────────────────────────────────────────────────────────────
+
+CAPTURA
+  Uso equívoco. En biología: pérdida de autonomía por integración física,
+  sin agente. En instituciones: pérdida de autonomía por dependencia de
+  un agente con agenda. En plataformas: pérdida de autonomía por diseño.
+  En lenguas/música: pérdida de variación por estandarización o algoritmo.
+  La herramienta los trata como una misma variable latente. Eso es una
+  decisión analítica, no un hecho.
+
+SUELO POSIBILITADOR
+  Abstracción que agrupa cosas heterogéneas (dinero, audiencia, substrate
+  metabólico, canales de distribución). Útil como orientación, no como
+  magnitud física.
+
+FORMA / AUTONOMÍA / DEPENDENCIA
+  Tres medidas heredadas de la biología. Funcionan bien en biología, se
+  estiran en los otros dominios. La herramienta es más fiable en los
+  extremos que en los medios.
+
+TRAZABILIDAD
+  Condición de posibilidad del análisis comparativo. No es una variable
+  del plano; es una marca sobre los casos. Los no trazables llevan borde
+  naranja punteado.
+
+TRANSFERENCIA
+  Afirmación histórica o genética ("X influyó en Y"). Potencialmente
+  verificable con fuentes. Sólida en la visualización.
+
+ANALOGÍA
+  Comparación heurística ("X e Y ocupan posiciones comparables"). No
+  afirma identidad ni herencia. Discontinua en la visualización.
+
+RÉGIMEN
+  Configuración de suelo y captura. La herramienta compara regímenes, no
+  casos. Un caso es una instancia; un régimen es una posición en el plano.
+
+
+───────────────────────────────────────────────────────────────────────────────
+9. CIERRE
+───────────────────────────────────────────────────────────────────────────────
+
+La herramienta vale para orientar. No vale para demostrar. La diferencia
+es la que hay entre un mapa y un territorio, entre una pregunta y una
+respuesta, entre una analogía y una identidad.
+
+Si el lector usa la herramienta para pensar, funciona. Si la usa para
+concluir, engaña. La honestidad de la herramienta depende de la honestidad
+del uso. Este documento ha intentado poner las cartas boca arriba: la
+equivocidad de "captura", la asimetría biología/institución, la naturaleza
+judicativa de los números, el estiramiento de las medidas, el carácter
+heurístico de la analogía, la diferencia entre coherencia interna y
+validez empírica.
+
+Con esas cartas boca arriba, la herramienta puede usarse sin engaño. Con
+las cartas boca abajo, sería metafísica disfrazada de visualización. La
+elección es del lector.
+
+═══════════════════════════════════════════════════════════════════════════════
+Fin del documento.
+═══════════════════════════════════════════════════════════════════════════════
