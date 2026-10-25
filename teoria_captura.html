@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Regímenes de captura · suelo posibilitador × captura</title>
+<style>
+:root {
+  --bg: #0f1115; --fg: #e6e6e6; --muted: #888;
+  --edge: #2a2f3a; --edge-strong: #3a4250;
+  --tecnologia: #22d3ee; --lengua: #f1c40f;
+  --musica: #9b59b6; --biologia: #4ade80;
+  --generativa: #4ade80; --institucional: #ef4444;
+  --inanicion: #6b7280; --extraccion: #f97316;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: system-ui, -apple-system, sans-serif; font-size:13px; overflow:hidden; }
+header { padding:10px 16px; display:flex; gap:8px; align-items:center;
+  border-bottom:1px solid var(--edge); background:#161a20; }
+header h1 { font-size:14px; font-weight:500; margin:0; margin-right:auto; color:var(--muted); }
+button { background:#1f252f; color:var(--fg); border:1px solid var(--edge-strong);
+  padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-family:inherit; }
+button:hover { background:#2a3140; }
+#status { color:var(--muted); font-size:11px; margin-left:6px; }
+#canvas { position:absolute; top:49px; left:0; right:0; bottom:0; overflow:auto; transition:right .25s; }
+body.panel-open #canvas { right:380px; }
+#scatter { display:block; width:100%; height:auto; max-width:1000px; margin:0 auto; }
+.axis-label { font-size:13px; fill:var(--muted); font-weight:500; }
+.tick-label { font-size:11px; fill:#6b7280; }
+.quadrant-label { font-size:14px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; opacity:.22; }
+.case-label { font-size:11px; fill:var(--fg); text-anchor:middle;
+  pointer-events:none; user-select:none; }
+.edge { stroke:#4a5568; stroke-width:1.2; fill:none; opacity:.55; pointer-events:none; }
+.edge.analogia { stroke:#22d3ee; stroke-dasharray:5 4; opacity:.5; }
+.panel { position:fixed; top:49px; right:0; bottom:0; width:380px;
+  background:#161a20; border-left:1px solid var(--edge-strong);
+  padding:16px 18px; overflow-y:auto; transform:translateX(100%);
+  transition:transform .25s; z-index:5; }
+.panel.open { transform:translateX(0); }
+.panel-close { position:absolute; top:12px; right:12px; background:none;
+  border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:2px 8px; }
+.panel h2 { margin:0 0 2px; font-size:16px; font-weight:600; }
+.panel-type { display:inline-block; padding:2px 8px; border-radius:3px;
+  background:#2a3140; font-size:10px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--muted); margin-bottom:14px; }
+.panel-section { margin-bottom:16px; }
+.panel-section h3 { margin:0 0 6px; font-size:11px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--muted); font-weight:500; }
+.panel-section p { margin:0; line-height:1.5; color:#c9c9c9; }
+.panel-section ul { margin:0; padding-left:16px; line-height:1.6; color:#c9c9c9; }
+.bar-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:11px; }
+.bar-label { width:80px; color:var(--muted); }
+.bar-track { flex:1; height:6px; background:#2a2f3a; border-radius:3px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:3px; }
+.bar-val { width:32px; text-align:right; color:#aaa; font-variant-numeric:tabular-nums; }
+.coord-row { display:flex; gap:20px; font-size:12px; margin-bottom:10px; }
+.quad-badge { display:inline-block; padding:2px 8px; border-radius:3px;
+  font-size:10px; text-transform:uppercase; letter-spacing:.05em; margin-left:6px; }
+.quad-badge.generativa { background:rgba(74,222,128,.18); color:var(--generativa); }
+.quad-badge.institucional { background:rgba(239,68,68,.18); color:var(--institucional); }
+.quad-badge.inanicion { background:rgba(107,114,128,.18); color:#9ca3af; }
+.quad-badge.extraccion { background:rgba(249,115,22,.18); color:var(--extraccion); }
+.legend { position:fixed; bottom:16px; left:16px; background:#161a20;
+  border:1px solid var(--edge-strong); border-radius:8px; padding:10px 14px;
+  font-size:11px; max-width:280px; z-index:4; box-shadow:0 4px 16px rgba(0,0,0,.5); }
+.legend h4 { margin:0 0 8px; font-size:11px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--muted); font-weight:500; }
+.legend-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; color:#c9c9c9; }
+.swatch { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.swatch-line { width:14px; height:2px; flex-shrink:0; }
+.tooltip { position:fixed; background:#1a1f28; border:1px solid var(--edge-strong);
+  border-radius:6px; padding:8px 10px; font-size:12px; max-width:340px;
+  z-index:10; box-shadow:0 4px 12px rgba(0,0,0,.5); opacity:0;
+  transition:opacity .15s; pointer-events:none; }
+.tooltip.visible { opacity:1; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none;
+  align-items:center; justify-content:center; z-index:20; padding:20px; }
+.modal.open { display:flex; }
+.modal-content { background:#161a20; border:1px solid var(--edge-strong);
+  border-radius:8px; padding:24px 28px; max-width:760px; max-height:85vh;
+  overflow-y:auto; line-height:1.55; }
+.modal-content h2 { margin:0 0 12px; font-size:18px; }
+.modal-content h3 { margin:18px 0 6px; font-size:13px; color:#7ab8ff; }
+.modal-content p { margin:0 0 10px; color:#c9c9c9; font-size:13px; }
+.modal-content ul { margin:0 0 10px; padding-left:20px; color:#c9c9c9; font-size:13px; }
+.modal-content .close { float:right; background:none; border:none;
+  color:var(--muted); font-size:22px; cursor:pointer; padding:0; margin-top:-4px; }
+.modal-content code { background:#0f1115; padding:1px 5px; border-radius:3px;
+  font-size:11px; color:#e6a855; }
+.tests-out { margin-top:16px; padding:12px; background:#0f1115;
+  border-radius:4px; font-family:ui-monospace, monospace; font-size:11px;
+  max-height:300px; overflow-y:auto; }
+.test-pass { color:#86efac; }
+.test-fail { color:#fca5a5; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Regímenes de captura · suelo posibilitador × captura</h1>
+  <button id="btn-reset">Reset</button>
+  <button id="btn-metodo">Metodología</button>
+  <button id="btn-tests">Tests</button>
+  <span id="status"></span>
+</header>
+<div id="canvas"><svg id="scatter" xmlns="http://www.w3.org/2000/svg"></svg></div>
+<aside class="panel" id="panel"></aside>
+<div class="legend">
+  <h4>Dominio</h4>
+  <div class="legend-row"><div class="swatch" style="background:var(--tecnologia)"></div>Tecnología</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--lengua)"></div>Lenguas</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--musica)"></div>Música</div>
+  <div class="legend-row"><div class="swatch" style="background:var(--biologia)"></div>Biología</div>
+  <h4 style="margin-top:12px">Aristas</h4>
+  <div class="legend-row"><div class="swatch-line" style="background:#4a5568"></div>Transferencia intra-dominio</div>
+  <div class="legend-row"><div class="swatch-line" style="background:#22d3ee;opacity:.6"></div>Analogía cross-dominio</div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <button class="close" onclick="document.getElementById('modal').classList.remove('open')">×</button>
+    <h2>Metodología y limitaciones</h2>
+    <p>Esta visualización es <strong>heurística, no ciencia</strong>. Es una herramienta para pensar sobre regímenes de captura, no una clasificación definitiva. Las posiciones son juicios informados, no medidas.</p>
+
+    <h3>Las dos patas del marco</h3>
+    <ul>
+      <li><strong>Suelo posibilitador</strong> (X, 0-100): recursos, infraestructura, circulación. De escaso a abundante. No es solo dinero: incluye audiencia, substrate metabólico, canales de distribución, comunidad activa.</li>
+      <li><strong>Captura</strong> (Y, 0-100): grado en que esos recursos vienen con control externo. De autodirigido a heterodirigido. No es intrínsecamente mala: a veces es necesaria (una mitocondria necesita huésped).</li>
+    </ul>
+
+    <h3>Los cuatro cuadrantes</h3>
+    <ul>
+      <li><strong>Generativa</strong> (alto suelo, baja captura): recursos abundantes sin agenda dirigida. Dartmouth, folk oral, bacteria libre, Bell Labs. Aquí la exploración produce derivaciones no planeadas.</li>
+      <li><strong>Institucional</strong> (alto suelo, alta captura): recursos abundantes con agenda. DARPA, estándar nacional, Buchnera, plataforma. La exploración se orienta hacia fines específicos.</li>
+      <li><strong>Inanición</strong> (bajo suelo, baja captura): recursos escasos pero libres. Solomonoff huérfano, dialecto moribundo. La semilla existe pero no circula.</li>
+      <li><strong>Extracción</strong> (bajo suelo, alta captura): recursos escasos y controlados. Trabajo de etiquetado. La extracción suele disfrazarse de suelo (un "suelo" que en realidad es deuda).</li>
+    </ul>
+
+    <h3>Las tres medidas (heredadas de la biología)</h3>
+    <ul>
+      <li><strong>Forma</strong>: cuánto de la forma original se ha perdido/capturado. En biología, % de genoma perdido. En lenguas, % de rasgos fonéticos perdidos. En música, % del núcleo rítmico perdido. En tecnología, % de la agenda original perdida.</li>
+      <li><strong>Autonomía</strong>: cuánta capacidad de decisión se ha perdido. En biología, capacidad de división. En lenguas, capacidad de transmitirse sin institución. En música, capacidad de circular sin plataforma. En tecnología, capacidad de investigar sin funder.</li>
+      <li><strong>Dependencia</strong>: cuánto se necesita del exterior. En biología, % de funciones metabólicas importadas. En lenguas, % de vocabulario tomado del estándar. En música, % de ingresos de la plataforma. En tecnología, % de presupuesto del funder.</li>
+    </ul>
+    <p>Las tres son <strong>proxis correlacionados</strong> de la misma variable latente (captura). No son ortogonales. Su utilidad es que <strong>discrepan donde el proceso es atípico</strong>. El caso clave: la mitocondria perdió el 95% de su genoma (forma = captura alta) pero conservó la maquinaria de división (autonomía = captura baja). Si solo mostraras una medida, ese hallazgo desaparece. Por eso los casos con discrepancia alta (rango entre medidas > 35) llevan un anillo punteado: señalan que ahí hay algo interesante.</p>
+
+    <h3>La tercera pata: trazabilidad</h3>
+    <p>Para cada caso: ¿se puede seguir la derivación 70 años después? Dartmouth → LISP → IA simbólica; Solomonoff → ML → transformers. Alta trazabilidad. Buchnera → filogenética de gamma-proteobacterias. Alta. Folk → se pierde en tradición oral. Baja. La trazabilidad es la <strong>condición de posibilidad</strong> del análisis comparativo: solo podemos comparar lo que podemos seguir. Los casos no trazables llevan borde naranja punteado.</p>
+
+    <h3>Por qué Dartmouth es más limpio que Bell Labs</h3>
+    <p>Ambos ilustran la pata generativa, pero Dartmouth es más limpio: menos dinero ($7.500 vs rentas de monopolio), menos tiempo (2 meses vs 30 años), sin capa industrial (sin AT&T, sin consent decree). La captura fue casi nula: Morison solo marcó lo "respetable" (meter psicólogos para evitar especulación). Y el resultado es trazable en 70 años. Bell Labs ilustra la misma pata con más ruido (AT&T, decreto, escala).</p>
+
+    <h3>Lo que esta visualización NO muestra</h3>
+    <ul>
+      <li>No es una filogenia. Las posiciones son juicios, no medidas.</li>
+      <li>Los casos no son de la misma escala: un simbionte es un linaje; un festival es un evento; una lengua es una comunidad.</li>
+      <li>La captura no es lineal en el tiempo: Buchnera está más capturada que la mitocondria pese a ser 12 veces más joven. La edad es un confusor, no la variable.</li>
+      <li>El eje "suelo" agrupa cosas heterogéneas (dinero, audiencia, substrate). Es una abstracción útil, no una magnitud física.</li>
+    </ul>
+
+    <h3>Qué sí responde</h3>
+    <ul>
+      <li>¿Qué configuraciones producen exploración? (generativa)</li>
+      <li>¿Qué configuraciones producen orientación? (institucional)</li>
+      <li>¿Qué pasa cuando no hay suelo? (inanición: la semilla existe pero no circula)</li>
+      <li>¿Por qué Solomonoff es el dialecto moribundo de la IA? (bajo suelo, baja captura: la idea existe, no circula)</li>
+      <li>¿Por qué Buchnera y la plataforma se parecen? (alto suelo, alta captura: el huésped provee todo y controla todo)</li>
+    </ul>
+
+    <div class="tests-out" id="tests-out" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ═══════════════════════════════════════════════════════════════
+   1. CONSTANTES DE DIBUJO
+   ═══════════════════════════════════════════════════════════════ */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const PLOT = { x: 150, y: 50, w: 700, h: 700 };
+const plotX = (v) => PLOT.x + v * (PLOT.w / 100);
+const plotY = (v) => PLOT.y + PLOT.h - v * (PLOT.h / 100);
+
+/* ═══════════════════════════════════════════════════════════════
+   2. DOMINIO
+   ═══════════════════════════════════════════════════════════════ */
+
+const DOMAINS = {
+  tecnologia: { label: 'Tecnología', color: 'var(--tecnologia)' },
+  lengua:     { label: 'Lenguas',    color: 'var(--lengua)' },
+  musica:     { label: 'Música',     color: 'var(--musica)' },
+  biologia:   { label: 'Biología',   color: 'var(--biologia)' },
+};
+
+// Las tres medidas están en dirección "captura" (0 = libre, 100 = capturado).
+// captura (eje Y) = media aritmética de las tres.
+const CASES = [
+  // ── Tecnología ──
+  { id:'dartmouth', name:'Dartmouth 1956', domain:'tecnologia', suelo:70,
+    measures:{forma:15,autonomia:20,dependencia:15}, traceable:true,
+    desc:'Taller de 2 meses financiado por Rockefeller ($7.500 de $13.500 pedidos). Sin agenda dirigida. McCarthy nunca escribió el informe prometido. La semilla que nadie regó: de aquí salen LISP, la IA simbólica y, por contraste, la resurrección de la IA probabilística.' },
+  { id:'bell_labs', name:'Bell Labs (1948-56)', domain:'tecnologia', suelo:90,
+    measures:{forma:25,autonomia:30,dependencia:35}, traceable:true,
+    desc:'Rentas de monopolio de AT&T financian slack masivo. El decreto de consentimiento de 1956 obliga a licenciar patentes, atenuando la captura. Shannon, transistor, teoría de la información.' },
+  { id:'darpa', name:'DARPA / IPTO', domain:'tecnologia', suelo:85,
+    measures:{forma:60,autonomia:70,dependencia:85}, traceable:true,
+    desc:'El campo que Dartmouth funda se institucionaliza en DARPA. IPRO: agenda militar explícita. La investigación existe, pero orientada a fines específicos.' },
+  { id:'orphaned', name:'IA probabilística huérfana', domain:'tecnologia', suelo:20,
+    measures:{forma:20,autonomia:25,dependencia:15}, traceable:true,
+    desc:'La semilla probabilística de Solomonoff (probabilidad algorítmica, 1964) no encuentra suelo tras 1956. El campo se orienta hacia lo simbólico. Resucitada por conexionismo y transformers 40 años después.' },
+  { id:'plataforma', name:'Plataforma (API + ToS)', domain:'tecnologia', suelo:97,
+    measures:{forma:85,autonomia:85,dependencia:95}, traceable:true,
+    desc:'Infraestructura abundante (cloud, API, modelo fundacional) pero captura total: ToS, rentas, dependencia. El modelo de captura institucional muta en captura de plataforma.' },
+  { id:'etiquetado', name:'Trabajo de etiquetado', domain:'tecnologia', suelo:20,
+    measures:{forma:70,autonomia:90,dependencia:90}, traceable:false,
+    desc:'Anotadores humanos en la cadena de IA. El trabajo existe (suelo), pero es invisible, mal pagado y sin control sobre el resultado. Captura total: el valor se extrae sin retorno.' },
+
+  // ── Lenguas ──
+  { id:'dialecto', name:'Dialecto sin Estado', domain:'lengua', suelo:12,
+    measures:{forma:40,autonomia:50,dependencia:5}, traceable:false,
+    desc:'Sin institución que lo sostenga, sin comunidad activa que lo transmita. La variación existe pero no circula. Muere por inanición, no por captura. El anillo punteado señala la discrepancia: baja dependencia externa, pero alta pérdida de forma y autonomía.' },
+  { id:'lengua_oral', name:'Lengua oral viva', domain:'lengua', suelo:55,
+    measures:{forma:15,autonomia:20,dependencia:10}, traceable:false,
+    desc:'La comunidad la transmite sin institución. Alta autonomía, baja dependencia. El suelo es la comunidad misma: suficiente para circular, insuficiente para expandirse.' },
+  { id:'lengua_contacto', name:'Lengua en contacto', domain:'lengua', suelo:55,
+    measures:{forma:40,autonomia:45,dependencia:30}, traceable:false,
+    desc:'Préstamos, calcos, influencia fonética. La captura no viene de una institución sino del prestigio del vecino. Bidireccional, reversible.' },
+  { id:'estandar', name:'Estándar nacional (RAE)', domain:'lengua', suelo:85,
+    measures:{forma:65,autonomia:80,dependencia:85}, traceable:true,
+    desc:'La academia fija la norma, reduce la variación, distribuye el estándar. Suelo alto (Estado, medios, educación), captura alta (prescripción). La "lengua" como tal es un artefacto de esta configuración.' },
+
+  // ── Música ──
+  { id:'folk', name:'Folk oral', domain:'musica', suelo:60,
+    measures:{forma:10,autonomia:15,dependencia:5}, traceable:false,
+    desc:'Tradición oral autónoma. Alta retención del núcleo rítmico/melódico, baja dependencia externa. Circula por la comunidad, no por el mercado.' },
+  { id:'fusion', name:'Fusión (blues/jazz)', domain:'musica', suelo:65,
+    measures:{forma:30,autonomia:30,dependencia:20}, traceable:true,
+    desc:'Diáspora + armonía europea + polirritmia africana. La fusión conserva el núcleo rítmico y lo combina. Trazable: sabemos qué vino de dónde.' },
+  { id:'highlife', name:'Highlife colonial', domain:'musica', suelo:60,
+    measures:{forma:50,autonomia:55,dependencia:30}, traceable:true,
+    desc:'Ghana, siglo XX. Palm-wine + brass bands coloniales + ritmos akan/yoruba. Captura moderada: depende de circuitos coloniales para circular, pero conserva el núcleo rítmico africano.' },
+  { id:'genero_plataforma', name:'Género de plataforma', domain:'musica', suelo:90,
+    measures:{forma:75,autonomia:80,dependencia:90}, traceable:true,
+    desc:'El algoritmo de recomendación da forma al género. La distribución es abundante (streaming), pero la captura es total (royalties, métricas, formato). La "escena" existe en función de la plataforma.' },
+
+  // ── Biología ──
+  { id:'bacteria', name:'Bacteria de vida libre', domain:'biologia', suelo:90,
+    measures:{forma:5,autonomia:5,dependencia:5}, traceable:true,
+    desc:'Metabolismo completo, reproducción autónoma, genoma intacto. El "suelo" es el ambiente: abundante y no controlado. La captura es mínima por definición.' },
+  { id:'mitocondria', name:'Mitocondria', domain:'biologia', suelo:90,
+    measures:{forma:95,autonomia:50,dependencia:60}, traceable:true,
+    desc:'Endosimbiosis primaria (~1.800 Ma). Perdió el 95% del genoma (forma = captura alta) PERO conservó maquinaria de fisión (autonomía = captura baja). La discrepancia es el hallazgo: si solo miraras una medida, no la verías. El anillo punteado la señala.' },
+  { id:'buchnera', name:'Buchnera', domain:'biologia', suelo:90,
+    measures:{forma:87,autonomia:95,dependencia:95}, traceable:true,
+    desc:'Endosimbiosis obligada (~150 Ma). Genoma muy reducido (13% retenido), no cultivable, sin división autónoma. El huésped provee todo y controla todo. 12 veces más joven que la mitocondria, y más capturada por 2 de 3 medidas.' },
+  { id:'paulinella', name:'Paulinella', domain:'biologia', suelo:80,
+    measures:{forma:50,autonomia:30,dependencia:40}, traceable:true,
+    desc:'Endosimbiosis primaria reciente (~120 Ma), independiente de la mitocondria. Misma solución (cianobacteria → orgánulo) por otro linaje. Convergencia, no herencia.' },
+];
+
+// Calcular captura = media de las tres medidas
+CASES.forEach(c => {
+  c.captura = Math.round((c.measures.forma + c.measures.autonomia + c.measures.dependencia) / 3);
+});
+
+// Aristas:
+//  - transferencia: intra-dominio (herencia o transferencia)
+//  - analogia: cross-dominio (comparación de regímenes)
+const EDGES = [
+  // Tecnología
+  { from:'bell_labs', to:'dartmouth', type:'transferencia',
+    why:'Rockefeller financia Dartmouth replicando el slack de Bell Labs a menor escala: dinero abundante sin agenda dirigida. Dartmouth = Bell Labs en miniatura, sin la capa de AT&T.' },
+  { from:'dartmouth', to:'orphaned', type:'transferencia',
+    why:'La semilla probabilística de Solomonoff no encuentra suelo tras 1956. El campo se orienta hacia lo simbólico (McCarthy, Minsky). La idea existe pero no circula.' },
+  { from:'dartmouth', to:'darpa', type:'transferencia',
+    why:'El campo que Dartmouth funda se institucionaliza en DARPA. Del slack al programa: del "que pasen cosas" al "que produzcan X".' },
+  { from:'darpa', to:'plataforma', type:'transferencia',
+    why:'El modelo de captura institucional (IPRO, agenda militar) muta en captura de plataforma (API, ToS, rentas). Misma estructura: alto suelo con control externo.' },
+  { from:'plataforma', to:'etiquetado', type:'transferencia',
+    why:'La plataforma externaliza el trabajo cognitivo. El suelo (el trabajo) existe, pero la captura (plataforma, ToS) es total.' },
+
+  // Lenguas
+  { from:'lengua_oral', to:'dialecto', type:'transferencia',
+    why:'Pérdida de circulación. Sin comunidad activa, la lengua se fosiliza o muere. El suelo se agota.' },
+  { from:'lengua_oral', to:'estandar', type:'transferencia',
+    why:'Institucionalización. La academia fija la norma, reduce la variación, distribuye el estándar. La captura sube con el suelo.' },
+  { from:'lengua_contacto', to:'estandar', type:'transferencia',
+    why:'Estandarización. La variación de contacto se absorbe o se margina. El estándar es la captura de la variación.' },
+
+  // Música
+  { from:'folk', to:'fusion', type:'transferencia',
+    why:'Diáspora. La tradición oral cruza el Atlántico y se fusiona con la armonía europea. El blues y el jazz son el resultado.' },
+  { from:'fusion', to:'highlife', type:'transferencia',
+    why:'Circulación atlántica. Brass bands coloniales + jazz + ritmos locales. El highlife como fusión de ida y vuelta.' },
+  { from:'highlife', to:'genero_plataforma', type:'transferencia',
+    why:'De la economía del directo a la economía del streaming. El género no desaparece, pero su forma la dicta el algoritmo.' },
+
+  // Biología
+  { from:'bacteria', to:'mitocondria', type:'transferencia',
+    why:'Endosimbiosis primaria. Alfa-proteobacteria → huésped Asgard (~1.800 Ma). El donante deja de ser linaje independiente.' },
+  { from:'bacteria', to:'buchnera', type:'transferencia',
+    why:'Endosimbiosis obligada. Gamma-proteobacteria → pulgón (~150 Ma). Más joven que la mitocondria, más capturada.' },
+
+  // Analogía intra-dominio (bio)
+  { from:'mitocondria', to:'paulinella', type:'analogia',
+    why:'Dos endosimbiosis primarias independientes. Misma solución (cianobacteria → orgánulo) por linajes distintos. Convergencia, no herencia.' },
+
+  // Analogías cross-dominio
+  { from:'dartmouth', to:'bacteria', type:'analogia',
+    why:'Misma configuración: alto suelo sin captura. La fundación no pide entregables; el ambiente no pide genoma. En ambos, la exploración produce derivaciones no planeadas.' },
+  { from:'bell_labs', to:'folk', type:'analogia',
+    why:'Suelo generoso sin agenda dirigida. Bell Labs por rentas de monopolio + decreto de 1956; folk por tradición oral autónoma. Producción cultural sin captura externa.' },
+  { from:'buchnera', to:'plataforma', type:'analogia',
+    why:'Misma configuración: alto suelo con captura total. El huésped/plataforma provee todo y controla todo. Sin el otro, no hay reproducción. 87% del genoma perdido / 87% de la lógica de negocio externalizada.' },
+  { from:'orphaned', to:'dialecto', type:'analogia',
+    why:'Misma configuración: bajo suelo, baja captura. La semilla existe pero no circula: ni fondos, ni hablantes. La inanición mata sin necesidad de captura.' },
+  { from:'darpa', to:'estandar', type:'analogia',
+    why:'Misma configuración: alto suelo con agenda. El que paga (el ejército, la academia) orienta qué se explora y qué se descarta.' },
+  { from:'etiquetado', to:'buchnera', type:'analogia',
+    why:'Ambos proveen función esencial para el sistema que los captura, pero carecen de suelo propio. Buchnera no puede vivir sin el pulgón; el anotador no puede trabajar sin la plataforma. Captura total, suelo mínimo.' },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   3. FUNCIONES PURAS
+   ═══════════════════════════════════════════════════════════════ */
+
+const CASES_BY_ID = Object.fromEntries(CASES.map(c => [c.id, c]));
+
+function degreeOf(id) {
+  return EDGES.filter(e => e.from === id || e.to === id).length;
+}
+
+function nodeRadius(c) {
+  return 10 + Math.min(8, degreeOf(c.id));
+}
+
+function quadrantOf(c) {
+  if (c.suelo >= 50 && c.captura < 50) return 'generativa';
+  if (c.suelo >= 50 && c.captura >= 50) return 'institucional';
+  if (c.suelo < 50 && c.captura < 50) return 'inanicion';
+  return 'extraccion';
+}
+
+function quadrantLabel(q) {
+  return { generativa:'Generativa', institucional:'Institucional',
+           inanicion:'Inanición', extraccion:'Extracción' }[q];
+}
+
+function qColor(q) {
+  return { generativa:'var(--generativa)', institucional:'var(--institucional)',
+           inanicion:'var(--inanicion)', extraccion:'var(--extraccion)' }[q];
+}
+
+/** Rango entre las tres medidas: señala discrepancia (caso atípico). */
+function measureDiscrepancy(c) {
+  const m = [c.measures.forma, c.measures.autonomia, c.measures.dependencia];
+  return Math.max(...m) - Math.min(...m);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4. ESTADO
+   ═══════════════════════════════════════════════════════════════ */
+const state = { selected: null, hoverEdge: null, hoverCase: null };
+
+/* ═══════════════════════════════════════════════════════════════
+   5. RENDER
+   ═══════════════════════════════════════════════════════════════ */
+
+const svg = document.getElementById('scatter');
+const tooltip = document.getElementById('tooltip');
+const panel = document.getElementById('panel');
+
+function el(tag, attrs = {}) {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v != null) e.setAttribute(k, v);
+  return e;
+}
+
+function render() {
+  hideTooltip();
+  svg.innerHTML = '';
+
+  const W = PLOT.x * 2 + PLOT.w;
+  const H = PLOT.y * 2 + PLOT.h;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  // ── Fondo de cuadrantes ──
+  const quads = [
+    { q:'institucional', x:PLOT.x + PLOT.w/2, y:PLOT.y,            w:PLOT.w/2, h:PLOT.h/2, c:'#ef4444' },
+    { q:'extraccion',    x:PLOT.x,             y:PLOT.y,            w:PLOT.w/2, h:PLOT.h/2, c:'#f97316' },
+    { q:'generativa',    x:PLOT.x + PLOT.w/2, y:PLOT.y + PLOT.h/2, w:PLOT.w/2, h:PLOT.h/2, c:'#4ade80' },
+    { q:'inanicion',     x:PLOT.x,             y:PLOT.y + PLOT.h/2, w:PLOT.w/2, h:PLOT.h/2, c:'#6b7280' },
+  ];
+  for (const q of quads) {
+    svg.appendChild(el('rect', {
+      x:q.x, y:q.y, width:q.w, height:q.h,
+      fill:q.c, 'fill-opacity':0.04,
+    }));
+  }
+
+  // ── Grid ──
+  for (let v = 0; v <= 100; v += 25) {
+    svg.appendChild(el('line', {
+      x1:PLOT.x, y1:plotY(v), x2:PLOT.x + PLOT.w, y2:plotY(v),
+      stroke:'#2a2f3a', 'stroke-width':v === 50 ? 1.5 : 0.8,
+      'stroke-dasharray':v === 50 ? '' : '2 4',
+    }));
+    svg.appendChild(el('line', {
+      x1:plotX(v), y1:PLOT.y, x2:plotX(v), y2:PLOT.y + PLOT.h,
+      stroke:'#2a2f3a', 'stroke-width':v === 50 ? 1.5 : 0.8,
+      'stroke-dasharray':v === 50 ? '' : '2 4',
+    }));
+    svg.appendChild(el('text', {
+      x:PLOT.x - 12, y:plotY(v) + 4, class:'tick-label', 'text-anchor':'end',
+    })).textContent = v;
+    svg.appendChild(el('text', {
+      x:plotX(v), y:PLOT.y + PLOT.h + 18, class:'tick-label', 'text-anchor':'middle',
+    })).textContent = v;
+  }
+
+  // ── Axis labels ──
+  svg.appendChild(el('text', {
+    x:PLOT.x + PLOT.w/2, y:PLOT.y + PLOT.h + 48,
+    class:'axis-label', 'text-anchor':'middle',
+  })).textContent = 'Suelo posibilitador →';
+
+  const yl = el('text', {
+    x:PLOT.x - 60, y:PLOT.y + PLOT.h/2,
+    class:'axis-label', 'text-anchor':'middle',
+    transform:`rotate(-90 ${PLOT.x - 60} ${PLOT.y + PLOT.h/2})`,
+  });
+  yl.textContent = 'Captura →';
+  svg.appendChild(yl);
+
+  // ── Quadrant labels ──
+  const qpos = {
+    institucional: { x:PLOT.x + PLOT.w * 0.75, y:PLOT.y + 30 },
+    extraccion:    { x:PLOT.x + PLOT.w * 0.25, y:PLOT.y + 30 },
+    generativa:    { x:PLOT.x + PLOT.w * 0.75, y:PLOT.y + PLOT.h - 14 },
+    inanicion:     { x:PLOT.x + PLOT.w * 0.25, y:PLOT.y + PLOT.h - 14 },
+  };
+  for (const [q, p] of Object.entries(qpos)) {
+    svg.appendChild(el('text', {
+      x:p.x, y:p.y, class:'quadrant-label', 'text-anchor':'middle',
+      fill:qColor(q),
+    })).textContent = quadrantLabel(q);
+  }
+
+  // ── Defs: flechas ──
+  const defs = el('defs');
+  const mk = (id, color) => {
+    const m = el('marker', {
+      id, viewBox:'0 0 10 10', refX:'9', refY:'5',
+      markerWidth:'5', markerHeight:'5', orient:'auto-start-reverse',
+    });
+    m.appendChild(el('path', { d:'M 0 0 L 10 5 L 0 10 z', fill:color }));
+    defs.appendChild(m);
+  };
+  mk('arrow', '#4a5568');
+  mk('arrow-a', '#22d3ee');
+  svg.appendChild(defs);
+
+  // ── Aristas (transferencias primero, analogías después) ──
+  const sorted = [...EDGES].sort((a, b) =>
+    a.type === b.type ? 0 : (a.type === 'transferencia' ? -1 : 1));
+  for (const e of sorted) renderEdge(e);
+
+  // ── Nodos ──
+  for (const c of CASES) renderCase(c);
+
+  document.getElementById('status').textContent =
+    `${CASES.length} casos · ${EDGES.length} aristas`;
+}
+
+function edgeEndpoints(a, b) {
+  const ax = plotX(a.suelo), ay = plotY(a.captura);
+  const bx = plotX(b.suelo), by = plotY(b.captura);
+  const dx = bx - ax, dy = by - ay;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  const ra = nodeRadius(a) + 3, rb = nodeRadius(b) + 3;
+  return { x1: ax + ux * ra, y1: ay + uy * ra, x2: bx - ux * rb, y2: by - uy * rb };
+}
+
+function renderEdge(e) {
+  const a = CASES_BY_ID[e.from], b = CASES_BY_ID[e.to];
+  if (!a || !b) return;
+  const { x1, y1, x2, y2 } = edgeEndpoints(a, b);
+  const isA = e.type === 'analogia';
+
+  svg.appendChild(el('line', {
+    x1, y1, x2, y2,
+    class:'edge' + (isA ? ' analogia' : ''),
+    'marker-end': isA ? '' : 'url(#arrow)',
+  }));
+
+  const hit = el('line', {
+    x1, y1, x2, y2,
+    stroke:'transparent', 'stroke-width':14, style:'cursor:pointer',
+  });
+  hit.addEventListener('mouseenter', (ev) => {
+    state.hoverEdge = e;
+    showEdgeTooltip(e, ev);
+  });
+  hit.addEventListener('mousemove', (ev) => {
+    if (state.hoverEdge === e) showEdgeTooltip(e, ev);
+  });
+  hit.addEventListener('mouseleave', () => {
+    state.hoverEdge = null;
+    hideTooltip();
+  });
+  hit.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    openEdgePanel(e);
+  });
+  svg.appendChild(hit);
+}
+
+function renderCase(c) {
+  const cx = plotX(c.suelo), cy = plotY(c.captura);
+  const r = nodeRadius(c);
+  const color = DOMAINS[c.domain].color;
+  const isSelected = state.selected === c.id;
+  const disc = measureDiscrepancy(c) > 35;
+
+  const g = el('g', { style:'cursor:pointer' });
+
+  // Anillo de discrepancia (si las 3 medidas no coinciden)
+  if (disc) {
+    g.appendChild(el('circle', {
+      cx, cy, r: r + 4,
+      fill:'none', stroke: color, 'stroke-width':1,
+      'stroke-dasharray':'2 3', opacity:0.7,
+    }));
+  }
+
+  // Halo si está seleccionado
+  if (isSelected) {
+    g.appendChild(el('circle', {
+      cx, cy, r: r + 7, fill:'none', stroke:color, 'stroke-width':2, opacity:0.6,
+    }));
+  }
+
+  // Círculo principal
+  g.appendChild(el('circle', {
+    cx, cy, r,
+    fill: color, 'fill-opacity': isSelected ? 0.9 : 0.75,
+    stroke: c.traceable ? '#0f1115' : '#f97316',
+    'stroke-width': c.traceable ? 1.5 : 2,
+    'stroke-dasharray': c.traceable ? '' : '3 2',
+  }));
+
+  // Label (partido en líneas si es largo)
+  const words = c.name.split(' ');
+  const lines = words.length > 2 ? [
+    words.slice(0, Math.ceil(words.length / 2)).join(' '),
+    words.slice(Math.ceil(words.length / 2)).join(' '),
+  ] : [c.name];
+  lines.forEach((line, i) => {
+    const t = el('text', {
+      x:cx, y:cy + r + 14 + i * 12, class:'case-label',
+    });
+    t.textContent = line;
+    g.appendChild(t);
+  });
+
+  // Eventos
+  g.addEventListener('mouseenter', (ev) => {
+    state.hoverCase = c.id;
+    showCaseTooltip(c, ev);
+  });
+  g.addEventListener('mousemove', (ev) => {
+    if (state.hoverCase === c.id) showCaseTooltip(c, ev);
+  });
+  g.addEventListener('mouseleave', () => {
+    state.hoverCase = null;
+    hideTooltip();
+  });
+  g.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    openCasePanel(c);
+  });
+
+  svg.appendChild(g);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   6. TOOLTIPS
+   ═══════════════════════════════════════════════════════════════ */
+
+function showCaseTooltip(c, ev) {
+  const q = quadrantOf(c);
+  tooltip.innerHTML = `
+    <div style="font-weight:600;margin-bottom:4px">${c.name}</div>
+    <div style="color:#888;font-size:11px;margin-bottom:4px">${DOMAINS[c.domain].label}</div>
+    <div style="color:#c9c9c9;font-size:11px">
+      Suelo: <strong>${c.suelo}</strong> · Captura: <strong>${c.captura}</strong>
+    </div>
+    <div style="color:${qColor(q)};font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">
+      ${quadrantLabel(q)}
+    </div>`;
+  positionTooltip(ev);
+  tooltip.classList.add('visible');
+}
+
+function showEdgeTooltip(e, ev) {
+  const a = CASES_BY_ID[e.from], b = CASES_BY_ID[e.to];
+  const tl = e.type === 'analogia' ? 'Analogía cross-dominio' : 'Transferencia intra-dominio';
+  tooltip.innerHTML = `
+    <div style="font-weight:600;margin-bottom:4px">${a.name} → ${b.name}</div>
+    <div style="color:#22d3ee;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${tl}</div>
+    <div style="color:#c9c9c9;line-height:1.4">${e.why}</div>`;
+  positionTooltip(ev);
+  tooltip.classList.add('visible');
+}
+
+function positionTooltip(ev) {
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + 360 > window.innerWidth) x = ev.clientX - 360 - 14;
+  if (y + 220 > window.innerHeight) y = ev.clientY - 220 - 14;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+
+function hideTooltip() { tooltip.classList.remove('visible'); }
+
+/* ═══════════════════════════════════════════════════════════════
+   7. PANEL
+   ═══════════════════════════════════════════════════════════════ */
+
+function captureBar(label, value) {
+  const v = Math.round(value);
+  return `<div class="bar-row">
+    <span class="bar-label">${label}</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${v}%;background:#ef4444"></div></div>
+    <span class="bar-val">${v}%</span>
+  </div>`;
+}
+
+function openCasePanel(c) {
+  state.selected = c.id;
+  const q = quadrantOf(c);
+  const incoming = EDGES.filter(e => e.to === c.id);
+  const outgoing = EDGES.filter(e => e.from === c.id);
+  const disc = measureDiscrepancy(c);
+
+  let html = `
+    <button class="panel-close" onclick="closePanel()">×</button>
+    <h2>${c.name}</h2>
+    <div class="panel-type">${DOMAINS[c.domain].label}
+      <span class="quad-badge ${q}">${quadrantLabel(q)}</span>
+    </div>
+    <div class="coord-row">
+      <div>Suelo: <strong>${c.suelo}</strong></div>
+      <div>Captura: <strong>${c.captura}</strong></div>
+    </div>
+    <div class="panel-section">
+      <h3>Las tres medidas (cuánto capturado)</h3>
+      ${captureBar('Forma', c.measures.forma)}
+      ${captureBar('Autonomía', c.measures.autonomia)}
+      ${captureBar('Dependencia', c.measures.dependencia)}
+      <p style="font-size:11px;color:#6b7280;margin-top:6px">
+        Captura (eje Y) = media de las tres. Discrepancia actual: ${disc}.
+        ${disc > 35 ? '<strong style="color:#fbbf24">Las medidas discrepan: caso atípico.</strong>' : ''}
+      </p>
+    </div>
+    <div class="panel-section">
+      <h3>Descripción</h3>
+      <p>${c.desc}</p>
+    </div>
+    <div class="panel-section">
+      <h3>Trazabilidad</h3>
+      <p>${c.traceable
+        ? 'Derivación rastreable 70 años después: se puede seguir qué vino de dónde.'
+        : 'Derivación no rastreable: la tradición oral o la falta de archivo impiden seguir la cadena.'}</p>
+    </div>`;
+
+  if (incoming.length || outgoing.length) {
+    html += `<div class="panel-section"><h3>Conexiones</h3>`;
+    if (outgoing.length) {
+      html += `<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Sale hacia</div><ul>`;
+      for (const e of outgoing) {
+        html += `<li>${CASES_BY_ID[e.to].name} <span style="color:#6b7280;font-size:10px">(${e.type === 'analogia' ? 'analogía' : 'transferencia'})</span></li>`;
+      }
+      html += `</ul>`;
+    }
+    if (incoming.length) {
+      html += `<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-top:8px;margin-bottom:4px">Recibe de</div><ul>`;
+      for (const e of incoming) {
+        html += `<li>${CASES_BY_ID[e.from].name} <span style="color:#6b7280;font-size:10px">(${e.type === 'analogia' ? 'analogía' : 'transferencia'})</span></li>`;
+      }
+      html += `</ul>`;
+    }
+    html += `</div>`;
+  }
+
+  panel.innerHTML = html;
+  panel.classList.add('open');
+  document.body.classList.add('panel-open');
+  render();
+}
+
+function openEdgePanel(e) {
+  const a = CASES_BY_ID[e.from], b = CASES_BY_ID[e.to];
+  const tl = e.type === 'analogia' ? 'Analogía cross-dominio' : 'Transferencia intra-dominio';
+  panel.innerHTML = `
+    <button class="panel-close" onclick="closePanel()">×</button>
+    <h2>${a.name} → ${b.name}</h2>
+    <div class="panel-type">${tl}</div>
+    <div class="panel-section">
+      <h3>Por qué</h3>
+      <p>${e.why}</p>
+    </div>
+    <div class="panel-section">
+      <h3>Posiciones</h3>
+      <p><strong>${a.name}</strong>: suelo ${a.suelo}, captura ${a.captura} · ${quadrantLabel(quadrantOf(a))}</p>
+      <p><strong>${b.name}</strong>: suelo ${b.suelo}, captura ${b.captura} · ${quadrantLabel(quadrantOf(b))}</p>
+    </div>`;
+  panel.classList.add('open');
+  document.body.classList.add('panel-open');
+}
+
+window.closePanel = function() {
+  panel.classList.remove('open');
+  document.body.classList.remove('panel-open');
+  state.selected = null;
+  render();
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   8. TESTS
+   ═══════════════════════════════════════════════════════════════ */
+
+function runTests() {
+  const results = [];
+  const assert = (n, ok, d = '') => results.push({ n, ok: !!ok, d });
+
+  assert('IDs únicos', new Set(CASES.map(c => c.id)).size === CASES.length);
+  assert('Dominios válidos', CASES.every(c => DOMAINS[c.domain]));
+  assert('Suelo 0-100', CASES.every(c => c.suelo >= 0 && c.suelo <= 100));
+  assert('Captura 0-100', CASES.every(c => c.captura >= 0 && c.captura <= 100));
+  assert('Tres medidas presentes',
+    CASES.every(c => typeof c.measures.forma === 'number'
+                  && typeof c.measures.autonomia === 'number'
+                  && typeof c.measures.dependencia === 'number'));
+
+  assert('Aristas referencian casos',
+    EDGES.every(e => CASES_BY_ID[e.from] && CASES_BY_ID[e.to]));
+  assert('Sin auto-aristas', EDGES.every(e => e.from !== e.to));
+  assert('Why sustantivo', EDGES.every(e => e.why.length > 30));
+  assert('Tipos válidos',
+    EDGES.every(e => e.type === 'transferencia' || e.type === 'analogia'));
+
+  const qc = { generativa:0, institucional:0, inanicion:0, extraccion:0 };
+  CASES.forEach(c => qc[quadrantOf(c)]++);
+  assert('Generativa ≥ 3', qc.generativa >= 3, `${qc.generativa}`);
+  assert('Institucional ≥ 2', qc.institucional >= 2, `${qc.institucional}`);
+  assert('Inanición ≥ 2', qc.inanicion >= 2, `${qc.inanicion}`);
+  assert('Extracción ≥ 1', qc.extraccion >= 1, `${qc.extraccion}`);
+  assert('Los 4 cuadrantes poblados',
+    Object.values(qc).every(v => v >= 1), JSON.stringify(qc));
+
+  assert('Dartmouth y bacteria libre en generativa',
+    quadrantOf(CASES_BY_ID.dartmouth) === 'generativa' &&
+    quadrantOf(CASES_BY_ID.bacteria) === 'generativa');
+  assert('Buchnera y plataforma en institucional',
+    quadrantOf(CASES_BY_ID.buchnera) === 'institucional' &&
+    quadrantOf(CASES_BY_ID.plataforma) === 'institucional');
+  assert('Orphaned y dialecto en inanición',
+    quadrantOf(CASES_BY_ID.orphaned) === 'inanicion' &&
+    quadrantOf(CASES_BY_ID.dialecto) === 'inanicion');
+  assert('Etiquetado en extracción',
+    quadrantOf(CASES_BY_ID.etiquetado) === 'extraccion');
+
+  assert('Dartmouth ↔ bacteria conectados',
+    EDGES.some(e => e.type === 'analogia' &&
+      ((e.from === 'dartmouth' && e.to === 'bacteria') ||
+       (e.from === 'bacteria' && e.to === 'dartmouth'))));
+  assert('Buchnera ↔ plataforma conectados',
+    EDGES.some(e => e.type === 'analogia' &&
+      ((e.from === 'buchnera' && e.to === 'plataforma') ||
+       (e.from === 'plataforma' && e.to === 'buchnera'))));
+
+  assert('Mitocondria tiene discrepancia > 35',
+    measureDiscrepancy(CASES_BY_ID.mitocondria) > 35,
+    `${measureDiscrepancy(CASES_BY_ID.mitocondria)}`);
+  assert('Buchnera NO tiene discrepancia alta',
+    measureDiscrepancy(CASES_BY_ID.buchnera) < 35);
+
+  assert('≥ 10 casos trazables',
+    CASES.filter(c => c.traceable).length >= 10,
+    `${CASES.filter(c => c.traceable).length}`);
+
+  const dm = {};
+  CASES.forEach(c => dm[c.domain] = (dm[c.domain] || 0) + 1);
+  assert('Cada dominio ≥ 3 casos',
+    Object.values(dm).every(v => v >= 3), JSON.stringify(dm));
+
+  assert('Cada caso tiene conexión',
+    CASES.every(c => EDGES.some(e => e.from === c.id || e.to === c.id)));
+
+  const pos = new Set();
+  let coll = false;
+  for (const c of CASES) {
+    const k = `${c.suelo}|${c.captura}`;
+    if (pos.has(k)) { coll = true; break; }
+    pos.add(k);
+  }
+  assert('Sin colisiones (suelo, captura)', !coll);
+
+  const passed = results.filter(r => r.ok).length;
+  const failed = results.filter(r => !r.ok);
+  const out = document.getElementById('tests-out');
+  out.style.display = 'block';
+  out.innerHTML = results.map(r =>
+    `<div class="${r.ok ? 'test-pass' : 'test-fail'}">${r.ok ? '✓' : '✗'} ${r.n}${r.d ? ' · ' + r.d : ''}</div>`
+  ).join('') + `<div style="margin-top:8px;color:#9ca3af">${passed}/${results.length} OK${failed.length ? ` · ${failed.length} fallos` : ' · todo OK'}</div>`;
+
+  console.log(`[Tests] ${passed}/${results.length} pasados`);
+  results.forEach(r => {
+    if (r.ok) console.log(`  ✓ ${r.n}`);
+    else console.error(`  ✗ ${r.n}${r.d ? ' — ' + r.d : ''}`);
+  });
+
+  document.getElementById('modal').classList.add('open');
+  return results;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   9. BOOTSTRAP
+   ═══════════════════════════════════════════════════════════════ */
+
+document.getElementById('btn-reset').onclick = () => {
+  state.selected = null;
+  state.hoverEdge = null;
+  state.hoverCase = null;
+  closePanel();
+  render();
+};
+
+document.getElementById('btn-metodo').onclick = () => {
+  document.getElementById('modal').classList.add('open');
+};
+
+document.getElementById('btn-tests').onclick = runTests;
+
+document.getElementById('modal').onclick = (e) => {
+  if (e.target.id === 'modal') document.getElementById('modal').classList.remove('open');
+};
+
+svg.addEventListener('click', (e) => {
+  if (e.target === svg) closePanel();
+});
+
+render();
+</script>
+</body>
+</html>
