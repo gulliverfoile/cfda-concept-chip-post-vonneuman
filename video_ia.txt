@@ -1,14 +1,14 @@
 ═══════════════════════════════════════════════════════════════════════════════
-  VISTAS DE COHERENCIA + GENERADOR DE PROMPTS
+  EDITOR DE PLANOS + COHERENCIA + PROMPTS
   Documentación técnica · qué es, qué hace, cómo lo hace
 ═══════════════════════════════════════════════════════════════════════════════
 
 ÍNDICE
   1. Qué es
   2. Qué NO es
-  3. Qué hace (4 vistas + generador)
-  4. Cómo lo hace (arquitectura)
-  5. Modelo de datos (eventos de plano)
+  3. Qué hace (editor, vistas, prompts, import/export)
+  4. Cómo lo hace (schema declarativo, event sourcing, generación)
+  5. Modelo de datos
   6. Flujo de uso
   7. Cómo integrarlo en tu Core existente
   8. Limitaciones honestas
@@ -18,78 +18,113 @@
 1. QUÉ ES
 ───────────────────────────────────────────────────────────────────────────────
 
-Es un plugin independiente en un único archivo HTML que hace dos cosas:
+Es un plugin independiente en un único archivo HTML que permite:
 
-  A) Analiza la coherencia de un shot list (lista de planos) expresado como
-     una secuencia de eventos, y reporta violaciones estructurales.
+  A) DEFINIR planos de cine (shot list) mediante un formulario real, con
+     todos los campos editables: encuadre, ángulo, movimiento, sujeto,
+     intención, duración, focal, eje, eyeline, permiteCruce y paleta.
 
-  B) Genera prompts listos para pegar en herramientas de vídeo IA
-     (Runway, Pika, Kling, Sora, Genmo, Veo) a partir de esos mismos planos,
-     con negative prompt, parámetros sugeridos y notas de continuidad.
+  B) EDITAR planos existentes: clic en un plano de la lista → se carga en
+     el formulario → cambias lo que quieras → guardas → el cambio queda
+     registrado como evento.
 
-En una frase: convierte un shot list en (a) un informe de coherencia y
-(b) un conjunto de prompts reproducibles para IA de vídeo.
+  C) VALIDAR la coherencia del shot list con 4 vistas puras: continuidad,
+     ritmo, paleta y cobertura.
 
-Pertenece al mismo ecosistema que base_datos2.html (event sourcing),
-imagenes_ia3.html (análisis de imagen), relaciones3.html (geometría)
-y los generadores de escena. Es la capa de "prompts" del pipeline.
+  D) GENERAR prompts reproducibles para IA de vídeo (Runway, Pika, Kling,
+     Sora, Genmo, Veo) a partir de cada plano: prompt positivo, negative
+     prompt, parámetros sugeridos y notas de continuidad.
+
+  E) IMPORTAR y EXPORTAR el shot list completo como JSON, para batch o
+     para integrarlo con otras herramientas.
+
+En una frase: es un editor de shot lists con validación estructural y
+generación de prompts para IA de vídeo, todo en un archivo, todo modular.
 
 ───────────────────────────────────────────────────────────────────────────────
 2. QUÉ NO ES
 ───────────────────────────────────────────────────────────────────────────────
 
 NO es un generador de vídeo. No habla con ninguna API de IA.
-NO es un generador de imágenes ni de conditioning signals (depth, seg, etc.).
+NO es un generador de imágenes ni de conditioning signals (depth, seg).
 NO es un editor de vídeo ni un montador.
-NO es un sistema de consistencia de personaje (el mayor problema de la IA de
-   vídeo actual: la cara del personaje cambia entre planos, y esto no lo
-   resuelve).
+NO resuelve consistencia de personaje (el mayor problema de la IA de vídeo
+   actual: la cara del personaje cambia entre planos).
 NO es un guionista. Presupone que ya sabes qué historia contar.
-NO es una herramienta que "hace películas fáciles". Es una pieza de fontanería
-   muy buena dentro de un pipeline mucho más grande.
+NO es "la herramienta que hace películas fáciles". Es una pieza de fontanería
+   muy buena dentro de un pipeline más grande.
 
-Si alguien te dice que con esto solo haces una peli, no es verdad.
-Si alguien te dice que sin esto hacer una peli con IA es un caos, sí es verdad.
+Es un editor. Un validador. Un generador de prompts. Nada más, nada menos.
 
 ───────────────────────────────────────────────────────────────────────────────
 3. QUÉ HACE
 ───────────────────────────────────────────────────────────────────────────────
 
-3.1 · CUATRO VISTAS DE COHERENCIA
-   Cada vista es una proyección pura sobre el log de eventos de planos.
-   Cada una detecta un tipo distinto de problema estructural.
+3.1 · EDITOR DE PLANOS (la pieza nueva)
+   Panel superior izquierdo con un formulario generado automáticamente
+   desde el schema declarativo. Para cada campo del schema, un control:
+
+     escenaId     → text input (default: "S1")
+     orden        → number input (auto-relleno con max+1 al crear)
+     encuadre     → dropdown (general | entero | medio | primer | primerisimo)
+     angulo       → dropdown (normal | picado | contrapicado | holandes)
+     movimiento   → dropdown (estatico | pan | tilt | travelling | handheld | grua)
+     sujeto       → text input
+     intencion    → dropdown (establecer | intimidad | tension | epica |
+                              misterio | comedia | duelo | amenaza)
+     duracion     → number input (min 0.5, max 30, step 0.5)
+     focal        → number input (min 14, max 200)
+     eje          → number input (min 0, max 360)
+     eyeline      → dropdown (-1 | 0 | 1) con conversión numérica
+     permiteCruce → checkbox
+     paleta       → lista de color pickers con botón + / ×
+
+   Botones:
+     💾 Guardar     → crea el plano (si es nuevo) o emite campo_modificado
+                      por cada campo cambiado (si estás editando)
+     + Nuevo        → limpia el formulario, rellena orden = max+1
+     📋 Duplicar    → copia el plano actual con nuevo id y orden = max+1
+     🗑 Eliminar    → emite plano_eliminado
+
+   Validación antes de guardar: campos required, duración > 0, rangos
+   numéricos. Si falta algo, no se guarda y el formulario muestra el error.
+
+   Estado del formulario (arriba): "Nuevo" / "Editando: P3".
+
+3.2 · LISTA DE PLANOS
+   Panel inferior izquierdo con los planos ordenados por `orden`. Cada uno
+   muestra: id, encuadre · ángulo · duración, sujeto · intención · eje,
+   y los swatches de la paleta. Clic en uno → se carga en el formulario.
+
+3.3 · CUATRO VISTAS DE COHERENCIA
+   Proyecciones puras sobre el log de eventos. Detectan problemas
+   estructurales del shot list.
 
    ┌─ VistaContinuidad
-   │  Detecta:
-   │    · Cruces de eje (regla de los 180°): dos planos consecutivos con
-   │      diferencia angular > 90° sin estar marcados como "permiteCruce".
-   │    · Inversiones de eyeline (raccord de mirada): dos planos consecutivos
-   │      con el mismo sujeto y eyelines opuestos.
-   │  Campos que lee: eje, eyeline, sujeto, permiteCruce.
+   │  · Cruces de eje (180°): dos planos consecutivos con diferencia
+   │    angular > 90° sin permiteCruce → error.
+   │  · Inversiones de eyeline: dos planos consecutivos con el mismo
+   │    sujeto y eyelines opuestos sin permiteCruce → error.
+   │  Campos: eje, eyeline, sujeto, permiteCruce.
    │
    ├─ VistaRitmo
-   │  Detecta:
-   │    · Ritmo lento (media > 8s por plano).
-   │    · Ritmo muy rápido (media < 1.2s con > 3 planos).
-   │    · Saltos bruscos de duración (ratio > 4 o < 0.25 entre consecutivos).
-   │    · Picos: planos mucho más largos o cortos que sus vecinos.
-   │  Campos que lee: duracion, orden.
+   │  · Ritmo lento (media > 8s).
+   │  · Ritmo muy rápido (media < 1.2s con > 3 planos).
+   │  · Saltos bruscos de duración entre consecutivos.
+   │  Campos: duracion, orden.
    │
    ├─ VistaPaleta
-   │  Detecta:
-   │    · Salto cromático fuerte (> 50% distancia) SIN cambio de intención.
-   │    · Cambio de intención SIN cambio visual (distancia < 10%).
-   │  Campos que lee: paleta (array hex), intencion.
+   │  · Salto cromático > 50% sin cambio de intención.
+   │  · Cambio de intención sin cambio visual (< 10% distancia).
+   │  Campos: paleta, intencion.
    │
    └─ VistaCobertura
-      Detecta:
-        · Falta de plano de establecimiento (general o entero).
-        · Exceso de primeros planos (> 70%).
-        · Un solo ángulo en toda la escena.
-        · Toda la escena estática.
-      Campos que lee: encuadre, angulo, movimiento.
+      · Falta de plano de establecimiento (general o entero).
+      · Exceso de primeros planos (> 70%).
+      · Un solo ángulo en toda la escena.
+      Campos: encuadre, angulo, movimiento.
 
-3.2 · GENERADOR DE PROMPTS
+3.4 · GENERADOR DE PROMPTS
    Para cada plano produce un objeto con:
 
    {
@@ -97,133 +132,150 @@ Si alguien te dice que sin esto hacer una peli con IA es un caos, sí es verdad.
      planoId: "P3",
      prompt: "close-up shot of the hero, low-angle shot looking up,
               tense atmosphere, hard shadows, color palette anchored on
-              #c97a3a and #e0a060, static locked-off camera, shot on 85mm
-              lens, cinematic film still, photorealistic, 35mm film grain",
-     negativePrompt: "low quality, blurry, distorted, watermark, text,
-                      subtitle, logo, cheerful colors, soft focus, ...",
+              #c97a3a and #e0a060, static locked-off camera, shot on
+              85mm lens, cinematic film still, photorealistic, 35mm
+              film grain, anamorphic",
+     negativePrompt: "low quality, blurry, distorted, deformed, watermark,
+                      text, subtitle, logo, frame border, bad anatomy,
+                      cartoonish, oversaturated, cheerful colors,
+                      soft focus",
      suggestedParams: {
-       duration: 2.5,
-       aspectRatio: "16:9",
-       resolution: "1080p",
-       fps: 24,
-       focalLength: 85,
-       cameraMotion: "estatico",
-       motionIntensity: "low",
+       duration: 2.5, aspectRatio: "16:9", resolution: "1080p", fps: 24,
+       focalLength: 85, cameraMotion: "estatico", motionIntensity: "low",
        style: "cinematic film still, photorealistic...",
        seed: 1234567890
      },
-     notas: [
-       "Cambio de intención: intimidad → tension"
-     ]
+     notas: ["Cambio de intención: intimidad → tension"]
    }
 
-   El prompt está en inglés porque es el idioma recomendado por
-   prácticamente todas las herramientas de vídeo IA. El seed es
-   determinista por id de plano: el mismo plano siempre produce el mismo
-   seed, para poder reproducir el clip si la herramienta lo permite.
+   El prompt está en inglés (idioma recomendado por todas las herramientas
+   de vídeo IA). El negative prompt se compone de base común + específicos
+   por intención. El seed es determinista por id de plano. Las notas de
+   continuidad avisan si el plano cruza el eje, invierte eyeline o salta
+   de paleta respecto al anterior.
 
-3.3 · INTERFAZ
-   · Panel de planos: lista ordenada, clic para seleccionar y ver su prompt.
-   · Cuatro paneles de coherencia con violaciones y alertas.
-   · Panel de prompts: uno por plano, con botón de copiar individual.
-   · Botón "Copiar todos": copia todos los prompts como bloque de texto.
-   · Botón "Descargar JSON": exporta todos los prompts con sus params
-     en un JSON para procesar en batch.
-   · Tests automáticos al cargar: 17 tests sobre las 4 vistas y el generador.
+   La tarjeta de prompt muestra claramente "Prompt" y "Negative prompt"
+   separados. Los "negative prompt" NO son características del plano:
+   son cosas que se le dice al modelo que evite generar.
+
+3.5 · IMPORT / EXPORT JSON
+   · Export shot list: descarga { scene, generated, globalContext, planos }
+   · Export prompts: descarga { scene, generated, globalContext, prompts }
+   · Import planos: pega un array de planos → se añaden como eventos nuevos
+   Ambos formatos son procesables en batch por otras herramientas.
+
+3.6 · TESTS AUTOMÁTICOS
+   6 tests al cargar: continuidad, ritmo, generador de prompts determinista,
+   schema con 13 campos declarados. Todos visibles en el panel inferior.
 
 ───────────────────────────────────────────────────────────────────────────────
 4. CÓMO LO HACE
 ───────────────────────────────────────────────────────────────────────────────
 
-4.1 · PATRÓN: EVENT SOURCING
-   El sistema no guarda "el estado actual de la película".
-   Guarda "la secuencia de decisiones que llevaron al estado actual".
+4.1 · SCHEMA DECLARATIVO
+   La pieza clave del editor. PLANO_SCHEMA es un objeto que declara cada
+   campo con su tipo, label, default, required, enum y rangos:
 
-   Cada decisión es un EVENTO INMUTABLE:
-     - plano_creado
-     - plano_eliminado
-     - campo_modificado (o campo_modificado_historico)
+     PLANO_SCHEMA = {
+       encuadre:     { label:'Encuadre', tipo:'enum', required:true,
+                       enum:['general','entero','medio','primer','primerisimo'],
+                       default:'medio' },
+       duracion:     { label:'Duración (s)', tipo:'number', required:true,
+                       min:0.5, max:30, step:0.5, default:4 },
+       ...
+     }
 
-   Las vistas son proyecciones puras de esos eventos:
+   La función renderForm() recorre el schema y genera el formulario:
+     · enum     → <select> con opciones
+     · number   → <input type="number"> con min/max/step
+     · text     → <input type="text">
+     · bool     → <input type="checkbox">
+     · paleta   → lista dinámica de color pickers
+
+   Consecuencia: añadir un campo al schema → aparece en el formulario
+   automáticamente, sin tocar código del editor. Eso es el valor.
+
+4.2 · EVENT SOURCING
+   El sistema no guarda "el estado actual del shot list". Guarda "la
+   secuencia de decisiones que llevaron al estado actual".
+
+   Cada decisión es un evento inmutable:
+     · plano_creado           — contiene el plano completo en `a`
+     · plano_eliminado        — solo el id
+     · campo_modificado       — { entidadId, campo, de, a }
+
+   Las vistas son proyecciones puras:
      init()   → estado vacío
-     apply()  → aplica un evento al estado, devuelve el estado nuevo
-     result() → deriva el resultado legible del estado acumulado
+     apply()  → aplica un evento, devuelve estado nuevo
+     result() → deriva el resultado legible
 
    Ventajas:
      · Toda decisión es reversible.
      · Se puede reconstruir el estado en cualquier momento pasado.
-     · Añadir una vista nueva no cambia las demás.
+     · Añadir una vista no cambia las demás.
      · El log es la fuente de verdad; las vistas son cachés derivadas.
 
-4.2 · RECALCULADO INCREMENTAL
+   Cuando editas un plano con el formulario, NO se sustituye el objeto.
+   Se emite un evento por cada campo que cambió. Así se mantiene la
+   trazabilidad campo a campo: "el eje de P3 pasó de 0° a 180° el día X".
+
+4.3 · RECALCULADO INCREMENTAL
    Cuando llega un evento de plano:
-     1. Se aplica al estado base (crear / eliminar / modificar campo).
+     1. Se aplica al estado base.
      2. Se reconstruye el array de planos de las escenas afectadas.
-     3. Las vistas que dependen de esas escenas se recalculan solo para
-        esas escenas, no para todas.
+     3. Las vistas recalculan solo esas escenas, no todas.
+   Mantiene la herramienta ágil con cientos de planos.
 
-   Esto mantiene la herramienta ágil incluso con cientos de planos.
+4.4 · GENERACIÓN DE PROMPTS DETERMINISTA
+   generarPrompt(plano, contexto) es una función pura:
+     · No toca el DOM.
+     · No usa Math.random().
+     · El seed se deriva con un hash determinista del id del plano.
 
-4.3 · GENERACIÓN DE PROMPTS: MAPAS DETERMINISTAS
-   La función generarPrompt(plano, contexto) es pura:
-     - No toca el DOM.
-     - No usa Math.random().
-     - El seed se deriva con un hash determinista del id del plano.
-
-   Traduce cada campo del plano usando mapas estáticos:
-
-     encuadre → "wide establishing shot" | "full body shot" |
-                "medium shot" | "close-up shot" | "extreme close-up"
-     angulo   → "eye-level camera" | "high-angle shot looking down" |
-                "low-angle shot looking up" | "dutch angle"
-     movimiento → "static locked-off camera" | "slow horizontal pan" |
-                  "vertical tilt movement" | "smooth dolly travelling" |
-                  "handheld camera, subtle organic shake" | "crane shot"
-     intencion → "tense atmosphere, hard shadows" | "intimate atmosphere,
-                  soft light" | "epic scale, dramatic lighting" | ...
+   Traduce cada campo del plano con mapas estáticos:
+     encuadre → "wide establishing shot" | "close-up shot" | ...
+     angulo   → "eye-level camera" | "low-angle shot looking up" | ...
+     movimiento → "static locked-off camera" | "handheld camera" | ...
+     intencion → "tense atmosphere, hard shadows" | "intimate atmosphere" | ...
      sujeto   → "the hero" | "the villain" | "the trickster" | ...
 
    El negative prompt se compone de:
-     - Base común: low quality, blurry, distorted, watermark, etc.
-     - Específicos por intención: tension → +cheerful colors, +soft focus;
+     · Base común: low quality, blurry, distorted, watermark, etc.
+     · Específicos por intención: tension → +cheerful colors, +soft focus;
        duelo → +vibrant colors; misterio → +bright even lighting; etc.
 
-4.4 · NOTAS DE CONTINUIDAD
-   Cuando generas el prompt de un plano, la función recibe como contexto
-   el plano anterior. Con eso calcula:
-     - Si el plano anterior tenía permiteCruce: false y el eje cambió,
-       añade "Mantener dirección de pantalla del plano anterior".
-     - Si el sujeto es el mismo y el eyeline se invierte, avisa.
-     - Si la intención cambió, lo registra como nota.
-     - Si la paleta salta > 50% de distancia, lo advierte.
-
-   Estas notas NO son parte del prompt. Son avisos para el humano.
+   Las notas de continuidad comparan el plano con el anterior:
+     · Si el anterior tenía permiteCruce:false y el eje cambió → aviso.
+     · Si mismo sujeto con eyeline invertido → aviso.
+     · Si cambió la intención → se registra.
+     · Si la paleta salta > 50% de distancia → aviso.
 
 4.5 · TESTS
-   17 tests verifican:
-     - Las 4 vistas por separado (con casos sintéticos).
-     - El generador de prompts (determinismo, negativos por intención,
-       notas de continuidad, seed, params coherentes con movimiento).
-     - La integración: prompt generado desde eventos del core.
-
-   Todos los tests se ejecutan al cargar el archivo y se muestran en el
-   panel inferior. Si algo falla, lo verás en rojo.
+   Al cargar el archivo se ejecutan 6 tests que verifican:
+     · VistaContinuidad detecta cruces de eje.
+     · VistaRitmo calcula media correctamente.
+     · generarPrompt produce prompt con close-up y focal.
+     · generarPrompt es determinista (mismo input → mismo output).
+     · PLANO_SCHEMA tiene 13 campos declarados.
+     · Todos los campos del schema tienen label y tipo.
+   Se muestran en el panel inferior. Si algo falla, aparece en rojo.
 
 ───────────────────────────────────────────────────────────────────────────────
 5. MODELO DE DATOS
 ───────────────────────────────────────────────────────────────────────────────
 
-5.1 · EVENTO DE PLANO
+5.1 · EVENTO
    {
-     id: "ev_P3",                       // id del evento
-     ts: "2025-01-15T10:30:00.000Z",    // timestamp
-     entidad: "plano",                  // tipo de entidad
-     entidadId: "P3",                   // id del plano
-     tipo: "plano_creado",              // o plano_eliminado / campo_modificado
-     campo: null,                       // solo si tipo = campo_modificado
-     de: null,                          // valor anterior (si aplica)
-     a: { ...plano },                   // valor nuevo (o el plano completo)
-     actor: "usuario",                  // quién hizo el cambio
+     id: "ev_P3_eje_1700000000000_abc1",   // id único del evento
+     ts: "2025-01-15T10:30:00.000Z",        // timestamp
+     entidad: "plano",                      // tipo de entidad
+     entidadId: "P3",                       // id del plano
+     tipo: "campo_modificado",              // plano_creado | plano_eliminado |
+                                            //   campo_modificado
+     campo: "eje",                          // solo si tipo=campo_modificado
+     de: 0,                                 // valor anterior
+     a: 180,                                // valor nuevo
+     actor: "usuario",                      // quién hizo el cambio
      version: 1
    }
 
@@ -232,59 +284,67 @@ Si alguien te dice que sin esto hacer una peli con IA es un caos, sí es verdad.
      id: "P3",
      escenaId: "S1",
      orden: 3,
-     encuadre: "primer",                // general|entero|medio|primer|primerisimo
-     angulo: "contrapicado",            // normal|picado|contrapicado|holandes
-     movimiento: "estatico",            // estatico|pan|tilt|travelling|handheld|grua
-     focal: 50,                         // mm
-     duracion: 2.5,                     // segundos
-     sujeto: "héroe",
-     intencion: "tension",              // establecer|intimidad|tension|epica|
-                                        //   misterio|comedia|duelo|amenaza
-     eje: 0,                            // grados (0-360)
-     eyeline: 1,                        // -1 | 0 | 1
-     permiteCruce: false,               // anula la validación de eje/eyeline
-     paleta: ["#c97a3a", "#e0a060"]     // array de hex
+     encuadre: "primer",                    // enum del schema
+     angulo: "contrapicado",                // enum
+     movimiento: "estatico",                // enum
+     sujeto: "héroe",                       // texto libre
+     intencion: "tension",                  // enum
+     duracion: 2.5,                         // segundos
+     focal: 50,                             // mm
+     eje: 0,                                // grados (0-360)
+     eyeline: 1,                            // -1 | 0 | 1
+     permiteCruce: false,                   // anula validaciones de eje/eyeline
+     paleta: ["#c97a3a", "#e0a060"]         // array de hex
    }
 
-   Los campos no son obligatorios. Las vistas y el generador usan
-   defaults (?? 0, ?? '', etc.) si faltan. Eso permite shot lists
-   mínimos que se van enriqueciendo.
+   Todos los campos tienen default en el schema. La validación antes de
+   guardar exige los `required`. Un plano mínimo debe tener escenaId, orden,
+   encuadre, angulo, sujeto, intencion y duracion.
 
 ───────────────────────────────────────────────────────────────────────────────
 6. FLUJO DE USO
 ───────────────────────────────────────────────────────────────────────────────
 
-  PASO 1 · Especificar el shot list
-    · Añades planos uno a uno (o cargas un JSON de eventos en producción).
-    · Cada plano tiene encuadre, ángulo, sujeto, intención, duración,
-      paleta, etc.
+  CREAR UN PLANO
+    1. Pulsar "+ Nuevo" (limpia el formulario, orden = max+1).
+    2. Rellenar los campos: encuadre, ángulo, sujeto, intención, duración,
+       paleta... Los dropdowns solo permiten valores válidos.
+    3. Pulsar "💾 Guardar".
+    4. El plano aparece en la lista, en las vistas y en los prompts.
 
-  PASO 2 · Revisar coherencia
-    · Miras las 4 vistas: continuidad, ritmo, paleta, cobertura.
-    · Si hay violaciones en rojo, corriges los planos afectados.
-    · Iteras hasta que las vistas estén limpias (o hasta que decidas
-      aceptar una violación a propósito, como un cruce de eje intencionado
-      en un campo/contracampo — para eso está permiteCruce: true).
+  EDITAR UN PLANO
+    1. Clic en el plano de la lista → se carga en el formulario.
+    2. Cambiar los campos que quieras.
+    3. Pulsar "💾 Guardar".
+    4. Se emite un `campo_modificado` por cada campo cambiado. Las vistas
+       se recalculan. El log guarda la trazabilidad.
 
-  PASO 3 · Generar prompts
+  DUPLICAR
+    1. Seleccionar un plano.
+    2. Pulsar "📋 Duplicar".
+    3. Se crea un nuevo plano con el mismo contenido, nuevo id, orden = max+1.
+    4. El formulario carga el nuevo plano para editarlo.
+
+  ELIMINAR
+    1. Seleccionar un plano.
+    2. Pulsar "🗑 Eliminar" (con confirmación).
+    3. Se emite `plano_eliminado`. El log lo conserva.
+
+  VALIDAR
+    · Después de cada cambio, las 4 vistas se recalculan automáticamente.
+    · Las violaciones aparecen en rojo/amarillo en sus paneles.
+    · No hay botón de "validar": la validación es continua.
+
+  GENERAR PROMPTS
     · Cada plano produce su prompt automáticamente.
-    · Copias uno a uno o todos a la vez.
-    · También puedes descargar el JSON completo para procesar en batch.
+    · Botón "📋 Copiar" por plano → copia prompt + negative + params.
+    · Botón "📋 Copiar todos" → copia todos los prompts como bloque.
+    · Botón "⬇️ Descargar JSON" → exporta todos los prompts en un JSON.
 
-  PASO 4 · Generar clips
-    · Pegas cada prompt en Runway, Pika, Kling, Sora, Genmo o Veo.
-    · Ajustas duración al formato que soporte la herramienta.
-    · Generas.
-
-  PASO 5 · Verificar output (esto NO está en este archivo)
-    · Analizas el frame generado con imagenes_ia3.html.
-    · Comparas con lo que el plano pedía.
-    · Si hay deriva, ajustas el plano y vuelves al paso 3.
-
-  PASO 6 · Montar (esto NO está en este archivo)
-    · Editas los clips.
-    · Añades sonido, música, foley.
-    · Mezclas.
+  IMPORTAR / EXPORTAR
+    · "⬇️ Export JSON" en el panel de planos → descarga el shot list.
+    · "⬆️ Import JSON" → carga un array de planos (crea eventos nuevos).
+    · Formato: { scene, generated, globalContext, planos: [...] }
 
 ───────────────────────────────────────────────────────────────────────────────
 7. CÓMO INTEGRARLO EN TU CORE EXISTENTE
@@ -296,32 +356,29 @@ Si alguien te dice que sin esto hacer una peli con IA es un caos, sí es verdad.
        VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura
      Con sus helpers:
        reconstruirEscena, aplicarEventoPlanoBase,
-       detectarViolacionesContinuidad, calcularRitmo,
-       analizarPaleta, calcularCobertura,
        hexToRgb, promedioPaleta, distanciaPaleta
+     (VistaContinuidad es autocontenida: detecta violaciones inline.
+      VistaRitmo, VistaPaleta, VistaCobertura calculan en result()).
 
   2. Añádelas al array VISTAS:
        const VISTAS = [
-         VistaRegistro,        // las que ya tenías
-         VistaContadores,
-         VistaHistorico,
-         VistaIndiceEtiquetas,
-         VistaContinuidad,     // las nuevas
-         VistaRitmo,
-         VistaPaleta,
-         VistaCobertura
+         VistaRegistro, VistaContadores, VistaHistorico, VistaIndiceEtiquetas,
+         VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura
        ];
 
-  3. Añade la entidad "plano" al ESQUEMA si no está.
+  3. Añade la entidad "plano" al ESQUEMA con los 13 campos y sus tipos.
+     El EsquemaEngine de base_datos2 lo validará automáticamente.
 
   4. Copia la función generarPrompt y sus mapas
-     (ENCUADRE_PROMPT, ANGULO_PROMPT, etc.) como utilidad independiente.
+     (ENCUADRE_PROMPT, ANGULO_PROMPT, MOVIMIENTO_PROMPT,
+      INTENCION_PROMPT, SUJETO_MAP, CONTEXTO_GLOBAL)
+     como utilidad independiente.
 
-  5. En la UI, añade un panel de prompts que llame a generarPrompt
-     por cada plano del snapshotVista('continuidad').
+  5. En la UI, añade el panel del editor de planos que llama a
+     crear/editar/eliminar del PacienteService equivalente (PlanoService).
 
   Nada de esto rompe lo existente. Las vistas nuevas ignoran eventos
-  de otras entidades (pacientes, etc.) y solo responden a entidad === 'plano'.
+  de otras entidades y solo responden a entidad === 'plano'.
 
 ───────────────────────────────────────────────────────────────────────────────
 8. LIMITACIONES HONESTAS
@@ -342,27 +399,32 @@ Si alguien te dice que sin esto hacer una peli con IA es un caos, sí es verdad.
 
   · NO toca sonido, montaje, distribución.
 
-  · El seed determinista SÍ funciona si la herramienta lo soporta
-    (Runway, Kling, algunos más). Si no, el seed no hace nada.
+  · El seed determinista SÍ funciona si la herramienta lo soporta.
+    Si no, el seed no hace nada.
 
-  · Los prompts están en inglés. Si tu herramienta los acepta en
-    español, puedes cambiar los mapas, pero el resultado puede ser
-    peor: los modelos están entrenados mayoritariamente en inglés.
+  · Los prompts están en inglés. Si tu herramienta los acepta en español,
+    puedes cambiar los mapas, pero el resultado puede ser peor: los modelos
+    están entrenados mayoritariamente en inglés.
 
-  · La validación de coherencia es ESTRUCTURAL, no estética. Detecta
-    que un cruce de eje es un cruce de eje, pero no que la actuación
-    está mal, que la luz no dice lo que quieres, o que el plano no
-    conmueve. Eso sigue siendo criterio humano.
+  · La validación es ESTRUCTURAL, no estética. Detecta que un cruce de eje
+    es un cruce de eje. No detecta que la actuación está mal, que la luz
+    no dice lo que quieres, o que el plano no conmueve. Eso es criterio
+    humano.
+
+  · El formulario tiene 13 campos. No es infinitamente configurable: si
+    necesitas más (por ejemplo, "hora del día", "clima", "vestuario"),
+    añádelos al PLANO_SCHEMA. La UI los recoge automáticamente y las
+    vistas los ignoran hasta que escribas una vista que los use.
 
 ───────────────────────────────────────────────────────────────────────────────
 9. SIGUIENTE PASO NATURAL
 ───────────────────────────────────────────────────────────────────────────────
 
-  No es añadir más features. Es probar el bucle completo con 3 planos
+  Antes de añadir más features, probar el bucle completo con 3 planos
   reales:
 
-    1. Escribir 3 planos en el plugin.
-    2. Verificar coherencia.
+    1. Crear 3 planos en el editor.
+    2. Verificar coherencia en las 4 vistas.
     3. Copiar sus prompts.
     4. Generar los 3 clips en Runway / Kling / la herramienta que uses.
     5. Analizar los frames con imagenes_ia3.html.
@@ -371,6 +433,22 @@ Si alguien te dice que sin esto hacer una peli con IA es un caos, sí es verdad.
 
   Eso te dará en 2 horas la respuesta de "¿esto realmente sirve?".
   Construir más capas antes de ese test es construir a ciegas.
+
+───────────────────────────────────────────────────────────────────────────────
+ANEXO · El malentendido del negative prompt
+───────────────────────────────────────────────────────────────────────────────
+
+  En la primera versión del plugin, las palabras "low quality, blurry,
+  distorted, watermark, cheerful colors, soft focus..." aparecían en la
+  tarjeta del plano sin contexto. Parecía que eran características del
+  plano, pero eran el NEGATIVE PROMPT: lo que se le dice al modelo de
+  vídeo que NO genere. Ahora están claramente separadas bajo la etiqueta
+  "Negative prompt" y no se confunden con los campos del plano.
+
+  Los campos del plano (encuadre, ángulo, sujeto, intención...) son lo
+  que TÚ defines. El negative prompt son cosas que el generador añade
+  automáticamente para evitar artefactos comunes (baja calidad, marcas
+  de agua, texto no deseado, colores incoherentes con la intención...).
 
 ═══════════════════════════════════════════════════════════════════════════════
   Fin de la documentación.
