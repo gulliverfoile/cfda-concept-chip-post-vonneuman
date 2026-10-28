@@ -1,0 +1,377 @@
+═══════════════════════════════════════════════════════════════════════════════
+  VISTAS DE COHERENCIA + GENERADOR DE PROMPTS
+  Documentación técnica · qué es, qué hace, cómo lo hace
+═══════════════════════════════════════════════════════════════════════════════
+
+ÍNDICE
+  1. Qué es
+  2. Qué NO es
+  3. Qué hace (4 vistas + generador)
+  4. Cómo lo hace (arquitectura)
+  5. Modelo de datos (eventos de plano)
+  6. Flujo de uso
+  7. Cómo integrarlo en tu Core existente
+  8. Limitaciones honestas
+  9. Siguiente paso natural
+
+───────────────────────────────────────────────────────────────────────────────
+1. QUÉ ES
+───────────────────────────────────────────────────────────────────────────────
+
+Es un plugin independiente en un único archivo HTML que hace dos cosas:
+
+  A) Analiza la coherencia de un shot list (lista de planos) expresado como
+     una secuencia de eventos, y reporta violaciones estructurales.
+
+  B) Genera prompts listos para pegar en herramientas de vídeo IA
+     (Runway, Pika, Kling, Sora, Genmo, Veo) a partir de esos mismos planos,
+     con negative prompt, parámetros sugeridos y notas de continuidad.
+
+En una frase: convierte un shot list en (a) un informe de coherencia y
+(b) un conjunto de prompts reproducibles para IA de vídeo.
+
+Pertenece al mismo ecosistema que base_datos2.html (event sourcing),
+imagenes_ia3.html (análisis de imagen), relaciones3.html (geometría)
+y los generadores de escena. Es la capa de "prompts" del pipeline.
+
+───────────────────────────────────────────────────────────────────────────────
+2. QUÉ NO ES
+───────────────────────────────────────────────────────────────────────────────
+
+NO es un generador de vídeo. No habla con ninguna API de IA.
+NO es un generador de imágenes ni de conditioning signals (depth, seg, etc.).
+NO es un editor de vídeo ni un montador.
+NO es un sistema de consistencia de personaje (el mayor problema de la IA de
+   vídeo actual: la cara del personaje cambia entre planos, y esto no lo
+   resuelve).
+NO es un guionista. Presupone que ya sabes qué historia contar.
+NO es una herramienta que "hace películas fáciles". Es una pieza de fontanería
+   muy buena dentro de un pipeline mucho más grande.
+
+Si alguien te dice que con esto solo haces una peli, no es verdad.
+Si alguien te dice que sin esto hacer una peli con IA es un caos, sí es verdad.
+
+───────────────────────────────────────────────────────────────────────────────
+3. QUÉ HACE
+───────────────────────────────────────────────────────────────────────────────
+
+3.1 · CUATRO VISTAS DE COHERENCIA
+   Cada vista es una proyección pura sobre el log de eventos de planos.
+   Cada una detecta un tipo distinto de problema estructural.
+
+   ┌─ VistaContinuidad
+   │  Detecta:
+   │    · Cruces de eje (regla de los 180°): dos planos consecutivos con
+   │      diferencia angular > 90° sin estar marcados como "permiteCruce".
+   │    · Inversiones de eyeline (raccord de mirada): dos planos consecutivos
+   │      con el mismo sujeto y eyelines opuestos.
+   │  Campos que lee: eje, eyeline, sujeto, permiteCruce.
+   │
+   ├─ VistaRitmo
+   │  Detecta:
+   │    · Ritmo lento (media > 8s por plano).
+   │    · Ritmo muy rápido (media < 1.2s con > 3 planos).
+   │    · Saltos bruscos de duración (ratio > 4 o < 0.25 entre consecutivos).
+   │    · Picos: planos mucho más largos o cortos que sus vecinos.
+   │  Campos que lee: duracion, orden.
+   │
+   ├─ VistaPaleta
+   │  Detecta:
+   │    · Salto cromático fuerte (> 50% distancia) SIN cambio de intención.
+   │    · Cambio de intención SIN cambio visual (distancia < 10%).
+   │  Campos que lee: paleta (array hex), intencion.
+   │
+   └─ VistaCobertura
+      Detecta:
+        · Falta de plano de establecimiento (general o entero).
+        · Exceso de primeros planos (> 70%).
+        · Un solo ángulo en toda la escena.
+        · Toda la escena estática.
+      Campos que lee: encuadre, angulo, movimiento.
+
+3.2 · GENERADOR DE PROMPTS
+   Para cada plano produce un objeto con:
+
+   {
+     ok: true,
+     planoId: "P3",
+     prompt: "close-up shot of the hero, low-angle shot looking up,
+              tense atmosphere, hard shadows, color palette anchored on
+              #c97a3a and #e0a060, static locked-off camera, shot on 85mm
+              lens, cinematic film still, photorealistic, 35mm film grain",
+     negativePrompt: "low quality, blurry, distorted, watermark, text,
+                      subtitle, logo, cheerful colors, soft focus, ...",
+     suggestedParams: {
+       duration: 2.5,
+       aspectRatio: "16:9",
+       resolution: "1080p",
+       fps: 24,
+       focalLength: 85,
+       cameraMotion: "estatico",
+       motionIntensity: "low",
+       style: "cinematic film still, photorealistic...",
+       seed: 1234567890
+     },
+     notas: [
+       "Cambio de intención: intimidad → tension"
+     ]
+   }
+
+   El prompt está en inglés porque es el idioma recomendado por
+   prácticamente todas las herramientas de vídeo IA. El seed es
+   determinista por id de plano: el mismo plano siempre produce el mismo
+   seed, para poder reproducir el clip si la herramienta lo permite.
+
+3.3 · INTERFAZ
+   · Panel de planos: lista ordenada, clic para seleccionar y ver su prompt.
+   · Cuatro paneles de coherencia con violaciones y alertas.
+   · Panel de prompts: uno por plano, con botón de copiar individual.
+   · Botón "Copiar todos": copia todos los prompts como bloque de texto.
+   · Botón "Descargar JSON": exporta todos los prompts con sus params
+     en un JSON para procesar en batch.
+   · Tests automáticos al cargar: 17 tests sobre las 4 vistas y el generador.
+
+───────────────────────────────────────────────────────────────────────────────
+4. CÓMO LO HACE
+───────────────────────────────────────────────────────────────────────────────
+
+4.1 · PATRÓN: EVENT SOURCING
+   El sistema no guarda "el estado actual de la película".
+   Guarda "la secuencia de decisiones que llevaron al estado actual".
+
+   Cada decisión es un EVENTO INMUTABLE:
+     - plano_creado
+     - plano_eliminado
+     - campo_modificado (o campo_modificado_historico)
+
+   Las vistas son proyecciones puras de esos eventos:
+     init()   → estado vacío
+     apply()  → aplica un evento al estado, devuelve el estado nuevo
+     result() → deriva el resultado legible del estado acumulado
+
+   Ventajas:
+     · Toda decisión es reversible.
+     · Se puede reconstruir el estado en cualquier momento pasado.
+     · Añadir una vista nueva no cambia las demás.
+     · El log es la fuente de verdad; las vistas son cachés derivadas.
+
+4.2 · RECALCULADO INCREMENTAL
+   Cuando llega un evento de plano:
+     1. Se aplica al estado base (crear / eliminar / modificar campo).
+     2. Se reconstruye el array de planos de las escenas afectadas.
+     3. Las vistas que dependen de esas escenas se recalculan solo para
+        esas escenas, no para todas.
+
+   Esto mantiene la herramienta ágil incluso con cientos de planos.
+
+4.3 · GENERACIÓN DE PROMPTS: MAPAS DETERMINISTAS
+   La función generarPrompt(plano, contexto) es pura:
+     - No toca el DOM.
+     - No usa Math.random().
+     - El seed se deriva con un hash determinista del id del plano.
+
+   Traduce cada campo del plano usando mapas estáticos:
+
+     encuadre → "wide establishing shot" | "full body shot" |
+                "medium shot" | "close-up shot" | "extreme close-up"
+     angulo   → "eye-level camera" | "high-angle shot looking down" |
+                "low-angle shot looking up" | "dutch angle"
+     movimiento → "static locked-off camera" | "slow horizontal pan" |
+                  "vertical tilt movement" | "smooth dolly travelling" |
+                  "handheld camera, subtle organic shake" | "crane shot"
+     intencion → "tense atmosphere, hard shadows" | "intimate atmosphere,
+                  soft light" | "epic scale, dramatic lighting" | ...
+     sujeto   → "the hero" | "the villain" | "the trickster" | ...
+
+   El negative prompt se compone de:
+     - Base común: low quality, blurry, distorted, watermark, etc.
+     - Específicos por intención: tension → +cheerful colors, +soft focus;
+       duelo → +vibrant colors; misterio → +bright even lighting; etc.
+
+4.4 · NOTAS DE CONTINUIDAD
+   Cuando generas el prompt de un plano, la función recibe como contexto
+   el plano anterior. Con eso calcula:
+     - Si el plano anterior tenía permiteCruce: false y el eje cambió,
+       añade "Mantener dirección de pantalla del plano anterior".
+     - Si el sujeto es el mismo y el eyeline se invierte, avisa.
+     - Si la intención cambió, lo registra como nota.
+     - Si la paleta salta > 50% de distancia, lo advierte.
+
+   Estas notas NO son parte del prompt. Son avisos para el humano.
+
+4.5 · TESTS
+   17 tests verifican:
+     - Las 4 vistas por separado (con casos sintéticos).
+     - El generador de prompts (determinismo, negativos por intención,
+       notas de continuidad, seed, params coherentes con movimiento).
+     - La integración: prompt generado desde eventos del core.
+
+   Todos los tests se ejecutan al cargar el archivo y se muestran en el
+   panel inferior. Si algo falla, lo verás en rojo.
+
+───────────────────────────────────────────────────────────────────────────────
+5. MODELO DE DATOS
+───────────────────────────────────────────────────────────────────────────────
+
+5.1 · EVENTO DE PLANO
+   {
+     id: "ev_P3",                       // id del evento
+     ts: "2025-01-15T10:30:00.000Z",    // timestamp
+     entidad: "plano",                  // tipo de entidad
+     entidadId: "P3",                   // id del plano
+     tipo: "plano_creado",              // o plano_eliminado / campo_modificado
+     campo: null,                       // solo si tipo = campo_modificado
+     de: null,                          // valor anterior (si aplica)
+     a: { ...plano },                   // valor nuevo (o el plano completo)
+     actor: "usuario",                  // quién hizo el cambio
+     version: 1
+   }
+
+5.2 · PLANO
+   {
+     id: "P3",
+     escenaId: "S1",
+     orden: 3,
+     encuadre: "primer",                // general|entero|medio|primer|primerisimo
+     angulo: "contrapicado",            // normal|picado|contrapicado|holandes
+     movimiento: "estatico",            // estatico|pan|tilt|travelling|handheld|grua
+     focal: 50,                         // mm
+     duracion: 2.5,                     // segundos
+     sujeto: "héroe",
+     intencion: "tension",              // establecer|intimidad|tension|epica|
+                                        //   misterio|comedia|duelo|amenaza
+     eje: 0,                            // grados (0-360)
+     eyeline: 1,                        // -1 | 0 | 1
+     permiteCruce: false,               // anula la validación de eje/eyeline
+     paleta: ["#c97a3a", "#e0a060"]     // array de hex
+   }
+
+   Los campos no son obligatorios. Las vistas y el generador usan
+   defaults (?? 0, ?? '', etc.) si faltan. Eso permite shot lists
+   mínimos que se van enriqueciendo.
+
+───────────────────────────────────────────────────────────────────────────────
+6. FLUJO DE USO
+───────────────────────────────────────────────────────────────────────────────
+
+  PASO 1 · Especificar el shot list
+    · Añades planos uno a uno (o cargas un JSON de eventos en producción).
+    · Cada plano tiene encuadre, ángulo, sujeto, intención, duración,
+      paleta, etc.
+
+  PASO 2 · Revisar coherencia
+    · Miras las 4 vistas: continuidad, ritmo, paleta, cobertura.
+    · Si hay violaciones en rojo, corriges los planos afectados.
+    · Iteras hasta que las vistas estén limpias (o hasta que decidas
+      aceptar una violación a propósito, como un cruce de eje intencionado
+      en un campo/contracampo — para eso está permiteCruce: true).
+
+  PASO 3 · Generar prompts
+    · Cada plano produce su prompt automáticamente.
+    · Copias uno a uno o todos a la vez.
+    · También puedes descargar el JSON completo para procesar en batch.
+
+  PASO 4 · Generar clips
+    · Pegas cada prompt en Runway, Pika, Kling, Sora, Genmo o Veo.
+    · Ajustas duración al formato que soporte la herramienta.
+    · Generas.
+
+  PASO 5 · Verificar output (esto NO está en este archivo)
+    · Analizas el frame generado con imagenes_ia3.html.
+    · Comparas con lo que el plano pedía.
+    · Si hay deriva, ajustas el plano y vuelves al paso 3.
+
+  PASO 6 · Montar (esto NO está en este archivo)
+    · Editas los clips.
+    · Añades sonido, música, foley.
+    · Mezclas.
+
+───────────────────────────────────────────────────────────────────────────────
+7. CÓMO INTEGRARLO EN TU CORE EXISTENTE
+───────────────────────────────────────────────────────────────────────────────
+
+  Si ya tienes el Core de base_datos2.html funcionando:
+
+  1. Copia las 4 vistas al archivo:
+       VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura
+     Con sus helpers:
+       reconstruirEscena, aplicarEventoPlanoBase,
+       detectarViolacionesContinuidad, calcularRitmo,
+       analizarPaleta, calcularCobertura,
+       hexToRgb, promedioPaleta, distanciaPaleta
+
+  2. Añádelas al array VISTAS:
+       const VISTAS = [
+         VistaRegistro,        // las que ya tenías
+         VistaContadores,
+         VistaHistorico,
+         VistaIndiceEtiquetas,
+         VistaContinuidad,     // las nuevas
+         VistaRitmo,
+         VistaPaleta,
+         VistaCobertura
+       ];
+
+  3. Añade la entidad "plano" al ESQUEMA si no está.
+
+  4. Copia la función generarPrompt y sus mapas
+     (ENCUADRE_PROMPT, ANGULO_PROMPT, etc.) como utilidad independiente.
+
+  5. En la UI, añade un panel de prompts que llame a generarPrompt
+     por cada plano del snapshotVista('continuidad').
+
+  Nada de esto rompe lo existente. Las vistas nuevas ignoran eventos
+  de otras entidades (pacientes, etc.) y solo responden a entidad === 'plano'.
+
+───────────────────────────────────────────────────────────────────────────────
+8. LIMITACIONES HONESTAS
+───────────────────────────────────────────────────────────────────────────────
+
+  · NO resuelve consistencia de personaje entre planos. Ese es el cuello
+    de botella real de la IA de vídeo hoy y requiere references, LoRA,
+    IP-Adapter o generación condicionada por imagen.
+
+  · NO genera conditioning signals (depth maps, segmentation masks).
+    Eso lo pueden hacer edificio2.html y relaciones3.html; falta el puente.
+
+  · NO tiene bucle automático de corrección. Si un clip sale mal, lo
+    regeneras a mano. Automatizarlo requiere conectar imagenes_ia3 +
+    filtro_ia2 + generador.
+
+  · NO es un guionista. Presupone que ya sabes qué historia contar.
+
+  · NO toca sonido, montaje, distribución.
+
+  · El seed determinista SÍ funciona si la herramienta lo soporta
+    (Runway, Kling, algunos más). Si no, el seed no hace nada.
+
+  · Los prompts están en inglés. Si tu herramienta los acepta en
+    español, puedes cambiar los mapas, pero el resultado puede ser
+    peor: los modelos están entrenados mayoritariamente en inglés.
+
+  · La validación de coherencia es ESTRUCTURAL, no estética. Detecta
+    que un cruce de eje es un cruce de eje, pero no que la actuación
+    está mal, que la luz no dice lo que quieres, o que el plano no
+    conmueve. Eso sigue siendo criterio humano.
+
+───────────────────────────────────────────────────────────────────────────────
+9. SIGUIENTE PASO NATURAL
+───────────────────────────────────────────────────────────────────────────────
+
+  No es añadir más features. Es probar el bucle completo con 3 planos
+  reales:
+
+    1. Escribir 3 planos en el plugin.
+    2. Verificar coherencia.
+    3. Copiar sus prompts.
+    4. Generar los 3 clips en Runway / Kling / la herramienta que uses.
+    5. Analizar los frames con imagenes_ia3.html.
+    6. Comparar lo pedido con lo obtenido.
+    7. Decidir si el pipeline es viable para tu proyecto.
+
+  Eso te dará en 2 horas la respuesta de "¿esto realmente sirve?".
+  Construir más capas antes de ese test es construir a ciegas.
+
+═══════════════════════════════════════════════════════════════════════════════
+  Fin de la documentación.
+═══════════════════════════════════════════════════════════════════════════════
