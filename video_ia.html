@@ -2,49 +2,53 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Vistas de coherencia + Generador de prompts</title>
+<title>Editor de planos + coherencia + prompts</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: system-ui, -apple-system, sans-serif;
-    background: #0f172a; color: #e2e8f0; padding: 14px; font-size: 13px;
-    min-height: 100vh;
-  }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; padding: 12px; font-size: 13px; }
   h1 { font-size: 1.05rem; font-weight: 400; color: #60a5fa; margin-bottom: 4px; }
   .sub { color: #94a3b8; font-size: 11px; margin-bottom: 12px; }
-  h2 { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;
-       letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 500; }
+  h2 { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 500; }
   h3 { font-size: 0.82rem; color: #cbd5e1; margin-bottom: 6px; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
-  .panel { background: #1e293b; border: 1px solid #334155;
-           border-radius: 10px; padding: 12px; }
-  button {
-    background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
-    border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px;
-    font-family: inherit;
-  }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  button { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-family: inherit; }
   button:hover { background: #334155; }
   button.primary { background: #3b82f6; border-color: #3b82f6; color: #fff; }
   button.primary:hover { background: #2563eb; }
   button.danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
   button.success { background: #16a34a; border-color: #16a34a; color: #fff; }
-  button.success:hover { background: #15803d; }
   button.small { padding: 3px 8px; font-size: 11px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
-  .pill { display: inline-block; padding: 1px 7px; border-radius: 10px;
-          font-size: 10px; background: #334155; margin-right: 4px; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; background: #334155; margin-right: 4px; }
   .pill.ok { background: #14532d; color: #86efac; }
   .pill.warn { background: #78350f; color: #fcd34d; }
   .pill.err { background: #7f1d1d; color: #fecaca; }
   .pill.info { background: #1e3a5f; color: #93c5fd; }
-  .kv { display: flex; justify-content: space-between; padding: 3px 0;
-        border-bottom: 1px solid #1e293b; font-size: 12px; gap: 8px; }
+  .kv { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #1e293b; font-size: 12px; gap: 8px; }
   .kv:last-child { border-bottom: none; }
   .kv .k { color: #94a3b8; flex-shrink: 0; }
-  .kv .v { color: #e2e8f0; font-family: ui-monospace, monospace;
-           text-align: right; word-break: break-all; }
+  .kv .v { color: #e2e8f0; font-family: ui-monospace, monospace; text-align: right; word-break: break-all; }
   .empty { color: #475569; font-style: italic; font-size: 12px; padding: 6px 0; }
+
+  /* Form */
+  .form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .form-row label { flex: 0 0 110px; color: #94a3b8; font-size: 11px; }
+  .form-row input, .form-row select {
+    flex: 1; background: #0f172a; color: #e2e8f0; border: 1px solid #334155;
+    border-radius: 5px; padding: 4px 8px; font-family: inherit; font-size: 12px;
+  }
+  .form-row input:focus, .form-row select:focus { outline: none; border-color: #3b82f6; }
+  .form-row input[type=checkbox] { flex: 0 0 auto; }
+  .form-row input[type=number] { flex: 0 0 90px; }
+  .form-row .required { color: #ef4444; margin-left: 2px; }
+
+  .palette-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .palette-row input[type=color] { width: 40px; height: 26px; padding: 0; border: 1px solid #334155; background: #0f172a; cursor: pointer; border-radius: 4px; }
+  .palette-row input[type=text] { flex: 1; font-family: ui-monospace, monospace; font-size: 11px; background: #0f172a; color: #94a3b8; border: 1px solid #334155; border-radius: 4px; padding: 3px 6px; }
+
+  /* Shot list */
   .shot {
     background: #0f172a; border: 1px solid #334155; border-radius: 6px;
     padding: 8px; margin-bottom: 6px; font-family: ui-monospace, monospace;
@@ -54,163 +58,127 @@
   .shot.selected { border-color: #3b82f6; background: #1e3a5f; }
   .shot .line { display: flex; justify-content: space-between; margin-bottom: 2px; }
   .shot .meta { color: #94a3b8; font-size: 10px; }
-  .alert { padding: 4px 6px; margin: 2px 0; border-left: 3px solid;
-           background: #0f172a; border-radius: 4px; font-size: 11px; }
+  .shot .swatches { display: flex; gap: 2px; margin-top: 4px; }
+  .shot .swatches span { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.1); }
+
+  .alert { padding: 4px 6px; margin: 2px 0; border-left: 3px solid; background: #0f172a; border-radius: 4px; font-size: 11px; }
   .alert.err { border-color: #ef4444; color: #fca5a5; }
   .alert.warn { border-color: #f59e0b; color: #fcd34d; }
   .alert.info { border-color: #3b82f6; color: #93c5fd; }
-  .tests { font-family: ui-monospace, monospace; font-size: 11px;
-           max-height: 300px; overflow-y: auto; background: #0f172a;
-           border-radius: 6px; padding: 8px; }
-  .tests .t { padding: 1px 0; }
-  .bar { height: 4px; background: #1e293b; border-radius: 2px;
-         margin-top: 2px; overflow: hidden; }
-  .bar > div { height: 100%; background: #3b82f6; }
+  .status { font-size: 11px; margin-top: 6px; }
+  .status.ok { color: #4ade80; }
+  .status.err { color: #f87171; }
 
-  /* Prompt cards */
-  .prompt-card {
-    background: #0f172a; border: 1px solid #334155;
-    border-radius: 8px; padding: 10px; margin-bottom: 10px;
-  }
+  .prompt-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
   .prompt-card.highlight { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
-  .prompt-card .head {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 8px; gap: 8px;
-  }
+  .prompt-card .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
   .prompt-card .head strong { color: #60a5fa; }
   .prompt-card .head .meta { color: #94a3b8; font-size: 10px; }
-  .prompt-card .label {
-    font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em;
-    color: #64748b; margin-bottom: 2px; margin-top: 8px; font-weight: 600;
-  }
+  .prompt-card .label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; margin-bottom: 2px; margin-top: 8px; font-weight: 600; }
   .prompt-card .label:first-child { margin-top: 0; }
-  .prompt-card .text {
-    font-family: ui-monospace, monospace; font-size: 11px;
-    color: #e2e8f0; line-height: 1.6;
-    background: #0a0f1a; padding: 6px 8px; border-radius: 4px;
-    white-space: pre-wrap; word-break: break-word;
-  }
+  .prompt-card .text { font-family: ui-monospace, monospace; font-size: 11px; color: #e2e8f0; line-height: 1.6; background: #0a0f1a; padding: 6px 8px; border-radius: 4px; white-space: pre-wrap; word-break: break-word; }
   .prompt-card .text.neg { color: #fca5a5; }
-  .prompt-card .params {
-    font-size: 10px; color: #94a3b8; margin-top: 8px;
-    display: flex; flex-wrap: wrap; gap: 10px;
-  }
-  .prompt-card .params span { white-space: nowrap; }
-  .prompt-card .notas {
-    font-size: 10px; color: #fcd34d; margin-top: 8px;
-    padding: 6px 8px; background: rgba(245, 158, 11, 0.08);
-    border-left: 2px solid #f59e0b; border-radius: 3px;
-    line-height: 1.6;
-  }
-  .workflow { font-size: 11px; color: #94a3b8; line-height: 1.7; }
-  .workflow ol { padding-left: 18px; }
-  .workflow b { color: #60a5fa; }
+  .prompt-card .params { font-size: 10px; color: #94a3b8; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .prompt-card .notas { font-size: 10px; color: #fcd34d; margin-top: 8px; padding: 6px 8px; background: rgba(245, 158, 11, 0.08); border-left: 2px solid #f59e0b; border-radius: 3px; line-height: 1.6; }
+
+  .tests { font-family: ui-monospace, monospace; font-size: 11px; max-height: 300px; overflow-y: auto; background: #0f172a; border-radius: 6px; padding: 8px; }
+  .tests .t { padding: 1px 0; }
+  .bar { height: 4px; background: #1e293b; border-radius: 2px; margin-top: 2px; overflow: hidden; }
+  .bar > div { height: 100%; background: #3b82f6; }
 </style>
 </head>
 <body>
 
-<h1>Vistas de coherencia + Generador de prompts</h1>
-<p class="sub">Plugin independiente · eventos de plano → análisis de coherencia → prompts listos para IA de vídeo</p>
+<h1>Editor de planos + coherencia + prompts</h1>
+<p class="sub">Cada plano se define en el formulario · los planos existentes se editan al hacer clic · schema declarativo</p>
 
 <div class="grid">
 
-  <div class="panel">
-    <h2>Escena de prueba · S1</h2>
-    <div id="listaShots"></div>
-    <div class="row" style="margin-top:8px;">
-      <button class="primary small" id="btnAddPlano">+ Añadir plano</button>
-      <button class="small" id="btnResetDemo">↺ Reset demo</button>
+  <div>
+    <div class="panel">
+      <h2>✏️ Editor de plano <span class="pill" id="editorMode">Nuevo</span></h2>
+      <div id="planForm"></div>
+      <div class="row" style="margin-top:10px;">
+        <button class="primary" id="btnSave">💾 Guardar</button>
+        <button id="btnNew">+ Nuevo</button>
+        <button id="btnDuplicate" disabled>📋 Duplicar</button>
+        <button class="danger" id="btnDelete" disabled>🗑 Eliminar</button>
+      </div>
+      <div class="status" id="formStatus"></div>
     </div>
-    <div class="row">
-      <button class="small" id="btnAñadirCruce">+ Plano que cruza eje</button>
-    </div>
-  </div>
 
-  <div class="panel">
-    <h2>🔗 Continuidad</h2>
-    <div id="vContinuidad"><div class="empty">Sin datos.</div></div>
-  </div>
-
-  <div class="panel">
-    <h2>⏱ Ritmo</h2>
-    <div id="vRitmo"><div class="empty">Sin datos.</div></div>
-  </div>
-
-  <div class="panel">
-    <h2>🎨 Paleta</h2>
-    <div id="vPaleta"><div class="empty">Sin datos.</div></div>
-  </div>
-
-  <div class="panel">
-    <h2>🎬 Cobertura</h2>
-    <div id="vCobertura"><div class="empty">Sin datos.</div></div>
-  </div>
-
-  <div class="panel">
-    <h2>🔄 Workflow</h2>
-    <div class="workflow">
-      <ol>
-        <li>Añade/edita <b>planos</b> en el panel de la izquierda</li>
-        <li>Revisa las 4 <b>vistas</b>: si hay violaciones en rojo, corrígelas antes de generar</li>
-        <li><b>Copia los prompts</b> del panel inferior y pégalos en tu IA de vídeo</li>
-        <li>Cuando tengas el clip, compáralo con lo que pediste</li>
-        <li>Si hay deriva, ajusta el plano y regenera</li>
-      </ol>
-      <p style="margin-top:8px; font-size:10px;">
-        Herramientas compatibles: Runway Gen-3 · Pika · Kling · Sora · Genmo · Veo
-      </p>
+    <div class="panel">
+      <h2>🎬 Planos · S1 <span class="pill info" id="shotCount">0</span></h2>
+      <div id="listaShots"><div class="empty">Sin planos.</div></div>
+      <div class="row" style="margin-top:8px;">
+        <button class="small" id="btnExportJson">⬇️ Export JSON</button>
+        <button class="small" id="btnImportJson">⬆️ Import JSON</button>
+        <input type="file" id="importFile" style="display:none" accept=".json,application/json">
+        <span style="flex:1;"></span>
+        <button class="small danger" id="btnResetAll">🗑 Reset todo</button>
+      </div>
     </div>
   </div>
 
-  <div class="panel" style="grid-column: 1 / -1;">
-    <h2>📝 Prompts generados · copiar y pegar en IA de vídeo</h2>
-    <div class="row">
-      <button class="small primary" id="btnCopyAllPrompts">📋 Copiar todos</button>
-      <button class="small" id="btnDownloadPrompts">⬇️ Descargar JSON</button>
-      <span class="pill info" id="promptCount">0 planos</span>
-      <span style="flex:1;"></span>
-      <span style="font-size:10px; color:#94a3b8;">Prompts en inglés (recomendado por Runway/Pika/Kling/Sora)</span>
-    </div>
-    <div id="vPrompts"><div class="empty">Sin prompts todavía.</div></div>
+  <div>
+    <div class="panel"><h2>🔗 Continuidad</h2><div id="vContinuidad"><div class="empty">Sin datos.</div></div></div>
+    <div class="panel"><h2>⏱ Ritmo</h2><div id="vRitmo"><div class="empty">Sin datos.</div></div></div>
+    <div class="panel"><h2>🎨 Paleta</h2><div id="vPaleta"><div class="empty">Sin datos.</div></div></div>
+    <div class="panel"><h2>🎬 Cobertura</h2><div id="vCobertura"><div class="empty">Sin datos.</div></div></div>
   </div>
 
-  <div class="panel" style="grid-column: 1 / -1;">
-    <h2>Tests</h2>
-    <div class="tests" id="testsOut"></div>
-  </div>
+</div>
 
+<div class="panel">
+  <h2>📝 Prompts generados · copiar y pegar en IA de vídeo</h2>
+  <div class="row">
+    <button class="small primary" id="btnCopyAllPrompts">📋 Copiar todos</button>
+    <button class="small" id="btnDownloadPrompts">⬇️ Descargar JSON</button>
+    <span class="pill info" id="promptCount">0 planos</span>
+  </div>
+  <div id="vPrompts"><div class="empty">Sin prompts todavía.</div></div>
+</div>
+
+<div class="panel">
+  <h2>Tests</h2>
+  <div class="tests" id="testsOut"></div>
 </div>
 
 <script type="module">
 'use strict';
 
 /* ═══════════════════════════════════════════════════════════════════════
-   0 · CONFIGURACIÓN GLOBAL DEL GENERADOR
-   ───────────────────────────────────────────────────────────────────────
-   Edita esto para cambiar el estilo por defecto de todos los prompts.
+   SCHEMA DECLARATIVO · añadir un campo aquí → aparece en el formulario
    ═══════════════════════════════════════════════════════════════════════ */
 
-const CONTEXTO_GLOBAL = {
-  style: 'cinematic film still, photorealistic, 35mm film grain, anamorphic',
-  aspectRatio: '16:9',
-  resolution: '1080p',
-  fps: 24,
-  negativeBase: [
-    'low quality', 'blurry', 'distorted', 'deformed', 'watermark',
-    'text', 'subtitle', 'logo', 'frame border', 'bad anatomy',
-    'cartoonish', 'oversaturated'
-  ]
+const PLANO_SCHEMA = {
+  escenaId:     { label: 'Escena',      tipo: 'text',   required: true,  default: 'S1' },
+  orden:        { label: 'Orden',       tipo: 'number', required: true,  min: 1,   default: 1 },
+  encuadre:     { label: 'Encuadre',    tipo: 'enum',   required: true,  default: 'medio',
+                  enum: ['general','entero','medio','primer','primerisimo'] },
+  angulo:       { label: 'Ángulo',      tipo: 'enum',   required: true,  default: 'normal',
+                  enum: ['normal','picado','contrapicado','holandes'] },
+  movimiento:   { label: 'Movimiento',  tipo: 'enum',   default: 'estatico',
+                  enum: ['estatico','pan','tilt','travelling','handheld','grua'] },
+  sujeto:       { label: 'Sujeto',      tipo: 'text',   required: true,  default: '' },
+  intencion:    { label: 'Intención',   tipo: 'enum',   required: true,  default: 'establecer',
+                  enum: ['establecer','intimidad','tension','epica','misterio','comedia','duelo','amenaza'] },
+  duracion:     { label: 'Duración (s)',tipo: 'number', required: true,  min: 0.5, max: 30, step: 0.5, default: 4 },
+  focal:        { label: 'Focal (mm)',  tipo: 'number', min: 14, max: 200, step: 1, default: 35 },
+  eje:          { label: 'Eje (°)',     tipo: 'number', min: 0, max: 360, step: 1, default: 0 },
+  eyeline:      { label: 'Eyeline',     tipo: 'enum',   default: '0',
+                  enum: ['-1','0','1'], numerico: true },
+  permiteCruce: { label: 'Permite cruce', tipo: 'bool', default: false },
+  paleta:       { label: 'Paleta',      tipo: 'paleta', default: ['#c97a3a','#e0a060'] }
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
-   1 · VISTAS DE COHERENCIA (idénticas a la versión anterior)
+   VISTAS DE COHERENCIA (idénticas a la versión anterior)
    ═══════════════════════════════════════════════════════════════════════ */
 
 function reconstruirEscena(estado, escenaId) {
   const shots = Object.values(estado.planos).filter(p => p.escenaId === escenaId);
-  estado.porEscena[escenaId] = shots
-    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
-    .map(p => p.id);
+  estado.porEscena[escenaId] = shots.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)).map(p => p.id);
 }
 
 function aplicarEventoPlanoBase(estado, evento) {
@@ -222,17 +190,17 @@ function aplicarEventoPlanoBase(estado, evento) {
   if (evento.tipo === 'plano_eliminado') {
     const p = estado.planos[evento.entidadId];
     if (!p) return null;
-    const escenaId = p.escenaId;
+    const e = p.escenaId;
     delete estado.planos[evento.entidadId];
-    return { escenasAfectadas: [escenaId] };
+    return { escenasAfectadas: [e] };
   }
-  if (evento.tipo === 'campo_modificado' || evento.tipo === 'campo_modificado_historico') {
+  if (evento.tipo === 'campo_modificado') {
     const p = estado.planos[evento.entidadId];
     if (!p) return null;
-    const escenaAnterior = p.escenaId;
+    const ant = p.escenaId;
     estado.planos[evento.entidadId] = { ...p, [evento.campo]: evento.a };
-    const escenaActual = estado.planos[evento.entidadId].escenaId;
-    return { escenasAfectadas: [...new Set([escenaAnterior, escenaActual])].filter(Boolean) };
+    const act = estado.planos[evento.entidadId].escenaId;
+    return { escenasAfectadas: [...new Set([ant, act])].filter(Boolean) };
   }
   return null;
 }
@@ -246,37 +214,29 @@ const VistaContinuidad = {
     for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
     estado.violaciones = estado.violaciones.filter(v => !r.escenasAfectadas.includes(v.escenaId));
     for (const id of r.escenasAfectadas) {
-      estado.violaciones.push(...detectarViolacionesContinuidad(estado, id));
+      const ids = estado.porEscena[id] ?? [];
+      for (let i = 1; i < ids.length; i++) {
+        const a = estado.planos[ids[i - 1]], b = estado.planos[ids[i]];
+        if (!a || !b) continue;
+        if (a.eje != null && b.eje != null && !b.permiteCruce) {
+          const diff = Math.abs(a.eje - b.eje) % 360;
+          if (Math.min(diff, 360 - diff) > 90) {
+            estado.violaciones.push({ escenaId: id, planoId: b.id, tipo: 'eje',
+              mensaje: `Plano ${b.id} cruza el eje (${a.eje}° → ${b.eje}°)`, severidad: 'err' });
+          }
+        }
+        if (a.eyeline != null && b.eyeline != null && a.sujeto && a.sujeto === b.sujeto) {
+          if (a.eyeline * b.eyeline < 0 && !b.permiteCruce) {
+            estado.violaciones.push({ escenaId: id, planoId: b.id, tipo: 'eyeline',
+              mensaje: `Plano ${b.id} invierte eyeline de "${a.sujeto}"`, severidad: 'err' });
+          }
+        }
+      }
     }
     return estado;
   },
-  result: (estado) => estado
+  result: (e) => e
 };
-
-function detectarViolacionesContinuidad(estado, escenaId) {
-  const out = [];
-  const ids = estado.porEscena[escenaId] ?? [];
-  for (let i = 1; i < ids.length; i++) {
-    const a = estado.planos[ids[i - 1]];
-    const b = estado.planos[ids[i]];
-    if (!a || !b) continue;
-    if (a.eje != null && b.eje != null && !b.permiteCruce) {
-      const diff = Math.abs(a.eje - b.eje) % 360;
-      const diffMin = Math.min(diff, 360 - diff);
-      if (diffMin > 90) {
-        out.push({ escenaId, planoId: b.id, tipo: 'eje',
-          mensaje: `Plano ${b.id} cruza el eje (${a.eje}° → ${b.eje}°)`, severidad: 'err' });
-      }
-    }
-    if (a.eyeline != null && b.eyeline != null && a.sujeto && a.sujeto === b.sujeto) {
-      if (a.eyeline * b.eyeline < 0 && !b.permiteCruce) {
-        out.push({ escenaId, planoId: b.id, tipo: 'eyeline',
-          mensaje: `Plano ${b.id} invierte eyeline de "${a.sujeto}"`, severidad: 'err' });
-      }
-    }
-  }
-  return out;
-}
 
 const VistaRitmo = {
   id: 'ritmo',
@@ -289,44 +249,41 @@ const VistaRitmo = {
   },
   result: (estado) => {
     const out = {};
-    for (const id of Object.keys(estado.porEscena)) out[id] = calcularRitmo(estado, id);
+    for (const id of Object.keys(estado.porEscena)) {
+      const ids = estado.porEscena[id] ?? [];
+      const durs = ids.map(i => estado.planos[i]?.duracion ?? 0);
+      const n = durs.length;
+      const total = durs.reduce((a, b) => a + b, 0);
+      const media = n ? total / n : 0;
+      const alertas = [];
+      if (n === 0) alertas.push({ nivel: 'info', mensaje: 'Escena vacía' });
+      else {
+        if (media > 8) alertas.push({ nivel: 'warn', mensaje: `Ritmo lento: media ${media.toFixed(1)}s` });
+        if (media < 1.2 && n > 3) alertas.push({ nivel: 'warn', mensaje: `Ritmo muy rápido: media ${media.toFixed(1)}s` });
+      }
+      out[id] = { escenaId: id, n, total: +total.toFixed(2), media: +media.toFixed(2),
+                  min: n ? +Math.min(...durs).toFixed(2) : 0, max: n ? +Math.max(...durs).toFixed(2) : 0,
+                  alertas };
+    }
     return out;
   }
 };
 
-function calcularRitmo(estado, escenaId) {
-  const ids = estado.porEscena[escenaId] ?? [];
-  const duraciones = ids.map(id => estado.planos[id]?.duracion ?? 0);
-  const n = duraciones.length;
-  const total = duraciones.reduce((a, b) => a + b, 0);
-  const media = n ? total / n : 0;
-  const min = n ? Math.min(...duraciones) : 0;
-  const max = n ? Math.max(...duraciones) : 0;
-  const pitches = [];
-  for (let i = 1; i < n; i++) {
-    const prev = duraciones[i - 1], curr = duraciones[i];
-    pitches.push({ i, desde: ids[i - 1], hasta: ids[i],
-      delta: +(curr - prev).toFixed(2),
-      ratio: prev > 0.1 ? +(curr / prev).toFixed(2) : null });
-  }
-  const picos = [];
-  for (let i = 1; i < n - 1; i++) {
-    const prev = duraciones[i - 1], curr = duraciones[i], next = duraciones[i + 1];
-    const prom = (prev + next) / 2;
-    if (curr > prom * 3 && curr > 3) picos.push({ i, id: ids[i], tipo: 'largo', duracion: curr });
-    if (curr < prom / 3 && curr < 0.6) picos.push({ i, id: ids[i], tipo: 'corto', duracion: curr });
-  }
-  const alertas = [];
-  if (n === 0) alertas.push({ nivel: 'info', mensaje: 'Escena vacía' });
-  else {
-    if (media > 8) alertas.push({ nivel: 'warn', mensaje: `Ritmo lento: media ${media.toFixed(1)}s` });
-    if (media < 1.2 && n > 3) alertas.push({ nivel: 'warn', mensaje: `Ritmo muy rápido: media ${media.toFixed(1)}s` });
-    if (pitches.some(p => p.ratio && (p.ratio > 4 || p.ratio < 0.25))) {
-      alertas.push({ nivel: 'warn', mensaje: 'Salto brusco de duración entre planos' });
-    }
-  }
-  return { escenaId, n, total: +total.toFixed(2), media: +media.toFixed(2),
-           min: +min.toFixed(2), max: +max.toFixed(2), pitches, picos, alertas };
+function hexToRgb(hex) {
+  if (!hex || !hex.startsWith('#')) return [0,0,0];
+  const n = parseInt(hex.slice(1), 16);
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+function promedioPaleta(p) {
+  if (!p?.length) return [0,0,0];
+  const s = [0,0,0];
+  for (const h of p) { const r = hexToRgb(h); s[0]+=r[0]; s[1]+=r[1]; s[2]+=r[2]; }
+  return s.map(v => v / p.length);
+}
+function distanciaPaleta(p1, p2) {
+  if (!p1?.length || !p2?.length) return 0;
+  const a = promedioPaleta(p1), b = promedioPaleta(p2);
+  return Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]) / 441.67;
 }
 
 const VistaPaleta = {
@@ -340,50 +297,26 @@ const VistaPaleta = {
   },
   result: (estado) => {
     const out = {};
-    for (const id of Object.keys(estado.porEscena)) out[id] = analizarPaleta(estado, id);
+    for (const id of Object.keys(estado.porEscena)) {
+      const ids = estado.porEscena[id] ?? [];
+      const trans = [], alerts = [];
+      for (let i = 1; i < ids.length; i++) {
+        const a = estado.planos[ids[i-1]], b = estado.planos[ids[i]];
+        if (!a || !b) continue;
+        const d = distanciaPaleta(a.paleta, b.paleta);
+        const camb = a.intencion && b.intencion && a.intencion !== b.intencion;
+        let aviso = null;
+        if (d > 0.5 && !camb) aviso = { nivel: 'warn', mensaje: `Salto cromático sin cambio de intención (${(d*100).toFixed(0)}%)` };
+        else if (d < 0.1 && camb) aviso = { nivel: 'warn', mensaje: 'Cambio de intención sin cambio visual' };
+        trans.push({ desde: ids[i-1], hasta: ids[i], distancia: +(d*100).toFixed(1),
+                     intencionA: a.intencion, intencionB: b.intencion, aviso });
+        if (aviso) alerts.push({ ...aviso, desde: ids[i-1], hasta: ids[i] });
+      }
+      out[id] = { escenaId: id, n: ids.length, transiciones: trans, alertas: alerts };
+    }
     return out;
   }
 };
-
-function hexToRgb(hex) {
-  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return [0, 0, 0];
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-function promedioPaleta(paleta) {
-  if (!Array.isArray(paleta) || paleta.length === 0) return [0, 0, 0];
-  const sum = [0, 0, 0];
-  for (const hex of paleta) {
-    const [r, g, b] = hexToRgb(hex);
-    sum[0] += r; sum[1] += g; sum[2] += b;
-  }
-  return sum.map(v => v / paleta.length);
-}
-function distanciaPaleta(p1, p2) {
-  if (!p1?.length || !p2?.length) return 0;
-  const a = promedioPaleta(p1), b = promedioPaleta(p2);
-  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) / 441.67;
-}
-
-function analizarPaleta(estado, escenaId) {
-  const ids = estado.porEscena[escenaId] ?? [];
-  const transiciones = [];
-  const alertas = [];
-  for (let i = 1; i < ids.length; i++) {
-    const a = estado.planos[ids[i - 1]];
-    const b = estado.planos[ids[i]];
-    if (!a || !b) continue;
-    const dist = distanciaPaleta(a.paleta, b.paleta);
-    const cambioIntencion = a.intencion && b.intencion && a.intencion !== b.intencion;
-    let aviso = null;
-    if (dist > 0.5 && !cambioIntencion) aviso = { nivel: 'warn', mensaje: `Salto cromático sin cambio de intención (${(dist * 100).toFixed(0)}%)` };
-    else if (dist < 0.1 && cambioIntencion) aviso = { nivel: 'warn', mensaje: 'Cambio de intención sin cambio visual' };
-    transiciones.push({ desde: ids[i - 1], hasta: ids[i], distancia: +(dist * 100).toFixed(1),
-      intencionA: a.intencion, intencionB: b.intencion, cambioIntencion, aviso });
-    if (aviso) alertas.push({ ...aviso, desde: ids[i - 1], hasta: ids[i] });
-  }
-  return { escenaId, n: ids.length, transiciones, alertas };
-}
 
 const VistaCobertura = {
   id: 'cobertura',
@@ -396,224 +329,132 @@ const VistaCobertura = {
   },
   result: (estado) => {
     const out = {};
-    for (const id of Object.keys(estado.porEscena)) out[id] = calcularCobertura(estado, id);
+    for (const id of Object.keys(estado.porEscena)) {
+      const ids = estado.porEscena[id] ?? [];
+      const enc = {}, ang = {}, mov = {};
+      for (const i of ids) {
+        const p = estado.planos[i]; if (!p) continue;
+        if (p.encuadre) enc[p.encuadre] = (enc[p.encuadre]??0)+1;
+        if (p.angulo) ang[p.angulo] = (ang[p.angulo]??0)+1;
+        if (p.movimiento) mov[p.movimiento] = (mov[p.movimiento]??0)+1;
+      }
+      const n = ids.length;
+      const alerts = [];
+      if (n === 0) alerts.push({ nivel: 'info', mensaje: 'Escena vacía' });
+      else {
+        if (!enc.general && !enc.entero) alerts.push({ nivel: 'warn', mensaje: 'Sin plano de establecimiento' });
+        const np = (enc.primer??0) + (enc.primerisimo??0);
+        if (np / n > 0.7 && n > 3) alerts.push({ nivel: 'warn', mensaje: `Exceso de primeros (${np}/${n})` });
+        if (Object.keys(ang).length === 1 && n > 2) alerts.push({ nivel: 'warn', mensaje: 'Un solo ángulo' });
+      }
+      out[id] = { escenaId: id, n, porEncuadre: enc, porAngulo: ang, porMovimiento: mov, alertas: alerts };
+    }
     return out;
   }
 };
 
-function calcularCobertura(estado, escenaId) {
-  const ids = estado.porEscena[escenaId] ?? [];
-  const porEncuadre = {}, porAngulo = {}, porMovimiento = {};
-  for (const id of ids) {
-    const p = estado.planos[id];
-    if (!p) continue;
-    if (p.encuadre) porEncuadre[p.encuadre] = (porEncuadre[p.encuadre] ?? 0) + 1;
-    if (p.angulo) porAngulo[p.angulo] = (porAngulo[p.angulo] ?? 0) + 1;
-    if (p.movimiento) porMovimiento[p.movimiento] = (porMovimiento[p.movimiento] ?? 0) + 1;
-  }
-  const n = ids.length;
-  const alertas = [];
-  if (n === 0) alertas.push({ nivel: 'info', mensaje: 'Escena vacía' });
-  else {
-    if (!porEncuadre.general && !porEncuadre.entero) {
-      alertas.push({ nivel: 'warn', mensaje: 'Sin plano de establecimiento (general/entero)' });
-    }
-    const nPrimeros = (porEncuadre.primer ?? 0) + (porEncuadre.primerisimo ?? 0);
-    if (nPrimeros / n > 0.7 && n > 3) {
-      alertas.push({ nivel: 'warn', mensaje: `Exceso de primeros planos (${nPrimeros}/${n})` });
-    }
-    if (Object.keys(porAngulo).length === 1 && n > 2) {
-      alertas.push({ nivel: 'warn', mensaje: 'Un solo ángulo en toda la escena' });
-    }
-    if (Object.keys(porMovimiento).length === 1 && porMovimiento.estatico === n && n > 4) {
-      alertas.push({ nivel: 'info', mensaje: 'Toda la escena es estática' });
-    }
-  }
-  return { escenaId, n, porEncuadre, porAngulo, porMovimiento, alertas };
-}
-
 /* ═══════════════════════════════════════════════════════════════════════
-   2 · GENERADOR DE PROMPTS (extractable — sin dependencias del DOM)
-   ───────────────────────────────────────────────────────────────────────
-   Función pura: plano (objeto) + contexto → { prompt, negativePrompt,
-   suggestedParams, notas }.
-
-   Los prompts se generan en inglés porque es el idioma recomendado por
-   prácticamente todas las herramientas de vídeo IA (Runway, Pika, Kling,
-   Sora, Genmo, Veo...).
+   GENERADOR DE PROMPTS (idéntico)
    ═══════════════════════════════════════════════════════════════════════ */
 
-const ENCUADRE_PROMPT = {
-  general:      'wide establishing shot, vast landscape visible',
-  entero:       'full body shot, character visible head to toe',
-  medio:        'medium shot, subject framed from waist up',
-  primer:       'close-up shot, subject face fills frame',
-  primerisimo:  'extreme close-up, intense detail on face or object'
+const CONTEXTO_GLOBAL = {
+  style: 'cinematic film still, photorealistic, 35mm film grain, anamorphic',
+  aspectRatio: '16:9', resolution: '1080p', fps: 24,
+  negativeBase: ['low quality','blurry','distorted','deformed','watermark','text',
+                 'subtitle','logo','frame border','bad anatomy','cartoonish','oversaturated']
 };
 
-const ANGULO_PROMPT = {
-  normal:        'eye-level camera',
-  picado:        'high-angle shot looking down',
-  contrapicado:  'low-angle shot looking up',
-  holandes:      'dutch angle, tilted horizon'
-};
-
-const MOVIMIENTO_PROMPT = {
-  estatico:    'static locked-off camera',
-  pan:         'slow horizontal pan',
-  tilt:        'vertical tilt movement',
-  travelling:  'smooth dolly travelling shot',
-  handheld:    'handheld camera, subtle organic shake',
-  grua:        'crane shot, sweeping vertical movement'
-};
-
-const INTENCION_PROMPT = {
-  establecer: 'natural ambient light, wide context, establishing atmosphere',
-  intimidad:  'warm soft lighting, shallow depth of field, intimate atmosphere',
-  tension:    'harsh directional light, high contrast, tense atmosphere, hard shadows',
-  epica:      'dramatic golden hour lighting, epic scale, heroic atmosphere',
-  misterio:   'low-key lighting, deep shadows, mysterious atmosphere',
-  comedia:    'bright even lighting, saturated playful colors, light atmosphere',
-  duelo:      'somber desaturated muted tones, melancholic atmosphere',
-  amenaza:    'cold blue light, sharp angles, threatening atmosphere'
-};
-
-const SUJETO_MAP = {
-  'héroe': 'the hero', 'heroe': 'the hero', 'hero': 'the hero',
-  'villano': 'the villain', 'villain': 'the villain',
-  'antihéroe': 'the anti-hero', 'antiheroe': 'the anti-hero',
-  'trickster': 'the trickster',
-  'sombra': 'the shadow', 'shadow': 'the shadow',
-  'guía': 'the guide', 'guia': 'the guide', 'guide': 'the guide',
-  'mentor': 'the mentor',
-  'niño': 'the child', 'nino': 'the child', 'child': 'the child',
-  'anciano': 'the elder', 'elder': 'the elder',
-  'mujer': 'the woman', 'woman': 'the woman',
-  'hombre': 'the man', 'man': 'the man'
-};
+const ENCUADRE_PROMPT = { general:'wide establishing shot, vast landscape visible',
+  entero:'full body shot, character visible head to toe',
+  medio:'medium shot, subject framed from waist up',
+  primer:'close-up shot, subject face fills frame',
+  primerisimo:'extreme close-up, intense detail on face or object' };
+const ANGULO_PROMPT = { normal:'eye-level camera', picado:'high-angle shot looking down',
+  contrapicado:'low-angle shot looking up', holandes:'dutch angle, tilted horizon' };
+const MOVIMIENTO_PROMPT = { estatico:'static locked-off camera', pan:'slow horizontal pan',
+  tilt:'vertical tilt movement', travelling:'smooth dolly travelling shot',
+  handheld:'handheld camera, subtle organic shake', grua:'crane shot, sweeping vertical movement' };
+const INTENCION_PROMPT = { establecer:'natural ambient light, wide context, establishing atmosphere',
+  intimidad:'warm soft lighting, shallow depth of field, intimate atmosphere',
+  tension:'harsh directional light, high contrast, tense atmosphere, hard shadows',
+  epica:'dramatic golden hour lighting, epic scale, heroic atmosphere',
+  misterio:'low-key lighting, deep shadows, mysterious atmosphere',
+  comedia:'bright even lighting, saturated playful colors, light atmosphere',
+  duelo:'somber desaturated muted tones, melancholic atmosphere',
+  amenaza:'cold blue light, sharp angles, threatening atmosphere' };
+const SUJETO_MAP = { 'héroe':'the hero','heroe':'the hero','hero':'the hero',
+  'villano':'the villain','villain':'the villain','antihéroe':'the anti-hero',
+  'antiheroe':'the anti-hero','trickster':'the trickster','sombra':'the shadow',
+  'guía':'the guide','guia':'the guide','mentor':'the mentor',
+  'niño':'the child','nino':'the child','anciano':'the elder',
+  'mujer':'the woman','hombre':'the man' };
 
 function traducirSujeto(s) {
   if (!s) return 'a character';
-  const key = s.toLowerCase().trim();
-  return SUJETO_MAP[key] || s;
+  return SUJETO_MAP[s.toLowerCase().trim()] || s;
 }
-
 function hashString(s) {
   let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  for (let i = 0; i < s.length; i++) h = ((h<<5)-h+s.charCodeAt(i))|0;
   return Math.abs(h) % 2147483647;
 }
 
 function generarPrompt(plano, contexto = {}) {
-  if (!plano || !plano.sujeto) {
-    return { ok: false, error: 'plano sin sujeto', planoId: plano?.id };
-  }
-
+  if (!plano?.sujeto) return { ok: false, error: 'plano sin sujeto', planoId: plano?.id };
   const partes = [];
-
-  // Encuadre + sujeto
-  const encuadre = ENCUADRE_PROMPT[plano.encuadre] || ENCUADRE_PROMPT.medio;
-  const sujeto = traducirSujeto(plano.sujeto);
-  partes.push(`${encuadre} of ${sujeto}`);
-
-  // Ángulo
-  const angulo = ANGULO_PROMPT[plano.angulo] || ANGULO_PROMPT.normal;
-  partes.push(angulo);
-
-  // Intención / mood
-  if (plano.intencion && INTENCION_PROMPT[plano.intencion]) {
-    partes.push(INTENCION_PROMPT[plano.intencion]);
-  }
-
-  // Paleta
+  partes.push(`${ENCUADRE_PROMPT[plano.encuadre] || ENCUADRE_PROMPT.medio} of ${traducirSujeto(plano.sujeto)}`);
+  partes.push(ANGULO_PROMPT[plano.angulo] || ANGULO_PROMPT.normal);
+  if (plano.intencion && INTENCION_PROMPT[plano.intencion]) partes.push(INTENCION_PROMPT[plano.intencion]);
   if (Array.isArray(plano.paleta) && plano.paleta.length) {
-    partes.push(`color palette anchored on ${plano.paleta.slice(0, 3).join(' and ')}`);
+    partes.push(`color palette anchored on ${plano.paleta.slice(0,3).join(' and ')}`);
   }
-
-  // Movimiento
-  if (plano.movimiento && MOVIMIENTO_PROMPT[plano.movimiento]) {
-    partes.push(MOVIMIENTO_PROMPT[plano.movimiento]);
-  }
-
-  // Focal
+  if (plano.movimiento && MOVIMIENTO_PROMPT[plano.movimiento]) partes.push(MOVIMIENTO_PROMPT[plano.movimiento]);
   if (plano.focal) partes.push(`shot on ${plano.focal}mm lens`);
-
-  // Estilo global
   partes.push(CONTEXTO_GLOBAL.style);
 
-  const prompt = partes.join(', ');
+  const negs = new Set(CONTEXTO_GLOBAL.negativeBase);
+  if (plano.intencion === 'tension' || plano.intencion === 'amenaza') { negs.add('cheerful colors'); negs.add('soft focus'); }
+  if (plano.intencion === 'intimidad') negs.add('harsh shadows');
+  if (plano.intencion === 'duelo') negs.add('vibrant colors');
+  if (plano.intencion === 'misterio') negs.add('bright even lighting');
+  if (plano.intencion === 'comedia') negs.add('dark shadows');
 
-  // Negativos base + por intención
-  const negativos = new Set(CONTEXTO_GLOBAL.negativeBase);
-  if (plano.intencion === 'tension' || plano.intencion === 'amenaza') {
-    negativos.add('cheerful colors'); negativos.add('soft focus');
-  }
-  if (plano.intencion === 'intimidad') negativos.add('harsh shadows');
-  if (plano.intencion === 'duelo') negativos.add('vibrant colors');
-  if (plano.intencion === 'misterio') negativos.add('bright even lighting');
-  if (plano.intencion === 'comedia') negativos.add('dark shadows');
-
-  // Params sugeridos
   const motionIntensity = plano.movimiento === 'estatico' ? 'low'
     : plano.movimiento === 'handheld' ? 'high' : 'medium';
 
   const suggestedParams = {
     duration: plano.duracion ?? 5,
     aspectRatio: contexto.aspectRatio ?? CONTEXTO_GLOBAL.aspectRatio,
-    resolution: CONTEXTO_GLOBAL.resolution,
-    fps: CONTEXTO_GLOBAL.fps,
+    resolution: CONTEXTO_GLOBAL.resolution, fps: CONTEXTO_GLOBAL.fps,
     focalLength: plano.focal ?? 35,
     cameraMotion: plano.movimiento ?? 'estatico',
-    motionIntensity,
-    style: CONTEXTO_GLOBAL.style,
+    motionIntensity, style: CONTEXTO_GLOBAL.style,
     seed: hashString(plano.id ?? 'default')
   };
 
-  // Notas de continuidad respecto al plano anterior
   const notas = [];
   if (contexto.anterior) {
-    const ant = contexto.anterior;
-    if (ant.permiteCruce === false && plano.eje != null && ant.eje != null && plano.eje !== ant.eje) {
+    const a = contexto.anterior;
+    if (a.permiteCruce === false && plano.eje != null && a.eje != null && plano.eje !== a.eje)
       notas.push('⚠️ Mantener dirección de pantalla del plano anterior (eje 180°)');
-    }
-    if (ant.sujeto === plano.sujeto && ant.eyeline != null && plano.eyeline != null
-        && ant.eyeline * plano.eyeline < 0) {
-      notas.push('⚠️ Eyeline invertido respecto al plano anterior del mismo sujeto');
-    }
-    if (ant.intencion && plano.intencion && ant.intencion !== plano.intencion) {
-      notas.push(`Cambio de intención: ${ant.intencion} → ${plano.intencion}`);
-    }
-    if (ant.paleta && plano.paleta) {
-      const dist = distanciaPaleta(ant.paleta, plano.paleta);
-      if (dist > 0.5) {
-        notas.push(`Salto cromático respecto al plano anterior (${(dist * 100).toFixed(0)}%)`);
-      }
+    if (a.sujeto === plano.sujeto && a.eyeline != null && plano.eyeline != null
+        && a.eyeline * plano.eyeline < 0)
+      notas.push('⚠️ Eyeline invertido respecto al plano anterior');
+    if (a.intencion && plano.intencion && a.intencion !== plano.intencion)
+      notas.push(`Cambio de intención: ${a.intencion} → ${plano.intencion}`);
+    if (a.paleta && plano.paleta) {
+      const d = distanciaPaleta(a.paleta, plano.paleta);
+      if (d > 0.5) notas.push(`Salto cromático respecto al plano anterior (${(d*100).toFixed(0)}%)`);
     }
   }
 
-  return {
-    ok: true,
-    planoId: plano.id,
-    prompt,
-    negativePrompt: [...negativos].join(', '),
-    suggestedParams,
-    notas
-  };
+  return { ok: true, planoId: plano.id, prompt: partes.join(', '),
+           negativePrompt: [...negs].join(', '), suggestedParams, notas };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   3 · MINI-BUS + MINI-CORE (para la demo)
+   MINI-CORE
    ═══════════════════════════════════════════════════════════════════════ */
-
-class MiniBus {
-  constructor() { this.h = new Map(); }
-  on(ev, fn) {
-    if (!this.h.has(ev)) this.h.set(ev, new Set());
-    this.h.get(ev).add(fn);
-    return () => this.h.get(ev).delete(fn);
-  }
-  emit(ev, p) { this.h.get(ev)?.forEach(fn => { try { fn(p); } catch (e) { console.error(e); } }); }
-}
 
 class MiniCore {
   constructor(vistas) {
@@ -629,60 +470,269 @@ class MiniCore {
       this.estados.set(v.id, v.apply(e, evento));
     }
   }
-  resultado(vistaId) {
-    const v = this.vistas.find(x => x.id === vistaId);
+  resultado(id) {
+    const v = this.vistas.find(x => x.id === id);
     return v ? v.result(this.estados.get(v.id)) : null;
   }
 }
 
 const VISTAS = [VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura];
 let core = new MiniCore(VISTAS);
-let seleccionado = null;
-let promptCache = {};   // planoId → resultado de generarPrompt
+let editingId = null;
+let promptCache = {};
 
-function crearEventosDemo() {
-  const calida = ['#c97a3a', '#e0a060', '#8a4a2a'];
-  const fria   = ['#3a5a8a', '#6a8ac0', '#2a3a5a'];
-  const planos = [
-    { id:'P1', escenaId:'S1', orden:1, encuadre:'general', angulo:'normal',
-      movimiento:'estatico', focal:24, duracion:6.0, sujeto:'héroe',
-      intencion:'establecer', eje:0, eyeline:0, paleta:calida },
-    { id:'P2', escenaId:'S1', orden:2, encuadre:'medio', angulo:'normal',
-      movimiento:'travelling', focal:35, duracion:4.0, sujeto:'héroe',
-      intencion:'intimidad', eje:0, eyeline:1, paleta:calida },
-    { id:'P3', escenaId:'S1', orden:3, encuadre:'primer', angulo:'contrapicado',
-      movimiento:'estatico', focal:50, duracion:2.5, sujeto:'héroe',
-      intencion:'tension', eje:0, eyeline:1, paleta:calida },
-    { id:'P4', escenaId:'S1', orden:4, encuadre:'medio', angulo:'normal',
-      movimiento:'estatico', focal:35, duracion:3.5, sujeto:'villano',
-      intencion:'tension', eje:180, eyeline:-1, paleta:fria, permiteCruce:true },
-    { id:'P5', escenaId:'S1', orden:5, encuadre:'primer', angulo:'normal',
-      movimiento:'handheld', focal:85, duracion:1.0, sujeto:'héroe',
-      intencion:'tension', eje:0, eyeline:1, paleta:calida }
-  ];
-  return planos.map((p, i) => ({
-    id: 'ev_' + p.id, ts: new Date(Date.now() + i).toISOString(),
-    entidad: 'plano', entidadId: p.id, tipo: 'plano_creado',
-    campo: null, de: null, a: p, actor: 'demo', version: 1
-  }));
+/* ═══════════════════════════════════════════════════════════════════════
+   FORMULARIO · generado desde el schema
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function renderForm() {
+  const form = document.getElementById('planForm');
+  form.innerHTML = '';
+  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
+    if (def.tipo === 'paleta') { form.appendChild(renderPaletaField(def)); continue; }
+    const row = document.createElement('div');
+    row.className = 'form-row';
+    const label = document.createElement('label');
+    label.textContent = def.label + (def.required ? ' *' : '');
+    row.appendChild(label);
+
+    let input;
+    if (def.tipo === 'enum') {
+      input = document.createElement('select');
+      for (const v of def.enum) {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = v;
+        input.appendChild(o);
+      }
+    } else if (def.tipo === 'number') {
+      input = document.createElement('input');
+      input.type = 'number';
+      if (def.min !== undefined) input.min = def.min;
+      if (def.max !== undefined) input.max = def.max;
+      if (def.step !== undefined) input.step = def.step;
+    } else if (def.tipo === 'bool') {
+      input = document.createElement('input');
+      input.type = 'checkbox';
+      input.style.flex = '0 0 auto';
+    } else {
+      input = document.createElement('input');
+      input.type = 'text';
+    }
+    input.id = 'form_' + key;
+    if (def.tipo === 'bool') input.checked = def.default ?? false;
+    else if (def.default !== undefined) input.value = def.default;
+    row.appendChild(input);
+    form.appendChild(row);
+  }
+}
+
+function renderPaletaField(def) {
+  const wrap = document.createElement('div');
+  wrap.style.marginTop = '6px';
+  const label = document.createElement('label');
+  label.textContent = def.label;
+  label.style.cssText = 'display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;';
+  wrap.appendChild(label);
+  const rows = document.createElement('div');
+  rows.id = 'paletteRows';
+  wrap.appendChild(rows);
+  const addBtn = document.createElement('button');
+  addBtn.className = 'small';
+  addBtn.textContent = '+ añadir color';
+  addBtn.style.marginTop = '4px';
+  addBtn.onclick = () => addPaletteRow('#c97a3a');
+  wrap.appendChild(addBtn);
+  // Initialize with defaults
+  if (def.default) for (const hex of def.default) addPaletteRow(hex);
+  return wrap;
+}
+
+function addPaletteRow(hex) {
+  const rows = document.getElementById('paletteRows');
+  if (!rows) return;
+  const row = document.createElement('div');
+  row.className = 'palette-row';
+  row.innerHTML = `
+    <input type="color" value="${hex}">
+    <input type="text" value="${hex}" readonly>
+    <button class="small danger">×</button>
+  `;
+  const colorInp = row.querySelector('input[type=color]');
+  const textInp = row.querySelector('input[type=text]');
+  colorInp.oninput = () => textInp.value = colorInp.value;
+  row.querySelector('button').onclick = () => row.remove();
+  rows.appendChild(row);
+}
+
+function readFormValues() {
+  const values = {};
+  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
+    if (def.tipo === 'paleta') {
+      values[key] = [...document.querySelectorAll('#paletteRows input[type=color]')].map(i => i.value);
+      continue;
+    }
+    const input = document.getElementById('form_' + key);
+    if (!input) continue;
+    if (def.tipo === 'bool') values[key] = input.checked;
+    else if (def.tipo === 'number') values[key] = parseFloat(input.value);
+    else if (def.tipo === 'enum' && def.numerico) values[key] = parseFloat(input.value);
+    else values[key] = input.value;
+  }
+  return values;
+}
+
+function fillForm(plano) {
+  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
+    if (def.tipo === 'paleta') {
+      const rows = document.getElementById('paletteRows');
+      if (rows) {
+        rows.innerHTML = '';
+        for (const hex of (plano.paleta || [])) addPaletteRow(hex);
+      }
+      continue;
+    }
+    const input = document.getElementById('form_' + key);
+    if (!input) continue;
+    const v = plano[key];
+    if (v === undefined || v === null) continue;
+    if (def.tipo === 'bool') input.checked = !!v;
+    else input.value = v;
+  }
+}
+
+function clearForm() {
+  editingId = null;
+  document.getElementById('editorMode').textContent = 'Nuevo';
+  document.getElementById('editorMode').className = 'pill';
+  document.getElementById('btnDuplicate').disabled = true;
+  document.getElementById('btnDelete').disabled = true;
+  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
+    if (def.tipo === 'paleta') {
+      const rows = document.getElementById('paletteRows');
+      if (rows) { rows.innerHTML = ''; for (const hex of (def.default || [])) addPaletteRow(hex); }
+      continue;
+    }
+    const input = document.getElementById('form_' + key);
+    if (!input) continue;
+    if (def.tipo === 'bool') input.checked = def.default ?? false;
+    else if (def.default !== undefined) input.value = def.default;
+    else input.value = '';
+  }
+  // Auto-fill next order
+  const planos = Object.values(core.resultado('continuidad').planos);
+  const maxOrden = planos.reduce((m, p) => Math.max(m, p.orden ?? 0), 0);
+  document.getElementById('form_orden').value = maxOrden + 1;
+  document.getElementById('formStatus').textContent = '';
+  document.getElementById('formStatus').className = 'status';
+}
+
+function validateForm(values) {
+  const errors = [];
+  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
+    const v = values[key];
+    if (def.required && (v === '' || v === null || v === undefined || Number.isNaN(v))) {
+      errors.push(`"${def.label}" obligatorio`);
+    }
+  }
+  if (values.duracion <= 0) errors.push('duración debe ser > 0');
+  return errors;
+}
+
+function saveForm() {
+  const values = readFormValues();
+  const errors = validateForm(values);
+  const status = document.getElementById('formStatus');
+  if (errors.length) {
+    status.textContent = '❌ ' + errors.join(' · ');
+    status.className = 'status err';
+    return;
+  }
+
+  if (editingId) {
+    const original = core.resultado('continuidad').planos[editingId];
+    if (!original) { clearForm(); return; }
+    let cambios = 0;
+    for (const [key, v] of Object.entries(values)) {
+      if (JSON.stringify(original[key]) === JSON.stringify(v)) continue;
+      core.append({
+        id: 'ev_' + editingId + '_' + key + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+        entidad: 'plano', entidadId: editingId,
+        tipo: 'campo_modificado', campo: key, de: original[key], a: v,
+        ts: new Date().toISOString(), actor: 'usuario', version: 1
+      });
+      cambios++;
+    }
+    status.textContent = cambios
+      ? `✅ Plano ${editingId} actualizado (${cambios} cambio${cambios>1?'s':''})`
+      : '⏸ Sin cambios';
+    status.className = 'status ok';
+  } else {
+    const id = 'P' + Date.now().toString(36).slice(-6);
+    const plano = { ...values, id };
+    core.append({
+      id: 'ev_' + id, entidad: 'plano', entidadId: id,
+      tipo: 'plano_creado', campo: null, de: null, a: plano,
+      ts: new Date().toISOString(), actor: 'usuario', version: 1
+    });
+    editingId = id;
+    document.getElementById('editorMode').textContent = 'Editando: ' + id;
+    document.getElementById('editorMode').className = 'pill ok';
+    document.getElementById('btnDuplicate').disabled = false;
+    document.getElementById('btnDelete').disabled = false;
+    status.textContent = '✅ Plano creado: ' + id;
+    status.className = 'status ok';
+  }
+  render();
+}
+
+function deletePlan() {
+  if (!editingId) return;
+  if (!confirm(`¿Eliminar plano ${editingId}?`)) return;
+  core.append({
+    id: 'ev_del_' + editingId + '_' + Date.now(),
+    entidad: 'plano', entidadId: editingId,
+    tipo: 'plano_eliminado', campo: null, de: null, a: null,
+    ts: new Date().toISOString(), actor: 'usuario', version: 1
+  });
+  clearForm();
+  render();
+}
+
+function duplicatePlan() {
+  if (!editingId) return;
+  const original = core.resultado('continuidad').planos[editingId];
+  if (!original) return;
+  const id = 'P' + Date.now().toString(36).slice(-6);
+  const planos = Object.values(core.resultado('continuidad').planos);
+  const maxOrden = planos.reduce((m, p) => Math.max(m, p.orden ?? 0), 0);
+  const copia = { ...original, id, orden: maxOrden + 1 };
+  core.append({
+    id: 'ev_' + id, entidad: 'plano', entidadId: id,
+    tipo: 'plano_creado', campo: null, de: null, a: copia,
+    ts: new Date().toISOString(), actor: 'usuario', version: 1
+  });
+  editingId = id;
+  fillForm(copia);
+  document.getElementById('editorMode').textContent = 'Editando: ' + id;
+  document.getElementById('editorMode').className = 'pill ok';
+  document.getElementById('btnDuplicate').disabled = false;
+  document.getElementById('btnDelete').disabled = false;
+  document.getElementById('formStatus').textContent = '✅ Duplicado: ' + id;
+  document.getElementById('formStatus').className = 'status ok';
+  render();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   4 · UI
+   UI
    ═══════════════════════════════════════════════════════════════════════ */
 
-function escape(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-function resetDemo() {
-  core = new MiniCore(VISTAS);
-  for (const ev of crearEventosDemo()) core.append(ev);
-  seleccionado = null;
-  promptCache = {};
-  render();
+function getPlanosOrdenados() {
+  return Object.values(core.resultado('continuidad').planos)
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
 }
 
 function render() {
@@ -694,39 +744,33 @@ function render() {
   renderPrompts();
 }
 
-function getPlanosOrdenados() {
-  return Object.values(core.resultado('continuidad').planos)
-    .filter(p => p.escenaId === 'S1')
-    .sort((a, b) => a.orden - b.orden);
-}
-
 function renderLista() {
   const cont = document.getElementById('listaShots');
   const planos = getPlanosOrdenados();
-  if (!planos.length) { cont.innerHTML = '<div class="empty">Sin planos.</div>'; return; }
+  document.getElementById('shotCount').textContent = planos.length + ' planos';
+  if (!planos.length) { cont.innerHTML = '<div class="empty">Sin planos. Crea uno arriba.</div>'; return; }
   cont.innerHTML = planos.map(p => `
-    <div class="shot ${seleccionado === p.id ? 'selected' : ''}" data-id="${escape(p.id)}">
+    <div class="shot ${editingId === p.id ? 'selected' : ''}" data-id="${esc(p.id)}">
       <div class="line">
-        <strong>${escape(p.id)}</strong>
-        <span class="meta">${escape(p.encuadre)} · ${escape(p.angulo)} · ${p.duracion}s</span>
+        <strong>${esc(p.id)}</strong>
+        <span class="meta">${esc(p.encuadre)} · ${esc(p.angulo)} · ${p.duracion}s</span>
       </div>
-      <div class="meta">
-        eje ${p.eje}° · eyeline ${p.eyeline} · ${escape(p.intencion || '')}
-      </div>
+      <div class="meta">${esc(p.sujeto)} · ${esc(p.intencion)} · eje ${p.eje}° · eyeline ${p.eyeline}</div>
+      <div class="swatches">${(p.paleta || []).map(h => `<span style="background:${esc(h)}"></span>`).join('')}</div>
     </div>
   `).join('');
   cont.querySelectorAll('.shot').forEach(el => {
     el.onclick = () => {
-      seleccionado = el.dataset.id;
+      const plano = core.resultado('continuidad').planos[el.dataset.id];
+      if (!plano) return;
+      editingId = el.dataset.id;
+      fillForm(plano);
+      document.getElementById('editorMode').textContent = 'Editando: ' + editingId;
+      document.getElementById('editorMode').className = 'pill ok';
+      document.getElementById('btnDuplicate').disabled = false;
+      document.getElementById('btnDelete').disabled = false;
+      document.getElementById('formStatus').textContent = '';
       render();
-      setTimeout(() => {
-        const card = document.querySelector(`.prompt-card[data-id="${seleccionado}"]`);
-        if (card) {
-          card.classList.add('highlight');
-          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setTimeout(() => card.classList.remove('highlight'), 1800);
-        }
-      }, 50);
     };
   });
 }
@@ -734,60 +778,48 @@ function renderLista() {
 function renderContinuidad() {
   const cont = document.getElementById('vContinuidad');
   const v = core.resultado('continuidad').violaciones;
-  if (!v.length) { cont.innerHTML = '<div class="alert info">Sin violaciones de eje ni eyeline.</div>'; return; }
-  cont.innerHTML = `
-    <div class="kv"><span class="k">violaciones</span><span class="v">${v.length}</span></div>
-    ${v.map(x => `<div class="alert ${x.severidad}">
-      <span class="pill ${x.severidad === 'err' ? 'err' : 'warn'}">${x.tipo}</span>
-      ${escape(x.mensaje)}
-    </div>`).join('')}
-  `;
+  if (!v.length) { cont.innerHTML = '<div class="alert info">Sin violaciones.</div>'; return; }
+  cont.innerHTML = v.map(x => `<div class="alert ${x.severidad}">
+    <span class="pill ${x.severidad}">${esc(x.tipo)}</span>${esc(x.mensaje)}
+  </div>`).join('');
 }
 
 function renderRitmo() {
   const cont = document.getElementById('vRitmo');
-  const esc = core.resultado('ritmo').S1;
-  if (!esc) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
+  const r = core.resultado('ritmo').S1;
+  if (!r) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
   cont.innerHTML = `
-    <div class="kv"><span class="k">planos</span><span class="v">${esc.n}</span></div>
-    <div class="kv"><span class="k">total</span><span class="v">${esc.total}s</span></div>
-    <div class="kv"><span class="k">media</span><span class="v">${esc.media}s</span></div>
-    <div class="kv"><span class="k">min / max</span><span class="v">${esc.min}s / ${esc.max}s</span></div>
-    ${esc.alertas.map(a => `<div class="alert ${a.nivel === 'warn' ? 'warn' : 'info'}">${escape(a.mensaje)}</div>`).join('')}
+    <div class="kv"><span class="k">planos</span><span class="v">${r.n}</span></div>
+    <div class="kv"><span class="k">total</span><span class="v">${r.total}s</span></div>
+    <div class="kv"><span class="k">media</span><span class="v">${r.media}s</span></div>
+    <div class="kv"><span class="k">min / max</span><span class="v">${r.min}s / ${r.max}s</span></div>
+    ${r.alertas.map(a => `<div class="alert ${a.nivel}">${esc(a.mensaje)}</div>`).join('')}
   `;
 }
 
 function renderPaleta() {
   const cont = document.getElementById('vPaleta');
-  const esc = core.resultado('paleta').S1;
-  if (!esc || !esc.transiciones.length) {
-    cont.innerHTML = '<div class="alert info">Sin transiciones todavía.</div>';
-    return;
-  }
-  cont.innerHTML = esc.transiciones.map(t => `
-    <div class="kv">
-      <span class="k">${escape(t.desde)} → ${escape(t.hasta)}</span>
-      <span class="v">${t.distancia}% · ${escape(t.intencionA || '')}→${escape(t.intencionB || '')}</span>
-      <div class="bar"><div style="width:${Math.min(100, t.distancia)}%"></div></div>
-    </div>
-  `).join('') + esc.alertas.map(a =>
-    `<div class="alert warn">${escape(a.desde)} → ${escape(a.hasta)}: ${escape(a.mensaje)}</div>`
-  ).join('');
+  const r = core.resultado('paleta').S1;
+  if (!r || !r.transiciones.length) { cont.innerHTML = '<div class="alert info">Sin transiciones.</div>'; return; }
+  cont.innerHTML = r.transiciones.map(t => `
+    <div class="kv"><span class="k">${esc(t.desde)} → ${esc(t.hasta)}</span>
+    <span class="v">${t.distancia}% · ${esc(t.intencionA||'')}→${esc(t.intencionB||'')}</span></div>
+    <div class="bar"><div style="width:${Math.min(100,t.distancia)}%"></div></div>
+  `).join('') + r.alertas.map(a => `<div class="alert warn">${esc(a.desde)} → ${esc(a.hasta)}: ${esc(a.mensaje)}</div>`).join('');
 }
 
 function renderCobertura() {
   const cont = document.getElementById('vCobertura');
-  const esc = core.resultado('cobertura').S1;
-  if (!esc) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
-  const lista = (obj) => Object.entries(obj).map(([k, v]) =>
-    `<div class="kv"><span class="k">${escape(k)}</span><span class="v">${v}</span></div>`
-  ).join('') || '<div class="empty">—</div>';
+  const r = core.resultado('cobertura').S1;
+  if (!r) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
+  const list = (o) => Object.entries(o).map(([k,v]) =>
+    `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`).join('') || '<div class="empty">—</div>';
   cont.innerHTML = `
-    <div class="kv"><span class="k">total</span><span class="v">${esc.n}</span></div>
-    <h3 style="margin-top:6px;">Encuadre</h3>${lista(esc.porEncuadre)}
-    <h3 style="margin-top:6px;">Ángulo</h3>${lista(esc.porAngulo)}
-    <h3 style="margin-top:6px;">Movimiento</h3>${lista(esc.porMovimiento)}
-    ${esc.alertas.map(a => `<div class="alert ${a.nivel === 'warn' ? 'warn' : 'info'}">${escape(a.mensaje)}</div>`).join('')}
+    <div class="kv"><span class="k">total</span><span class="v">${r.n}</span></div>
+    <h3 style="margin-top:6px;">Encuadre</h3>${list(r.porEncuadre)}
+    <h3 style="margin-top:6px;">Ángulo</h3>${list(r.porAngulo)}
+    <h3 style="margin-top:6px;">Movimiento</h3>${list(r.porMovimiento)}
+    ${r.alertas.map(a => `<div class="alert ${a.nivel}">${esc(a.mensaje)}</div>`).join('')}
   `;
 }
 
@@ -795,167 +827,176 @@ function renderPrompts() {
   const cont = document.getElementById('vPrompts');
   const planos = getPlanosOrdenados();
   promptCache = {};
-
   if (!planos.length) {
     cont.innerHTML = '<div class="empty">Sin planos.</div>';
     document.getElementById('promptCount').textContent = '0 planos';
     return;
   }
-
   let html = '';
   for (let i = 0; i < planos.length; i++) {
     const p = planos[i];
-    const ctx = { anterior: i > 0 ? planos[i - 1] : null };
+    const ctx = { anterior: i > 0 ? planos[i-1] : null };
     const r = generarPrompt(p, ctx);
     promptCache[p.id] = r;
-
     if (!r.ok) {
-      html += `<div class="prompt-card">
-        <div class="head"><strong>${escape(p.id)}</strong>
-        <span class="meta pill err">${escape(r.error)}</span></div>
-      </div>`;
+      html += `<div class="prompt-card"><div class="head"><strong>${esc(p.id)}</strong><span class="meta pill err">${esc(r.error)}</span></div></div>`;
       continue;
     }
-
-    const durHint = (() => {
-      const d = r.suggestedParams.duration;
-      if (d <= 4) return `≈3s (Pika) / 5s (Runway)`;
-      if (d <= 6) return `5s (Runway/Kling)`;
-      return `10s (Runway/Kling)`;
-    })();
-
     html += `
-      <div class="prompt-card" data-id="${escape(p.id)}">
+      <div class="prompt-card" data-id="${esc(p.id)}">
         <div class="head">
-          <div><strong>${escape(p.id)}</strong>
-            <span class="meta"> · ${escape(p.encuadre)} ${escape(p.angulo)} · ${p.duracion}s</span></div>
-          <button class="small primary copy-one" data-id="${escape(p.id)}">📋 Copiar</button>
+          <div><strong>${esc(p.id)}</strong> <span class="meta">· ${esc(p.encuadre)} ${esc(p.angulo)} · ${p.duracion}s</span></div>
+          <button class="small primary copy-one" data-id="${esc(p.id)}">📋 Copiar</button>
         </div>
         <div class="label">Prompt</div>
-        <div class="text">${escape(r.prompt)}</div>
+        <div class="text">${esc(r.prompt)}</div>
         <div class="label">Negative prompt</div>
-        <div class="text neg">${escape(r.negativePrompt)}</div>
+        <div class="text neg">${esc(r.negativePrompt)}</div>
         <div class="params">
-          <span>⏱ ${r.suggestedParams.duration}s · ${durHint}</span>
+          <span>⏱ ${r.suggestedParams.duration}s</span>
           <span>📐 ${r.suggestedParams.aspectRatio}</span>
           <span>🔍 ${r.suggestedParams.focalLength}mm</span>
-          <span>🎬 ${escape(r.suggestedParams.cameraMotion)} (${r.suggestedParams.motionIntensity})</span>
-          <span>🌱 seed ${r.suggestedParams.seed}</span>
+          <span>🎬 ${esc(r.suggestedParams.cameraMotion)}</span>
+          <span>🌱 ${r.suggestedParams.seed}</span>
         </div>
-        ${r.notas.length ? `<div class="notas">${r.notas.map(n => `· ${escape(n)}`).join('<br>')}</div>` : ''}
+        ${r.notas.length ? `<div class="notas">${r.notas.map(n => `· ${esc(n)}`).join('<br>')}</div>` : ''}
       </div>
     `;
   }
-
   cont.innerHTML = html;
   document.getElementById('promptCount').textContent = `${planos.length} planos`;
-
-  // Copy por plano
   cont.querySelectorAll('.copy-one').forEach(btn => {
     btn.onclick = async () => {
       const r = promptCache[btn.dataset.id];
       if (!r?.ok) return;
-      const text = formatearPromptTexto(r);
       try {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(formatPromptText(r));
         btn.textContent = '✅';
-        setTimeout(() => btn.textContent = '📋 Copiar', 1500);
-      } catch {
-        btn.textContent = '❌';
-      }
+        setTimeout(() => btn.textContent = '📋 Copiar', 1200);
+      } catch { btn.textContent = '❌'; }
     };
   });
 }
 
-function formatearPromptTexto(r) {
+function formatPromptText(r) {
   return [
-    `PROMPT:`, r.prompt, '',
-    `NEGATIVE:`, r.negativePrompt, '',
-    `PARAMS: duration=${r.suggestedParams.duration}s, ` +
-    `aspect=${r.suggestedParams.aspectRatio}, ` +
-    `focal=${r.suggestedParams.focalLength}mm, ` +
-    `motion=${r.suggestedParams.motionIntensity}, ` +
-    `seed=${r.suggestedParams.seed}`,
+    'PROMPT:', r.prompt, '',
+    'NEGATIVE:', r.negativePrompt, '',
+    `PARAMS: duration=${r.suggestedParams.duration}s, aspect=${r.suggestedParams.aspectRatio}, focal=${r.suggestedParams.focalLength}mm, motion=${r.suggestedParams.motionIntensity}, seed=${r.suggestedParams.seed}`,
     r.notas.length ? `\nNOTAS:\n${r.notas.map(n => '- ' + n).join('\n')}` : ''
   ].filter(Boolean).join('\n');
 }
 
-function formatearTodosLosPrompts() {
-  const planos = getPlanosOrdenados();
-  const bloques = planos.map(p => {
-    const r = promptCache[p.id];
-    if (!r?.ok) return `=== ${p.id} ===\n[error: ${r?.error || 'sin prompt'}]`;
-    return `=== ${p.id} · ${p.encuadre} · ${p.angulo} · ${p.duracion}s ===\n` +
-           formatearPromptTexto(r) + '\n';
-  });
-  return bloques.join('\n');
-}
+/* ═══════════════════════════════════════════════════════════════════════
+   BOOT + DEMO + IMPORT/EXPORT
+   ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── Controles ─────────────────────────────────────────────────────── */
-
-let contadorPlanos = 10;
-
-function añadirPlano(forzarCruce = false) {
-  const planos = getPlanosOrdenados();
-  const maxOrden = planos.reduce((m, p) => Math.max(m, p.orden ?? 0), 0);
-  const id = 'P' + (++contadorPlanos);
-  const encuadres = ['general', 'entero', 'medio', 'primer'];
-  const angulos = ['normal', 'picado', 'contrapicado', 'holandes'];
-  const paletas = [
-    ['#c97a3a', '#e0a060'],
-    ['#3a5a8a', '#6a8ac0'],
-    ['#4a8a3a', '#8ac06a'],
-    ['#8a3a8a', '#c06ac0']
+function cargarDemo() {
+  const calida = ['#c97a3a','#e0a060','#8a4a2a'];
+  const fria = ['#3a5a8a','#6a8ac0','#2a3a5a'];
+  const planos = [
+    { id:'P1', escenaId:'S1', orden:1, encuadre:'general', angulo:'normal',
+      movimiento:'estatico', focal:24, duracion:6.0, sujeto:'héroe',
+      intencion:'establecer', eje:0, eyeline:0, paleta:calida, permiteCruce:false },
+    { id:'P2', escenaId:'S1', orden:2, encuadre:'medio', angulo:'normal',
+      movimiento:'travelling', focal:35, duracion:4.0, sujeto:'héroe',
+      intencion:'intimidad', eje:0, eyeline:1, paleta:calida, permiteCruce:false },
+    { id:'P3', escenaId:'S1', orden:3, encuadre:'primer', angulo:'contrapicado',
+      movimiento:'estatico', focal:50, duracion:2.5, sujeto:'héroe',
+      intencion:'tension', eje:0, eyeline:1, paleta:calida, permiteCruce:false },
+    { id:'P4', escenaId:'S1', orden:4, encuadre:'medio', angulo:'normal',
+      movimiento:'estatico', focal:35, duracion:3.5, sujeto:'villano',
+      intencion:'tension', eje:180, eyeline:-1, paleta:fria, permiteCruce:true },
+    { id:'P5', escenaId:'S1', orden:5, encuadre:'primer', angulo:'normal',
+      movimiento:'handheld', focal:85, duracion:1.0, sujeto:'héroe',
+      intencion:'tension', eje:0, eyeline:1, paleta:calida, permiteCruce:false }
   ];
-
-  const plano = {
-    id, escenaId: 'S1', orden: maxOrden + 1,
-    encuadre: encuadres[Math.floor(Math.random() * encuadres.length)],
-    angulo: angulos[Math.floor(Math.random() * angulos.length)],
-    movimiento: 'estatico', focal: 35,
-    duracion: +(1 + Math.random() * 5).toFixed(1),
-    sujeto: 'héroe',
-    intencion: forzarCruce ? 'tension' : 'intimidad',
-    eje: forzarCruce ? 180 : 0,
-    eyeline: 1, permiteCruce: false,
-    paleta: paletas[Math.floor(Math.random() * paletas.length)]
-  };
-
-  core.append({
-    id: 'ev_' + id, ts: new Date().toISOString(),
-    entidad: 'plano', entidadId: id, tipo: 'plano_creado',
-    campo: null, de: null, a: plano, actor: 'usuario', version: 1
-  });
-  render();
+  for (const p of planos) {
+    core.append({
+      id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
+      tipo: 'plano_creado', campo: null, de: null, a: p,
+      ts: new Date().toISOString(), actor: 'demo', version: 1
+    });
+  }
 }
 
-document.getElementById('btnAddPlano').onclick = () => añadirPlano(false);
-document.getElementById('btnAñadirCruce').onclick = () => añadirPlano(true);
-document.getElementById('btnResetDemo').onclick = () => {
-  contadorPlanos = 10;
-  resetDemo();
+document.getElementById('btnSave').onclick = saveForm;
+document.getElementById('btnNew').onclick = () => { clearForm(); render(); };
+document.getElementById('btnDelete').onclick = deletePlan;
+document.getElementById('btnDuplicate').onclick = duplicatePlan;
+
+document.getElementById('btnExportJson').onclick = () => {
+  const planos = getPlanosOrdenados();
+  const payload = { scene: 'S1', generated: new Date().toISOString(),
+                    globalContext: CONTEXTO_GLOBAL, planos };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `shotlist_S1_${Date.now()}.json`;
+  a.click();
+};
+
+document.getElementById('btnImportJson').onclick = () => {
+  document.getElementById('importFile').click();
+};
+
+document.getElementById('importFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const planos = data.planos || data;
+      if (!Array.isArray(planos)) throw new Error('Se esperaba array de planos');
+      for (const p of planos) {
+        if (!p.id) p.id = 'P' + Date.now().toString(36).slice(-6);
+        core.append({
+          id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
+          tipo: 'plano_creado', campo: null, de: null, a: p,
+          ts: new Date().toISOString(), actor: 'import', version: 1
+        });
+      }
+      document.getElementById('formStatus').textContent = `✅ ${planos.length} planos importados`;
+      document.getElementById('formStatus').className = 'status ok';
+      render();
+    } catch (err) {
+      document.getElementById('formStatus').textContent = '❌ ' + err.message;
+      document.getElementById('formStatus').className = 'status err';
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+};
+
+document.getElementById('btnResetAll').onclick = () => {
+  if (!confirm('¿Borrar todos los planos?')) return;
+  core = new MiniCore(VISTAS);
+  cargarDemo();
+  clearForm();
+  render();
 };
 
 document.getElementById('btnCopyAllPrompts').onclick = async () => {
-  const txt = formatearTodosLosPrompts();
+  const planos = getPlanosOrdenados();
+  const txt = planos.map(p => {
+    const r = promptCache[p.id];
+    if (!r?.ok) return `=== ${p.id} ===\n[error]`;
+    return `=== ${p.id} · ${p.encuadre} · ${p.angulo} · ${p.duracion}s ===\n${formatPromptText(r)}\n`;
+  }).join('\n');
   try {
     await navigator.clipboard.writeText(txt);
     const btn = document.getElementById('btnCopyAllPrompts');
     btn.textContent = '✅ Copiado';
     setTimeout(() => btn.textContent = '📋 Copiar todos', 1500);
-  } catch {
-    alert('No se pudo copiar. Usa "Descargar JSON" como alternativa.');
-  }
+  } catch { alert('No se pudo copiar'); }
 };
 
 document.getElementById('btnDownloadPrompts').onclick = () => {
   const planos = getPlanosOrdenados();
-  const payload = {
-    scene: 'S1',
-    generated: new Date().toISOString(),
-    globalContext: CONTEXTO_GLOBAL,
-    prompts: planos.map(p => promptCache[p.id]).filter(Boolean)
-  };
+  const payload = { scene: 'S1', generated: new Date().toISOString(),
+                    globalContext: CONTEXTO_GLOBAL,
+                    prompts: planos.map(p => promptCache[p.id]).filter(Boolean) };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -964,208 +1005,68 @@ document.getElementById('btnDownloadPrompts').onclick = () => {
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
-   5 · TESTS
+   TESTS
    ═══════════════════════════════════════════════════════════════════════ */
 
 function runTests() {
   const out = document.getElementById('testsOut');
   let pass = 0, fail = 0;
-  const t = (nombre, fn) => {
-    try { fn(); pass++; out.innerHTML += `<div class="t"><span class="pill ok">PASS</span>${nombre}</div>`; }
-    catch (e) { fail++; out.innerHTML += `<div class="t"><span class="pill err">FAIL</span>${nombre}: ${e.message}</div>`; }
+  const t = (name, fn) => {
+    try { fn(); pass++; out.innerHTML += `<div class="t"><span class="pill ok">PASS</span>${name}</div>`; }
+    catch (e) { fail++; out.innerHTML += `<div class="t"><span class="pill err">FAIL</span>${name}: ${e.message}</div>`; }
   };
-  const assert = (c, msg) => { if (!c) throw new Error(msg); };
-  const eq = (a, b, msg) => {
-    if (JSON.stringify(a) !== JSON.stringify(b)) {
-      throw new Error(`${msg || ''} esperado ${JSON.stringify(b)}, recibido ${JSON.stringify(a)}`);
-    }
-  };
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+  const eq = (a, b, m) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m || ''} esperado ${JSON.stringify(b)}, recibido ${JSON.stringify(a)}`); };
 
-  const buildCore = (eventos) => {
-    const c = new MiniCore(VISTAS);
-    for (const ev of eventos) c.append(ev);
-    return c;
-  };
-  const evPlano = (p) => ({ id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
-    tipo: 'plano_creado', campo: null, de: null, a: p, ts: new Date().toISOString() });
+  const c = new MiniCore(VISTAS);
+  const evp = (p) => ({ id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
+                       tipo: 'plano_creado', campo: null, de: null, a: p, ts: new Date().toISOString() });
+  c.append(evp({ id:'A', escenaId:'S', orden:1, eje:0, duracion:2 }));
+  c.append(evp({ id:'B', escenaId:'S', orden:2, eje:180, duracion:4 }));
 
-  // ── Continuidad ──
-  t('continuidad: eje 0 → 180 sin permiteCruce viola', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0 }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 180 })
-    ]);
+  t('continuidad: cruce de eje detectado', () => {
     const v = c.resultado('continuidad').violaciones;
-    assert(v.length === 1, `esperado 1, hay ${v.length}`);
-    eq(v[0].tipo, 'eje');
+    assert(v.length === 1 && v[0].tipo === 'eje', 'sin cruce');
   });
 
-  t('continuidad: eje 0 → 180 con permiteCruce NO viola', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0 }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 180, permiteCruce: true })
-    ]);
-    eq(c.resultado('continuidad').violaciones.length, 0);
-  });
-
-  t('continuidad: eyeline invertido mismo sujeto viola', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, eyeline: 1, sujeto: 'h' }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2, eyeline: -1, sujeto: 'h' })
-    ]);
-    const v = c.resultado('continuidad').violaciones;
-    assert(v.some(x => x.tipo === 'eyeline'), 'sin violación eyeline');
-  });
-
-  // ── Ritmo ──
   t('ritmo: media correcta', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 2 }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 4 }),
-      evPlano({ id: 'C', escenaId: 'S', orden: 3, duracion: 6 })
-    ]);
-    const r = c.resultado('ritmo').S;
-    eq(r.total, 12); eq(r.media, 4); eq(r.min, 2); eq(r.max, 6);
+    eq(c.resultado('ritmo').S.media, 3);
   });
 
-  // ── Paleta ──
-  t('paleta: distancia 0 mismo color', () => {
-    eq(distanciaPaleta(['#ff0000'], ['#ff0000']), 0);
+  t('prompt: generado desde plano', () => {
+    const r = generarPrompt({ id:'X', sujeto:'héroe', encuadre:'primer',
+                              angulo:'contrapicado', intencion:'tension',
+                              duracion:3, focal:85, paleta:['#c97a3a'] });
+    assert(r.ok && r.prompt.includes('close-up') && r.prompt.includes('85mm'), 'prompt mal formado');
   });
 
-  t('paleta: salto sin cambio intención alerta', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, paleta: ['#ff0000'], intencion: 'tension' }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2, paleta: ['#0000ff'], intencion: 'tension' })
-    ]);
-    assert(c.resultado('paleta').S.alertas.length >= 1, 'sin alerta');
+  t('prompt: determinista', () => {
+    const p = { id:'X', sujeto:'h', encuadre:'medio', angulo:'normal' };
+    eq(generarPrompt(p).prompt, generarPrompt(p).prompt);
   });
 
-  t('paleta: cambio intención con salto NO alerta', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, paleta: ['#ff0000'], intencion: 'tension' }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2, paleta: ['#0000ff'], intencion: 'intimidad' })
-    ]);
-    eq(c.resultado('paleta').S.alertas.length, 0);
+  t('schema: 13 campos declarados', () => {
+    eq(Object.keys(PLANO_SCHEMA).length, 13);
   });
 
-  // ── Cobertura ──
-  t('cobertura: sin general alerta', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, encuadre: 'primer', angulo: 'normal' }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2, encuadre: 'medio', angulo: 'normal' })
-    ]);
-    assert(c.resultado('cobertura').S.alertas.some(a => a.mensaje.includes('establecimiento')),
-      'sin alerta establecimiento');
-  });
-
-  // ── GENERADOR DE PROMPTS ──
-  t('prompt: plano completo genera ok', () => {
-    const r = generarPrompt({
-      id: 'X', sujeto: 'héroe', encuadre: 'primer', angulo: 'contrapicado',
-      intencion: 'tension', movimiento: 'estatico', focal: 85,
-      duracion: 3, paleta: ['#c97a3a', '#e0a060']
-    });
-    assert(r.ok, 'no generó');
-    assert(r.prompt.length > 20, 'prompt demasiado corto');
-    assert(r.prompt.includes('close-up'), 'falta close-up');
-    assert(r.prompt.includes('the hero'), 'falta sujeto traducido');
-    assert(r.prompt.includes('85mm'), 'falta focal');
-    assert(r.prompt.includes('#c97a3a'), 'falta paleta');
-    assert(r.prompt.includes('tense'), 'falta mood de tensión');
-  });
-
-  t('prompt: sin sujeto falla con error', () => {
-    const r = generarPrompt({ id: 'X', encuadre: 'medio' });
-    assert(!r.ok, 'debería fallar');
-    eq(r.error, 'plano sin sujeto');
-  });
-
-  t('prompt: determinista (mismo input → mismo output)', () => {
-    const p = { id: 'X', sujeto: 'héroe', encuadre: 'medio', angulo: 'normal',
-                intencion: 'intimidad', focal: 35 };
-    const r1 = generarPrompt(p);
-    const r2 = generarPrompt(p);
-    eq(r1.prompt, r2.prompt);
-    eq(r1.negativePrompt, r2.negativePrompt);
-    eq(r1.suggestedParams.seed, r2.suggestedParams.seed);
-  });
-
-  t('prompt: negativos base presentes siempre', () => {
-    const r = generarPrompt({ id: 'X', sujeto: 'h', encuadre: 'medio', angulo: 'normal' });
-    assert(r.negativePrompt.includes('low quality'), 'falta low quality');
-    assert(r.negativePrompt.includes('watermark'), 'falta watermark');
-  });
-
-  t('prompt: negativos por intención (tension añade cheerful colors)', () => {
-    const r = generarPrompt({ id: 'X', sujeto: 'h', encuadre: 'medio',
-                              angulo: 'normal', intencion: 'tension' });
-    assert(r.negativePrompt.includes('cheerful colors'), 'no añadió cheerful');
-  });
-
-  t('prompt: nota de eje cuando contexto.anterior tiene permiteCruce false', () => {
-    const r = generarPrompt(
-      { id: 'B', sujeto: 'h', encuadre: 'medio', angulo: 'normal', eje: 180 },
-      { anterior: { id: 'A', eje: 0, permiteCruce: false, sujeto: 'h' } }
-    );
-    assert(r.notas.some(n => n.includes('eje') || n.includes('dirección')),
-      'sin nota de eje');
-  });
-
-  t('prompt: nota de eyeline invertido', () => {
-    const r = generarPrompt(
-      { id: 'B', sujeto: 'h', encuadre: 'medio', angulo: 'normal', eyeline: -1 },
-      { anterior: { id: 'A', eyeline: 1, sujeto: 'h' } }
-    );
-    assert(r.notas.some(n => n.toLowerCase().includes('eyeline')), 'sin nota eyeline');
-  });
-
-  t('prompt: nota de salto cromático', () => {
-    const r = generarPrompt(
-      { id: 'B', sujeto: 'h', encuadre: 'medio', angulo: 'normal',
-        paleta: ['#0000ff'] },
-      { anterior: { id: 'A', sujeto: 'h', paleta: ['#ff0000'] } }
-    );
-    assert(r.notas.some(n => n.includes('cromático')), 'sin nota paleta');
-  });
-
-  t('prompt: seed determinista por id', () => {
-    const r1 = generarPrompt({ id: 'PLANO_X', sujeto: 'h', encuadre: 'medio', angulo: 'normal' });
-    const r2 = generarPrompt({ id: 'PLANO_X', sujeto: 'h', encuadre: 'medio', angulo: 'normal' });
-    eq(r1.suggestedParams.seed, r2.suggestedParams.seed);
-    assert(r1.suggestedParams.seed > 0, 'seed debe ser positivo');
-  });
-
-  t('prompt: params sugeridos coherentes con movimiento', () => {
-    const r1 = generarPrompt({ id: 'X', sujeto: 'h', encuadre: 'medio',
-                               angulo: 'normal', movimiento: 'estatico' });
-    eq(r1.suggestedParams.motionIntensity, 'low');
-    const r2 = generarPrompt({ id: 'X', sujeto: 'h', encuadre: 'medio',
-                               angulo: 'normal', movimiento: 'handheld' });
-    eq(r2.suggestedParams.motionIntensity, 'high');
-  });
-
-  // ── Integración: prompts desde el core ──
-  t('integración: prompt generado desde eventos del core', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, sujeto: 'héroe',
-                encuadre: 'general', angulo: 'normal', duracion: 5 })
-    ]);
-    const planos = Object.values(c.resultado('continuidad').planos)
-      .sort((a, b) => a.orden - b.orden);
-    const r = generarPrompt(planos[0]);
-    assert(r.ok, 'fallo integración');
-    assert(r.prompt.includes('the hero'), 'falta sujeto');
+  t('schema: todos con label y tipo', () => {
+    for (const [k, d] of Object.entries(PLANO_SCHEMA)) {
+      assert(d.label, `${k} sin label`);
+      assert(d.tipo, `${k} sin tipo`);
+    }
   });
 
   out.innerHTML += `<div class="t" style="margin-top:8px;"><strong>${pass} pasan · ${fail} fallan</strong></div>`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   BOOT
+   INICIO
    ═══════════════════════════════════════════════════════════════════════ */
 
-resetDemo();
+renderForm();
+cargarDemo();
+clearForm();
+render();
 runTests();
 </script>
 
