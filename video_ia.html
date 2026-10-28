@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Vistas de coherencia cinematográfica · plugin independiente</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #0f172a; color: #e2e8f0; padding: 14px; font-size: 13px;
+    min-height: 100vh;
+  }
+  h1 { font-size: 1.05rem; font-weight: 400; color: #60a5fa; margin-bottom: 4px; }
+  .sub { color: #94a3b8; font-size: 11px; margin-bottom: 12px; }
+  h2 { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;
+       letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 500; }
+  h3 { font-size: 0.82rem; color: #cbd5e1; margin-bottom: 6px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: #1e293b; border: 1px solid #334155;
+           border-radius: 10px; padding: 12px; }
+  button {
+    background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
+    border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px;
+    font-family: inherit;
+  }
+  button:hover { background: #334155; }
+  button.primary { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  button.primary:hover { background: #2563eb; }
+  button.danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
+  button.small { padding: 3px 8px; font-size: 11px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 10px;
+          font-size: 10px; background: #334155; margin-right: 4px; }
+  .pill.ok { background: #14532d; color: #86efac; }
+  .pill.warn { background: #78350f; color: #fcd34d; }
+  .pill.err { background: #7f1d1d; color: #fecaca; }
+  .pill.info { background: #1e3a5f; color: #93c5fd; }
+  .kv { display: flex; justify-content: space-between; padding: 3px 0;
+        border-bottom: 1px solid #1e293b; font-size: 12px; gap: 8px; }
+  .kv:last-child { border-bottom: none; }
+  .kv .k { color: #94a3b8; flex-shrink: 0; }
+  .kv .v { color: #e2e8f0; font-family: ui-monospace, monospace;
+           text-align: right; word-break: break-all; }
+  .empty { color: #475569; font-style: italic; font-size: 12px; padding: 6px 0; }
+  .shot {
+    background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+    padding: 8px; margin-bottom: 6px; font-family: ui-monospace, monospace;
+    font-size: 11px; cursor: pointer;
+  }
+  .shot:hover { border-color: #475569; }
+  .shot.selected { border-color: #3b82f6; background: #1e3a5f; }
+  .shot .line { display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .shot .meta { color: #94a3b8; font-size: 10px; }
+  .alert { padding: 4px 6px; margin: 2px 0; border-left: 3px solid;
+           background: #0f172a; border-radius: 4px; font-size: 11px; }
+  .alert.err { border-color: #ef4444; color: #fca5a5; }
+  .alert.warn { border-color: #f59e0b; color: #fcd34d; }
+  .alert.info { border-color: #3b82f6; color: #93c5fd; }
+  .tests { font-family: ui-monospace, monospace; font-size: 11px;
+           max-height: 300px; overflow-y: auto; background: #0f172a;
+           border-radius: 6px; padding: 8px; }
+  .tests .t { padding: 1px 0; }
+  .bar { height: 4px; background: #1e293b; border-radius: 2px;
+         margin-top: 2px; overflow: hidden; }
+  .bar > div { height: 100%; background: #3b82f6; }
+</style>
+</head>
+<body>
+
+<h1>Vistas de coherencia cinematográfica</h1>
+<p class="sub">Plugin independiente · se enchufa al Core sin modificar nada · 4 vistas puras</p>
+
+<div class="grid">
+
+  <div class="panel">
+    <h2>Escena de prueba · S1</h2>
+    <div id="listaShots"></div>
+    <div class="row" style="margin-top:8px;">
+      <button class="primary small" id="btnAddPlano">+ Añadir plano</button>
+      <button class="small" id="btnResetDemo">↺ Reset demo</button>
+    </div>
+    <div class="row">
+      <button class="small" id="btnAñadirCruce">+ Plano que cruza eje (violación)</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>🔗 Continuidad</h2>
+    <div id="vContinuidad"><div class="empty">Sin datos.</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>⏱ Ritmo</h2>
+    <div id="vRitmo"><div class="empty">Sin datos.</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>🎨 Paleta</h2>
+    <div id="vPaleta"><div class="empty">Sin datos.</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>🎬 Cobertura</h2>
+    <div id="vCobertura"><div class="empty">Sin datos.</div></div>
+  </div>
+
+  <div class="panel" style="grid-column: 1 / -1;">
+    <h2>Tests</h2>
+    <div class="tests" id="testsOut"></div>
+  </div>
+
+</div>
+
+<script type="module">
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PLUGIN · 4 VISTAS DE COHERENCIA CINEMATOGRÁFICA
+   ───────────────────────────────────────────────────────────────────────
+   Cada vista es un objeto con { id, init, apply, result }.
+   Son puras en el sentido del proyecto: apply muta el estado y lo devuelve.
+   Solo responden a eventos cuya `entidad === 'plano'`.
+   Ignoran todo lo demás.
+   ───────────────────────────────────────────────────────────────────────
+   Para integrar en tu Core existente: copia los 4 objetos y añádelos a
+   `VISTAS`. Nada más. Los helpers son dependencias internas del plugin.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Helpers internos del plugin ────────────────────────────────────── */
+
+function reconstruirEscena(estado, escenaId) {
+  const shots = Object.values(estado.planos).filter(p => p.escenaId === escenaId);
+  estado.porEscena[escenaId] = shots
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    .map(p => p.id);
+}
+
+function aplicarEventoPlanoBase(estado, evento) {
+  // Devuelve { cambió, escenasAfectadas[] } o null si el evento no aplica.
+  if (evento.entidad !== 'plano') return null;
+
+  if (evento.tipo === 'plano_creado') {
+    estado.planos[evento.entidadId] = { ...evento.a };
+    return { escenasAfectadas: [evento.a.escenaId].filter(Boolean) };
+  }
+
+  if (evento.tipo === 'plano_eliminado') {
+    const p = estado.planos[evento.entidadId];
+    if (!p) return null;
+    const escenaId = p.escenaId;
+    delete estado.planos[evento.entidadId];
+    return { escenasAfectadas: [escenaId] };
+  }
+
+  if (evento.tipo === 'campo_modificado' || evento.tipo === 'campo_modificado_historico') {
+    const p = estado.planos[evento.entidadId];
+    if (!p) return null;
+    const escenaAnterior = p.escenaId;
+    estado.planos[evento.entidadId] = { ...p, [evento.campo]: evento.a };
+    const escenaActual = estado.planos[evento.entidadId].escenaId;
+    const afectadas = new Set([escenaAnterior, escenaActual]);
+    return { escenasAfectadas: [...afectadas].filter(Boolean) };
+  }
+
+  return null;
+}
+
+function reconstruirYValidar(estado, escenas) {
+  for (const id of escenas) {
+    reconstruirEscena(estado, id);
+  }
+}
+
+/* ── VISTA 1 · CONTINUIDAD ─────────────────────────────────────────── */
+/* Detecta violaciones de eje (180°) y raccord de mirada (eyeline).
+   Reglas:
+   - Eje: dos planos consecutivos con diferencia angular > 90° cruzan
+     el eje, salvo que el segundo tenga `permiteCruce: true`.
+   - Eyeline: dos planos consecutivos con el mismo sujeto y eyelines
+     opuestos invierten la mirada, salvo `permiteCruce`.
+
+   Campos leídos del plano: `escenaId`, `orden`, `eje` (grados),
+   `eyeline` (-1 / 0 / 1), `sujeto`, `permiteCruce`.
+*/
+const VistaContinuidad = {
+  id: 'continuidad',
+
+  init: () => ({
+    planos: {},
+    porEscena: {},
+    violaciones: []
+  }),
+
+  apply: (estado, evento) => {
+    const r = aplicarEventoPlanoBase(estado, evento);
+    if (!r) return estado;
+
+    reconstruirYValidar(estado, r.escenasAfectadas);
+
+    // Recalcular violaciones solo en las escenas afectadas
+    estado.violaciones = estado.violaciones.filter(v => !r.escenasAfectadas.includes(v.escenaId));
+    for (const escenaId of r.escenasAfectadas) {
+      estado.violaciones.push(...detectarViolacionesContinuidad(estado, escenaId));
+    }
+    return estado;
+  },
+
+  result: (estado) => estado
+};
+
+function detectarViolacionesContinuidad(estado, escenaId) {
+  const out = [];
+  const ids = estado.porEscena[escenaId] ?? [];
+  for (let i = 1; i < ids.length; i++) {
+    const a = estado.planos[ids[i - 1]];
+    const b = estado.planos[ids[i]];
+    if (!a || !b) continue;
+
+    // Eje
+    if (a.eje != null && b.eje != null && !b.permiteCruce) {
+      const diff = Math.abs(a.eje - b.eje) % 360;
+      const diffMin = Math.min(diff, 360 - diff);
+      if (diffMin > 90) {
+        out.push({
+          escenaId, planoId: b.id, tipo: 'eje',
+          mensaje: `Plano ${b.id} cruza el eje (${a.eje}° → ${b.eje}°)`,
+          severidad: 'err'
+        });
+      }
+    }
+
+    // Eyeline
+    if (a.eyeline != null && b.eyeline != null && a.sujeto && a.sujeto === b.sujeto) {
+      if (a.eyeline * b.eyeline < 0 && !b.permiteCruce) {
+        out.push({
+          escenaId, planoId: b.id, tipo: 'eyeline',
+          mensaje: `Plano ${b.id} invierte eyeline de "${a.sujeto}"`,
+          severidad: 'err'
+        });
+      }
+    }
+  }
+  return out;
+}
+
+/* ── VISTA 2 · RITMO ────────────────────────────────────────────────── */
+/* Analiza duraciones por escena: total, media, min, max, aceleración
+   entre planos consecutivos, y picos (planos mucho más largos o cortos
+   que sus vecinos).
+
+   Campos leídos del plano: `escenaId`, `orden`, `duracion` (segundos).
+*/
+const VistaRitmo = {
+  id: 'ritmo',
+
+  init: () => ({ planos: {}, porEscena: {} }),
+
+  apply: (estado, evento) => {
+    const r = aplicarEventoPlanoBase(estado, evento);
+    if (!r) return estado;
+    reconstruirYValidar(estado, r.escenasAfectadas);
+    return estado;
+  },
+
+  result: (estado) => {
+    const out = {};
+    for (const escenaId of Object.keys(estado.porEscena)) {
+      out[escenaId] = calcularRitmo(estado, escenaId);
+    }
+    return out;
+  }
+};
+
+function calcularRitmo(estado, escenaId) {
+  const ids = estado.porEscena[escenaId] ?? [];
+  const duraciones = ids.map(id => estado.planos[id]?.duracion ?? 0);
+  const n = duraciones.length;
+  const total = duraciones.reduce((a, b) => a + b, 0);
+  const media = n ? total / n : 0;
+  const min = n ? Math.min(...duraciones) : 0;
+  const max = n ? Math.max(...duraciones) : 0;
+
+  const pitches = [];
+  for (let i = 1; i < n; i++) {
+    const prev = duraciones[i - 1];
+    const curr = duraciones[i];
+    const delta = curr - prev;
+    const ratio = prev > 0.1 ? curr / prev : null;
+    pitches.push({ i, desde: ids[i - 1], hasta: ids[i], delta: +delta.toFixed(2), ratio: ratio && +ratio.toFixed(2) });
+  }
+
+  const picos = [];
+  for (let i = 1; i < n - 1; i++) {
+    const prev = duraciones[i - 1], curr = duraciones[i], next = duraciones[i + 1];
+    const prom = (prev + next) / 2;
+    if (curr > prom * 3 && curr > 3) picos.push({ i, id: ids[i], tipo: 'largo', duracion: curr });
+    if (curr < prom / 3 && curr < 0.6) picos.push({ i, id: ids[i], tipo: 'corto', duracion: curr });
+  }
+
+  const alertas = [];
+  if (n === 0) alertas.push({ nivel: 'info', mensaje: 'Escena vacía' });
+  else {
+    if (media > 8) alertas.push({ nivel: 'warn', mensaje: `Ritmo lento: media ${media.toFixed(1)}s por plano` });
+    if (media < 1.2 && n > 3) alertas.push({ nivel: 'warn', mensaje: `Ritmo muy rápido: media ${media.toFixed(1)}s` });
+    if (pitches.some(p => p.ratio && (p.ratio > 4 || p.ratio < 0.25))) {
+      alertas.push({ nivel: 'warn', mensaje: 'Salto brusco de duración entre planos consecutivos' });
+    }
+  }
+
+  return {
+    escenaId, n,
+    total: +total.toFixed(2),
+    media: +media.toFixed(2),
+    min: +min.toFixed(2),
+    max: +max.toFixed(2),
+    pitches,
+    picos,
+    alertas
+  };
+}
+
+/* ── VISTA 3 · PALETA ───────────────────────────────────────────────── */
+/* Detecta saltos cromáticos no intencionados entre planos consecutivos.
+   Reglas:
+   - Salto fuerte (distancia > 0.5) SIN cambio de intención → sospechoso.
+   - Cambio de intención SIN salto de paleta (< 0.1) → sospechoso.
+
+   Campos leídos del plano: `escenaId`, `orden`, `paleta` (array hex),
+   `intencion` (string).
+*/
+const VistaPaleta = {
+  id: 'paleta',
+
+  init: () => ({ planos: {}, porEscena: {} }),
+
+  apply: (estado, evento) => {
+    const r = aplicarEventoPlanoBase(estado, evento);
+    if (!r) return estado;
+    reconstruirYValidar(estado, r.escenasAfectadas);
+    return estado;
+  },
+
+  result: (estado) => {
+    const out = {};
+    for (const escenaId of Object.keys(estado.porEscena)) {
+      out[escenaId] = analizarPaleta(estado, escenaId);
+    }
+    return out;
+  }
+};
+
+function analizarPaleta(estado, escenaId) {
+  const ids = estado.porEscena[escenaId] ?? [];
+  const transiciones = [];
+  const alertas = [];
+
+  for (let i = 1; i < ids.length; i++) {
+    const a = estado.planos[ids[i - 1]];
+    const b = estado.planos[ids[i]];
+    if (!a || !b) continue;
+
+    const dist = distanciaPaleta(a.paleta, b.paleta);
+    const cambioIntencion = a.intencion && b.intencion && a.intencion !== b.intencion;
+
+    let aviso = null;
+    if (dist > 0.5 && !cambioIntencion) {
+      aviso = { nivel: 'warn', mensaje: `Salto cromático sin cambio de intención (${(dist * 100).toFixed(0)}%)` };
+    } else if (dist < 0.1 && cambioIntencion) {
+      aviso = { nivel: 'warn', mensaje: `Cambio de intención sin cambio visual` };
+    }
+
+    transiciones.push({
+      desde: ids[i - 1], hasta: ids[i],
+      distancia: +(dist * 100).toFixed(1),
+      intencionA: a.intencion, intencionB: b.intencion,
+      cambioIntencion, aviso
+    });
+    if (aviso) alertas.push({ ...aviso, desde: ids[i - 1], hasta: ids[i] });
+  }
+
+  return { escenaId, n: ids.length, transiciones, alertas };
+}
+
+function hexToRgb(hex) {
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return [0, 0, 0];
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function promedioPaleta(paleta) {
+  if (!Array.isArray(paleta) || paleta.length === 0) return [0, 0, 0];
+  const sum = [0, 0, 0];
+  for (const hex of paleta) {
+    const [r, g, b] = hexToRgb(hex);
+    sum[0] += r; sum[1] += g; sum[2] += b;
+  }
+  return sum.map(v => v / paleta.length);
+}
+
+function distanciaPaleta(p1, p2) {
+  if (!p1?.length || !p2?.length) return 0;
+  const a = promedioPaleta(p1);
+  const b = promedioPaleta(p2);
+  const d = Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  return d / 441.67; // normalizado a [0, 1] aprox
+}
+
+/* ── VISTA 4 · COBERTURA ────────────────────────────────────────────── */
+/* Cuenta planos por encuadre, ángulo y movimiento en cada escena.
+   Alerta si:
+   - No hay plano de establecimiento (general/entero).
+   - Exceso de primeros planos (> 70%).
+   - Un solo ángulo en toda la escena.
+
+   Campos leídos del plano: `escenaId`, `encuadre`, `angulo`, `movimiento`.
+*/
+const VistaCobertura = {
+  id: 'cobertura',
+
+  init: () => ({ planos: {}, porEscena: {} }),
+
+  apply: (estado, evento) => {
+    const r = aplicarEventoPlanoBase(estado, evento);
+    if (!r) return estado;
+    reconstruirYValidar(estado, r.escenasAfectadas);
+    return estado;
+  },
+
+  result: (estado) => {
+    const out = {};
+    for (const escenaId of Object.keys(estado.porEscena)) {
+      out[escenaId] = calcularCobertura(estado, escenaId);
+    }
+    return out;
+  }
+};
+
+function calcularCobertura(estado, escenaId) {
+  const ids = estado.porEscena[escenaId] ?? [];
+  const porEncuadre = {};
+  const porAngulo = {};
+  const porMovimiento = {};
+
+  for (const id of ids) {
+    const p = estado.planos[id];
+    if (!p) continue;
+    if (p.encuadre) porEncuadre[p.encuadre] = (porEncuadre[p.encuadre] ?? 0) + 1;
+    if (p.angulo) porAngulo[p.angulo] = (porAngulo[p.angulo] ?? 0) + 1;
+    if (p.movimiento) porMovimiento[p.movimiento] = (porMovimiento[p.movimiento] ?? 0) + 1;
+  }
+
+  const n = ids.length;
+  const alertas = [];
+  if (n === 0) alertas.push({ nivel: 'info', mensaje: 'Escena vacía' });
+  else {
+    if (!porEncuadre.general && !porEncuadre.entero) {
+      alertas.push({ nivel: 'warn', mensaje: 'Sin plano de establecimiento (general / entero)' });
+    }
+    const nPrimeros = (porEncuadre.primer ?? 0) + (porEncuadre.primerisimo ?? 0);
+    if (nPrimeros / n > 0.7 && n > 3) {
+      alertas.push({ nivel: 'warn', mensaje: `Exceso de primeros planos (${nPrimeros}/${n})` });
+    }
+    if (Object.keys(porAngulo).length === 1 && n > 2) {
+      alertas.push({ nivel: 'warn', mensaje: 'Un solo ángulo en toda la escena' });
+    }
+    if (Object.keys(porMovimiento).length === 1 && porMovimiento.estatico === n && n > 4) {
+      alertas.push({ nivel: 'info', mensaje: 'Toda la escena es estática' });
+    }
+  }
+
+  return { escenaId, n, porEncuadre, porAngulo, porMovimiento, alertas };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DEMO · mini-bus, mini-core, escena de prueba
+   ═══════════════════════════════════════════════════════════════════════ */
+
+class MiniBus {
+  constructor() { this.h = new Map(); }
+  on(ev, fn) {
+    if (!this.h.has(ev)) this.h.set(ev, new Set());
+    this.h.get(ev).add(fn);
+    return () => this.h.get(ev).delete(fn);
+  }
+  emit(ev, p) { this.h.get(ev)?.forEach(fn => { try { fn(p); } catch (e) { console.error(e); } }); }
+}
+
+class MiniCore {
+  constructor(vistas) {
+    this.vistas = vistas;
+    this.estados = new Map();
+    this.eventos = [];
+    for (const v of vistas) this.estados.set(v.id, v.init());
+  }
+  append(evento) {
+    this.eventos.push(evento);
+    for (const v of this.vistas) {
+      const e = this.estados.get(v.id) ?? v.init();
+      this.estados.set(v.id, v.apply(e, evento));
+    }
+  }
+  resultado(vistaId) {
+    const v = this.vistas.find(x => x.id === vistaId);
+    return v ? v.result(this.estados.get(v.id)) : null;
+  }
+}
+
+/* Eventos de ejemplo: 5 planos en S1 con 1 violación de eje intencionada */
+function crearEventosDemo() {
+  const paletaCalida = ['#c97a3a', '#e0a060', '#8a4a2a'];
+  const paletaFria = ['#3a5a8a', '#6a8ac0', '#2a3a5a'];
+  const paletaNeutra = ['#888888', '#aaaaaa', '#666666'];
+
+  const planos = [
+    { id: 'P1', escenaId: 'S1', orden: 1, encuadre: 'general', angulo: 'normal',
+      movimiento: 'estatico', focal: 24, duracion: 6.0, sujeto: 'héroe',
+      intencion: 'establecer', eje: 0, eyeline: 0, paleta: paletaCalida },
+    { id: 'P2', escenaId: 'S1', orden: 2, encuadre: 'medio', angulo: 'normal',
+      movimiento: 'travelling', focal: 35, duracion: 4.0, sujeto: 'héroe',
+      intencion: 'intimidad', eje: 0, eyeline: 1, paleta: paletaCalida },
+    { id: 'P3', escenaId: 'S1', orden: 3, encuadre: 'primer', angulo: 'contrapicado',
+      movimiento: 'estatico', focal: 50, duracion: 2.5, sujeto: 'héroe',
+      intencion: 'tension', eje: 0, eyeline: 1, paleta: paletaCalida },
+    { id: 'P4', escenaId: 'S1', orden: 4, encuadre: 'medio', angulo: 'normal',
+      movimiento: 'estatico', focal: 35, duracion: 3.5, sujeto: 'villano',
+      intencion: 'tension', eje: 180, eyeline: -1, paleta: paletaFria,
+      permiteCruce: true }, // cruce intencionado: campo/contracampo
+    { id: 'P5', escenaId: 'S1', orden: 5, encuadre: 'primer', angulo: 'normal',
+      movimiento: 'handheld', focal: 85, duracion: 1.0, sujeto: 'héroe',
+      intencion: 'tension', eje: 0, eyeline: 1, paleta: paletaCalida }
+  ];
+
+  const eventos = [];
+  for (const p of planos) {
+    eventos.push({
+      id: 'ev_' + p.id,
+      ts: new Date(Date.now() + eventos.length).toISOString(),
+      entidad: 'plano',
+      entidadId: p.id,
+      tipo: 'plano_creado',
+      campo: null, de: null, a: p,
+      actor: 'demo', version: 1
+    });
+  }
+  return eventos;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   UI
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const VISTAS = [VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura];
+let core = new MiniCore(VISTAS);
+let seleccionado = null;
+
+function resetDemo() {
+  core = new MiniCore(VISTAS);
+  for (const ev of crearEventosDemo()) core.append(ev);
+  seleccionado = null;
+  render();
+}
+
+function render() {
+  renderLista();
+  renderContinuidad();
+  renderRitmo();
+  renderPaleta();
+  renderCobertura();
+}
+
+function renderLista() {
+  const cont = document.getElementById('listaShots');
+  const planos = Object.values(core.resultado('continuidad').planos)
+    .filter(p => p.escenaId === 'S1')
+    .sort((a, b) => a.orden - b.orden);
+
+  if (!planos.length) {
+    cont.innerHTML = '<div class="empty">Sin planos.</div>';
+    return;
+  }
+
+  cont.innerHTML = planos.map(p => `
+    <div class="shot ${seleccionado === p.id ? 'selected' : ''}" data-id="${p.id}">
+      <div class="line">
+        <strong>${p.id}</strong>
+        <span class="meta">${p.encuadre} · ${p.angulo} · ${p.duracion}s</span>
+      </div>
+      <div class="meta">
+        eje ${p.eje}° · eyeline ${p.eyeline} · ${p.intencion}
+      </div>
+    </div>
+  `).join('');
+
+  cont.querySelectorAll('.shot').forEach(el => {
+    el.onclick = () => {
+      seleccionado = el.dataset.id;
+      render();
+    };
+  });
+}
+
+function renderContinuidad() {
+  const cont = document.getElementById('vContinuidad');
+  const r = core.resultado('continuidad');
+  const v = r.violaciones;
+
+  if (!v.length) {
+    cont.innerHTML = '<div class="alert info">Sin violaciones de eje ni eyeline.</div>';
+    return;
+  }
+
+  cont.innerHTML = `
+    <div class="kv"><span class="k">violaciones</span><span class="v">${v.length}</span></div>
+    ${v.map(x => `
+      <div class="alert ${x.severidad}">
+        <span class="pill ${x.severidad === 'err' ? 'err' : 'warn'}">${x.tipo}</span>
+        ${x.mensaje}
+      </div>
+    `).join('')}
+  `;
+}
+
+function renderRitmo() {
+  const cont = document.getElementById('vRitmo');
+  const r = core.resultado('ritmo');
+  const esc = r['S1'];
+  if (!esc) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
+
+  cont.innerHTML = `
+    <div class="kv"><span class="k">planos</span><span class="v">${esc.n}</span></div>
+    <div class="kv"><span class="k">total</span><span class="v">${esc.total}s</span></div>
+    <div class="kv"><span class="k">media</span><span class="v">${esc.media}s</span></div>
+    <div class="kv"><span class="k">min / max</span><span class="v">${esc.min}s / ${esc.max}s</span></div>
+    ${esc.alertas.map(a => `<div class="alert ${a.nivel === 'warn' ? 'warn' : 'info'}">${a.mensaje}</div>`).join('')}
+    ${esc.picos.length ? `
+      <h3 style="margin-top:8px;">Picos</h3>
+      ${esc.picos.map(p => `<div class="kv"><span class="k">${p.id} (${p.tipo})</span><span class="v">${p.duracion}s</span></div>`).join('')}
+    ` : ''}
+  `;
+}
+
+function renderPaleta() {
+  const cont = document.getElementById('vPaleta');
+  const r = core.resultado('paleta');
+  const esc = r['S1'];
+  if (!esc) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
+
+  if (!esc.transiciones.length) {
+    cont.innerHTML = '<div class="alert info">Sin transiciones todavía.</div>';
+    return;
+  }
+
+  cont.innerHTML = esc.transiciones.map(t => `
+    <div class="kv">
+      <span class="k">${t.desde} → ${t.hasta}</span>
+      <span class="v">${t.distancia}% · ${t.intencionA}→${t.intencionB}</span>
+      <div class="bar"><div style="width:${Math.min(100, t.distancia)}%"></div></div>
+    </div>
+  `).join('') + (esc.alertas.length ? `
+    <h3 style="margin-top:8px;">Alertas</h3>
+    ${esc.alertas.map(a => `<div class="alert warn">${a.desde} → ${a.hasta}: ${a.mensaje}</div>`).join('')}
+  ` : '');
+}
+
+function renderCobertura() {
+  const cont = document.getElementById('vCobertura');
+  const r = core.resultado('cobertura');
+  const esc = r['S1'];
+  if (!esc) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
+
+  const lista = (obj) => Object.entries(obj).map(([k, v]) =>
+    `<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`
+  ).join('') || '<div class="empty">—</div>';
+
+  cont.innerHTML = `
+    <div class="kv"><span class="k">total</span><span class="v">${esc.n}</span></div>
+    <h3 style="margin-top:6px;">Encuadre</h3>
+    ${lista(esc.porEncuadre)}
+    <h3 style="margin-top:6px;">Ángulo</h3>
+    ${lista(esc.porAngulo)}
+    <h3 style="margin-top:6px;">Movimiento</h3>
+    ${lista(esc.porMovimiento)}
+    ${esc.alertas.length ? `
+      <h3 style="margin-top:8px;">Alertas</h3>
+      ${esc.alertas.map(a => `<div class="alert ${a.nivel === 'warn' ? 'warn' : 'info'}">${a.mensaje}</div>`).join('')}
+    ` : ''}
+  `;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DEMO CONTROLS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+let contadorPlanos = 10;
+
+function añadirPlano(forzarCruce = false) {
+  const planos = Object.values(core.resultado('continuidad').planos)
+    .filter(p => p.escenaId === 'S1');
+  const maxOrden = planos.reduce((m, p) => Math.max(m, p.orden ?? 0), 0);
+  const id = 'P' + (++contadorPlanos);
+
+  const encuadres = ['general', 'entero', 'medio', 'primer'];
+  const angulos = ['normal', 'picado', 'contrapicado', 'holandes'];
+  const paletas = [
+    ['#c97a3a', '#e0a060'],
+    ['#3a5a8a', '#6a8ac0'],
+    ['#4a8a3a', '#8ac06a'],
+    ['#8a3a8a', '#c06ac0']
+  ];
+
+  const plano = {
+    id, escenaId: 'S1', orden: maxOrden + 1,
+    encuadre: encuadres[Math.floor(Math.random() * encuadres.length)],
+    angulo: angulos[Math.floor(Math.random() * angulos.length)],
+    movimiento: 'estatico',
+    focal: 35,
+    duracion: +(1 + Math.random() * 5).toFixed(1),
+    sujeto: 'héroe',
+    intencion: forzarCruce ? 'tension' : 'intimidad',
+    eje: forzarCruce ? 180 : 0,
+    eyeline: 1,
+    permiteCruce: false,
+    paleta: paletas[Math.floor(Math.random() * paletas.length)]
+  };
+
+  core.append({
+    id: 'ev_' + id,
+    ts: new Date().toISOString(),
+    entidad: 'plano',
+    entidadId: id,
+    tipo: 'plano_creado',
+    campo: null, de: null, a: plano,
+    actor: 'usuario', version: 1
+  });
+  render();
+}
+
+document.getElementById('btnAddPlano').onclick = () => añadirPlano(false);
+document.getElementById('btnAñadirCruce').onclick = () => añadirPlano(true);
+document.getElementById('btnResetDemo').onclick = () => {
+  contadorPlanos = 10;
+  resetDemo();
+};
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TESTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function runTests() {
+  const out = document.getElementById('testsOut');
+  let pass = 0, fail = 0;
+
+  const t = (nombre, fn) => {
+    try { fn(); pass++; out.innerHTML += `<div class="t"><span class="pill ok">PASS</span>${nombre}</div>`; }
+    catch (e) { fail++; out.innerHTML += `<div class="t"><span class="pill err">FAIL</span>${nombre}: ${e.message}</div>`; }
+  };
+  const assert = (c, msg) => { if (!c) throw new Error(msg); };
+  const eq = (a, b, msg) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${msg || ''} esperado ${JSON.stringify(b)}, recibido ${JSON.stringify(a)}`); };
+
+  // Helper para crear un core con eventos dados
+  const buildCore = (eventos) => {
+    const c = new MiniCore(VISTAS);
+    for (const ev of eventos) c.append(ev);
+    return c;
+  };
+  const evPlano = (p) => ({ id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
+                            tipo: 'plano_creado', campo: null, de: null, a: p, ts: new Date().toISOString() });
+
+  // ── Continuidad ──
+  t('continuidad: dos planos eje 0 no violan', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0, eyeline: 1, sujeto: 'h' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 0, eyeline: 1, sujeto: 'h' })
+    ]);
+    const r = c.resultado('continuidad');
+    eq(r.violaciones.length, 0);
+  });
+
+  t('continuidad: eje 0 → 180 sin permiteCruce viola', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 180 })
+    ]);
+    const r = c.resultado('continuidad');
+    assert(r.violaciones.length === 1, `esperado 1, hay ${r.violaciones.length}`);
+    eq(r.violaciones[0].tipo, 'eje');
+  });
+
+  t('continuidad: eje 0 → 180 con permiteCruce no viola', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 180, permiteCruce: true })
+    ]);
+    const r = c.resultado('continuidad');
+    eq(r.violaciones.length, 0);
+  });
+
+  t('continuidad: eyeline invertido mismo sujeto viola', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eyeline: 1, sujeto: 'h' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eyeline: -1, sujeto: 'h' })
+    ]);
+    const r = c.resultado('continuidad');
+    assert(r.violaciones.some(v => v.tipo === 'eyeline'), 'sin violación de eyeline');
+  });
+
+  t('continuidad: eyeline invertido distinto sujeto NO viola', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eyeline: 1, sujeto: 'h' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eyeline: -1, sujeto: 'v' })
+    ]);
+    const r = c.resultado('continuidad');
+    eq(r.violaciones.length, 0);
+  });
+
+  t('continuidad: modificar eje recalcula violaciones', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 0 })
+    ]);
+    eq(c.resultado('continuidad').violaciones.length, 0);
+    c.append({ id: 'ev_m', entidad: 'plano', entidadId: 'B',
+               tipo: 'campo_modificado', campo: 'eje', de: 0, a: 180,
+               ts: new Date().toISOString() });
+    assert(c.resultado('continuidad').violaciones.length === 1, 'no detectó la nueva violación');
+  });
+
+  // ── Ritmo ──
+  t('ritmo: media correcta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 2 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 4 }),
+      evPlano({ id: 'C', escenaId: 'S', orden: 3, duracion: 6 })
+    ]);
+    const r = c.resultado('ritmo').S;
+    eq(r.total, 12);
+    eq(r.media, 4);
+    eq(r.min, 2);
+    eq(r.max, 6);
+  });
+
+  t('ritmo: alerta ritmo lento', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 10 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 12 })
+    ]);
+    const r = c.resultado('ritmo').S;
+    assert(r.alertas.some(a => a.mensaje.includes('lento')), 'sin alerta lento');
+  });
+
+  t('ritmo: pico largo detectado', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 1 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 10 }),
+      evPlano({ id: 'C', escenaId: 'S', orden: 3, duracion: 1 })
+    ]);
+    const r = c.resultado('ritmo').S;
+    assert(r.picos.length >= 1, 'sin picos');
+    eq(r.picos[0].id, 'B');
+    eq(r.picos[0].tipo, 'largo');
+  });
+
+  // ── Paleta ──
+  t('paleta: distancia 0 mismo color', () => {
+    eq(distanciaPaleta(['#ff0000'], ['#ff0000']), 0);
+  });
+
+  t('paleta: distancia > 0.5 entre opuestos', () => {
+    const d = distanciaPaleta(['#ff0000'], ['#0000ff']);
+    assert(d > 0.5, `distancia ${d} demasiado baja`);
+  });
+
+  t('paleta: salto sin cambio de intención genera alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, paleta: ['#ff0000'], intencion: 'tension' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, paleta: ['#0000ff'], intencion: 'tension' })
+    ]);
+    const r = c.resultado('paleta').S;
+    assert(r.alertas.length >= 1, 'sin alerta de paleta');
+  });
+
+  t('paleta: cambio de intención con salto NO alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, paleta: ['#ff0000'], intencion: 'tension' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, paleta: ['#0000ff'], intencion: 'intimidad' })
+    ]);
+    const r = c.resultado('paleta').S;
+    eq(r.alertas.length, 0);
+  });
+
+  // ── Cobertura ──
+  t('cobertura: sin general alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, encuadre: 'primer', angulo: 'normal' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, encuadre: 'medio', angulo: 'normal' })
+    ]);
+    const r = c.resultado('cobertura').S;
+    assert(r.alertas.some(a => a.mensaje.includes('establecimiento')), 'sin alerta establecimiento');
+  });
+
+  t('cobertura: exceso primeros alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, encuadre: 'primer', angulo: 'normal' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, encuadre: 'primer', angulo: 'picado' }),
+      evPlano({ id: 'C', escenaId: 'S', orden: 3, encuadre: 'primerisimo', angulo: 'normal' }),
+      evPlano({ id: 'D', escenaId: 'S', orden: 4, encuadre: 'general', angulo: 'normal' })
+    ]);
+    const r = c.resultado('cobertura').S;
+    assert(r.alertas.some(a => a.mensaje.includes('primeros')), 'sin alerta primeros');
+  });
+
+  t('cobertura: un solo ángulo alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, encuadre: 'general', angulo: 'normal' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, encuadre: 'medio', angulo: 'normal' }),
+      evPlano({ id: 'C', escenaId: 'S', orden: 3, encuadre: 'primer', angulo: 'normal' })
+    ]);
+    const r = c.resultado('cobertura').S;
+    assert(r.alertas.some(a => a.mensaje.includes('ángulo')), 'sin alerta ángulo');
+  });
+
+  // ── Integración ──
+  t('integración: 4 vistas comparten eventos sin conflicto', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0, eyeline: 1, sujeto: 'h',
+                duracion: 2, encuadre: 'general', angulo: 'normal',
+                paleta: ['#c97a3a'], intencion: 'establecer' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 0, eyeline: 1, sujeto: 'h',
+                duracion: 3, encuadre: 'medio', angulo: 'normal',
+                paleta: ['#c97a3a'], intencion: 'intimidad' })
+    ]);
+    assert(c.resultado('continuidad').violaciones.length === 0, 'cont falló');
+    assert(c.resultado('ritmo').S.total === 5, 'ritmo falló');
+    assert(c.resultado('cobertura').S.n === 2, 'cobertura falló');
+    assert(c.resultado('paleta').S.transiciones.length === 1, 'paleta falló');
+  });
+
+  t('integración: eliminar plano no deja estado huérfano', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2 })
+    ]);
+    c.append({ id: 'ev_del', entidad: 'plano', entidadId: 'B',
+               tipo: 'plano_eliminado', ts: new Date().toISOString() });
+    const r = c.resultado('continuidad');
+    eq(r.violaciones.length, 0);
+    assert(!r.planos.B, 'B sigue en planos');
+  });
+
+  t('integración: mover plano a otra escena recalcula', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S1', orden: 1, eje: 0 }),
+      evPlano({ id: 'B', escenaId: 'S1', orden: 2, eje: 180 })
+    ]);
+    assert(c.resultado('continuidad').violaciones.length === 1, 'sin violación inicial');
+    c.append({ id: 'ev_m', entidad: 'plano', entidadId: 'B',
+               tipo: 'campo_modificado', campo: 'escenaId', de: 'S1', a: 'S2',
+               ts: new Date().toISOString() });
+    eq(c.resultado('continuidad').violaciones.length, 0);
+  });
+
+  out.innerHTML += `<div class="t" style="margin-top:8px;"><strong>${pass} pasan · ${fail} fallan</strong></div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════════════════════════════════════ */
+
+resetDemo();
+runTests();
+</script>
+
+</body>
+</html>
