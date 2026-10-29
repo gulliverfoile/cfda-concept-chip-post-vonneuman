@@ -1,0 +1,208 @@
+========================================================================
+SIMULADOR DE RED FERROVIARIA · "JUGUETE"
+Qué es, qué hace y cómo lo hace
+========================================================================
+
+-----------------------------------------------------------------------
+1. QUÉ ES
+-----------------------------------------------------------------------
+Es un simulador exploratorio de diseño de red ferroviaria para España.
+No es una predicción ni un modelo de ingeniería: es una herramienta para
+razonar visualmente sobre qué líneas tienen sentido, cuáles no, y cómo
+cambia la respuesta según qué se optimice.
+
+La idea de fondo: el debate sobre el tren en España suele mezclar tres
+cosas distintas (demanda, coste y equidad territorial). Este juguete las
+separa y permite ver el conflicto entre ellas con números y colores.
+
+Está construido como un archivo HTML único, sin dependencias externas.
+Se abre en cualquier navegador y funciona en local.
+
+-----------------------------------------------------------------------
+2. QUÉ HACE
+-----------------------------------------------------------------------
+- Representa 52 nodos (las provincias / capitales) en dos vistas:
+  · Hex: retícula esquemática, cómoda para ver el grafo.
+  · Geográfico: posiciones reales (lat/lon) proyectadas.
+
+- Dibuja la red existente en dos estados:
+  · Negra continua: línea de alta calidad (alta velocidad o equivalente).
+  · Gris discontinua: línea existente pero deficiente.
+
+- Dibuja candidatas (top 15 según el objetivo activo) en amarillo
+  punteado, y propuestas construidas en rojo.
+
+- Permite construir una red "óptima" dado un presupuesto, seleccionando
+  aristas por ratio score/coste hasta agotar el presupuesto.
+
+- Calcula y muestra en tiempo real:
+  · km existentes, km propuestos, km totales.
+  · CAPEX de lo propuesto (millones de euros).
+  · OPEX anual y OPEX a 10 años.
+  · Índice de demanda de pasajeros y de mercancías.
+  · Nodos conectados y nodos sin alta calidad.
+
+- Permite hacer click en un nodo para ver población, sectores
+  productivos, coordenadas y conexiones existentes.
+
+- Permite hacer click en una arista candidata para convertirla en
+  propuesta (y viceversa).
+
+- Permite zoom con la rueda del ratón y hover sobre nodos y aristas
+  con tooltip de distancia, CAPEX y demanda.
+
+- Al cargar, ejecuta una batería de tests en consola para verificar
+  que las fórmulas y los datos son coherentes.
+
+-----------------------------------------------------------------------
+3. CÓMO LO HACE
+-----------------------------------------------------------------------
+
+3.1 Datos
+---------
+Todo el estado "real" está en tres estructuras separadas de la
+representación:
+
+- NODOS: por cada provincia, latitud, longitud, población (millones)
+  y lista de sectores productivos. Canarias, Ceuta, Melilla y Baleares
+  están marcadas como islas.
+
+- EXISTENTES_RAW: lista de pares de provincias conectadas por
+  ferrocarril, con una etiqueta de calidad ("alta" o "def").
+
+- SINERGIA_MAT: matriz de complementariedad entre 10 sectores
+  productivos (servicios, industrial, naval, automoción, agro,
+  turismo, logística, energía, química, aeroespacial). Valores 0-1.
+  Ejemplos: industrial↔naval = 0.9; agro↔logística = 0.85;
+  turismo↔turismo = 0.1.
+
+Estos datos son aproximados y están puestos a mano. No están
+contrastados con fuentes oficiales. Es un juguete.
+
+3.2 Distancias
+--------------
+La distancia entre dos nodos se calcula con Haversine (distancia real
+en línea recta sobre la esfera) y se multiplica por un factor de
+sinuosidad ajustable (1.0–1.8). La sinuosidad aproxima el rodeo que
+imponen el relieve, los valles y el trazado real de la vía.
+
+Esto evita el error clásico de la retícula hexagonal: dos hexágonos
+"vecinos" no implican geografía vecina. Con coordenadas reales, la
+distancia es honesta aunque el dibujo sea esquemático.
+
+3.3 Costes
+----------
+- CAPEX: 8 M€/km de vía nueva. Si un extremo es isla, se multiplica
+  por 8 (aproximación muy burda a ferry/submarino; no es un coste real).
+- OPEX: 0,1 M€/km/año (100.000 €/km/año), coherente con el coste
+  real de mantenimiento de alta velocidad en España. Si es isla, se
+  multiplica por 3.
+
+El OPEX se calcula sobre km totales (existentes + propuestos), no solo
+sobre lo nuevo. Eso refleja el problema real: el mantenimiento de la
+red existente compite con la construcción de la nueva.
+
+3.4 Demanda
+-----------
+Dos funciones separadas, una por tipo de tráfico:
+
+- Pasajeros (modelo gravitatorio):
+    D_ij ∝ (P_i · P_j) / d_ij^α
+  donde P es población y α es el exponente de distancia (ajustable
+  0.8–2.5). Es el estándar en estudios de transporte antes de pasar a
+  modelos de cuatro etapas.
+
+- Mercancías (sinergia productiva):
+    D_ij ∝ sinergia(i,j) · √(P_i · P_j) / √d_ij
+  donde sinergia(i,j) es el máximo de la matriz entre los sectores de
+  i y los de j. La idea: dos nodos con tejidos productivos
+  complementarios generan flujo de mercancías aunque su población sea
+  pequeña. Es lo que permite que Bilbao-Ferrol salga en el mapa.
+
+3.5 Objetivos
+-------------
+El usuario elige qué se optimiza. Cinco opciones:
+
+- Pasajeros: solo demanda gravitatoria de pasajeros.
+- Mercancías: solo sinergia productiva.
+- Mixta: 50% pasajeros + 50% mercancías.
+- Eficiencia: (pasajeros + 0.5·mercancías) / CAPEX.
+- Equidad: (1/P_i + 1/P_j) / (d + 100). Favorece nodos pequeños.
+
+El cambio de objetivo cambia la red propuesta. Ese es el corazón del
+juguete: no hay un "óptimo" único, hay un óptimo por criterio.
+
+3.6 Construcción de la red óptima
+---------------------------------
+El botón "Construir óptimo" hace lo siguiente:
+
+1. Toma todas las aristas no existentes.
+2. Calcula score y coste de cada una según el objetivo activo.
+3. Ordena por ratio score/coste (de mayor a menor).
+4. Añade aristas mientras el CAPEX acumulado no supere el presupuesto.
+
+No es un optimizador global (no resuelve un problema de programación
+entera). Es un greedy. Eso significa que puede no encontrar la mejor
+red posible, pero encuentra una red razonable y explicable en un
+instante. Para un juguete, es suficiente.
+
+3.7 Representación
+------------------
+El estado (nodos, aristas, propuestas, objetivo) vive separado del
+dibujo. Hay dos layouts (hex y geográfico) que leen el mismo estado.
+Cambiar de layout no cambia los datos, solo la proyección a pantalla.
+Eso permite añadir un tercer layout en el futuro sin tocar el modelo.
+
+-----------------------------------------------------------------------
+4. QUÉ NO HACE (limitaciones conscientes)
+-----------------------------------------------------------------------
+- No modela horarios, frecuencias ni capacidad de vía. Una línea
+  "propuesta" no dice cuántos trenes caben ni a qué velocidad.
+- No modela elección modal. Un pasajero no elige tren vs coche vs avión
+  según tiempo y precio; solo se atraen masas por gravedad.
+- No modela el relieve real. La sinuosidad es un multiplicador plano,
+  no un modelo digital de elevación.
+- No modela la red de mercancías existente ni los puertos. La sinergia
+  es una etiqueta cualitativa, no un dato de flujo real.
+- Los datos de población y sectores son aproximados. La matriz de
+  sinergia es una elección del autor, no una medición.
+- El modelo gravitatorio es centralista por construcción: con población
+  real, Madrid gana siempre en "pasajeros". Por eso existen los
+  objetivos "equidad" y "mercancías", que corrigen ese sesgo.
+- El greedy de construcción no garantiza el óptimo global.
+
+-----------------------------------------------------------------------
+5. CÓMO USARLO (sugerencia de exploración)
+-----------------------------------------------------------------------
+1. Abre el archivo. Mira la consola: los tests deben pasar.
+2. Con objetivo "pasajeros" y presupuesto 20.000 M€, pulsa
+   "Construir óptimo". Observa que las rojas convergen en Madrid.
+3. Cambia a "mercancías" y vuelve a construir. Observa que aparecen
+   ejes Bilbao-Ferrol, Zaragoza-Tarragona, Vigo-Bilbao.
+4. Cambia a "equidad" y construye. Observa que se conectan Soria,
+   Teruel, Zamora... y mira el OPEX anual: el coste por pasajero
+   se dispara.
+5. Sube el presupuesto a 100.000 M€ y mira el OPEX a 10 años.
+   Ese es el "asesino silencioso": la construcción es un pago único,
+   el mantenimiento es para siempre.
+6. Cambia entre vista Hex y Geográfico. Mismo estado, distinta
+   representación. El grafo no cambia.
+7. Haz click en un nodo pequeño y en uno grande. Compara población,
+   sectores y conexiones.
+
+-----------------------------------------------------------------------
+6. FILOSOFÍA
+-----------------------------------------------------------------------
+Este simulador no pretende decir "esta es la red que España necesita".
+Pretende lo contrario: mostrar que "la red que España necesita" depende
+de qué se optimice, y que cualquier afirmación del tipo "el AVE a
+Madrid es lo más eficiente" o "hay que conectar la España vaciada" es
+una elección de objetivo, no un hecho técnico.
+
+El valor del juguete no está en sus números, sino en el contraste:
+pasajeros vs mercancías, eficiencia vs equidad, CAPEX vs OPEX. Ese
+contraste es el debate real, y aquí se ve en colores.
+
+Es un juguete. Los datos son aproximados. Las fórmulas son simples.
+Las conclusiones son del usuario, no del modelo.
+========================================================================
