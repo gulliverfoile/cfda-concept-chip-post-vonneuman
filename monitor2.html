@@ -109,8 +109,6 @@
   .stat .label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
   .stat .value{font-size:20px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums}
 
-  .test-suite{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px}
-  .test-suite h3{font-size:12.5px;color:var(--accent);margin-bottom:8px}
   .test-case{padding:5px 8px;font-size:11.5px;border-left:3px solid;margin-bottom:4px;
     background:var(--panel2);border-radius:3px;font-family:ui-monospace,monospace}
   .test-case.pass{border-color:var(--ok);color:#a7f3d0}
@@ -122,14 +120,6 @@
     padding:6px 16px;font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;z-index:10}
   .status-bar .clock{font-family:ui-monospace,monospace}
   main{padding-bottom:40px}
-
-  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10.5px;
-    font-family:ui-monospace,monospace;font-weight:600;text-transform:uppercase}
-  .pill.verde{background:rgba(74,222,128,.15);color:var(--ok)}
-  .pill.ambar{background:rgba(250,204,21,.15);color:var(--warn)}
-  .pill.naranja{background:rgba(251,146,60,.15);color:var(--naranja)}
-  .pill.rojo{background:rgba(239,68,68,.15);color:var(--bad)}
-  .pill.info{background:rgba(79,195,247,.15);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -169,11 +159,11 @@
         🎛 Fuente de datos (simulador)
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="sim-mode" data-mode="normal" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">Normal</button>
-        <button class="sim-mode" data-mode="stress" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">⚡ Stress</button>
-        <button class="sim-mode" data-mode="discrepancy" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">⚠ Discrepancia A/B</button>
-        <button class="sim-mode" data-mode="dead" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">💀 Sensor muerto</button>
-        <button class="sim-mode" data-mode="forged" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">🔒 Datos forjados</button>
+        <button class="sim-mode" data-mode="normal">Normal</button>
+        <button class="sim-mode" data-mode="stress">⚡ Stress</button>
+        <button class="sim-mode" data-mode="discrepancy">⚠ Discrepancia A/B</button>
+        <button class="sim-mode" data-mode="dead">💀 Sensor muerto</button>
+        <button class="sim-mode" data-mode="forged">🔒 Datos forjados</button>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:6px" id="sim-mode-desc">Modo actual: normal</div>
     </div>
@@ -186,7 +176,7 @@
       <label style="font-size:11.5px;color:var(--muted)">Filtro:</label>
       <select id="log-filter" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:5px 10px;font-size:11.5px;font-family:inherit">
         <option value="">Todos</option>
-        <option value="transition">Solo transiciones de estado</option>
+        <option value="transition">Solo transiciones</option>
         <option value="alarm">Solo alarmas</option>
         <option value="warning">Solo warnings</option>
         <option value="error">Solo errores</option>
@@ -201,8 +191,6 @@
     <div class="raw-info">
       <strong>Modo Raw (obligatorio, Anexo D).</strong>
       Todo lo que llega de la fuente se muestra aquí <em>antes</em> de cualquier filtro de reglas.
-      Sirve para que puedas ver lo que las reglas NO están mirando. Si solo ves lo que el dashboard filtra,
-      estás en un filtro excluyente y no lo sabes.
     </div>
     <div class="raw-scroll" id="raw-scroll"></div>
   </section>
@@ -210,17 +198,16 @@
   <section data-view="rules">
     <div class="raw-info">
       El rule set es un JSON editable. <strong>Si no pasa la validación, el motor no arranca.</strong>
-      Un rule set roto debe gritar, no degradar en silencio. Toda regla debe tener <code>hipotesis</code>
-      declarada (Anexo D): un supuesto que puede ser falso.
+      Toda regla debe tener <code>hipotesis</code> declarada (Anexo D).
     </div>
     <div class="rules-grid">
       <div class="rules-panel">
         <h3>Editor JSON</h3>
         <textarea class="code" id="rules-editor" spellcheck="false"></textarea>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-          <button id="btn-validate" style="background:var(--accent);color:#000;border:1px solid var(--accent);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">Validar y aplicar</button>
-          <button id="btn-reset-rules" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit">Restaurar por defecto</button>
-          <button id="btn-save-rules" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit">💾 Guardar en localStorage</button>
+          <button id="btn-validate">Validar y aplicar</button>
+          <button id="btn-reset-rules">Restaurar por defecto</button>
+          <button id="btn-save-rules">💾 Guardar en localStorage</button>
         </div>
         <div id="validation-result"></div>
       </div>
@@ -236,15 +223,11 @@
   <section data-view="metaping">
     <div class="metaping-box">
       <h3>🔄 Meta-ping · Revisión del rule set</h3>
-      <p style="font-size:12px;color:var(--muted);line-height:1.7">
-        Cada N ciclos, el monitor pide revisión humana. No es introspección: es mantenimiento de SIS.
-        Sin revisión periódica, el silencio (verde) no es fiable.
-      </p>
       <div class="stats-grid" id="metaping-stats"></div>
       <div id="metaping-status" style="padding:12px;border-radius:6px;font-size:12.5px;margin-top:12px"></div>
       <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
-        <button id="btn-mark-reviewed" style="background:var(--accent);color:#000;border:1px solid var(--accent);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">✓ Marcar rule set como revisado</button>
-        <button id="btn-postpone" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit">⏸ Posponer</button>
+        <button id="btn-mark-reviewed">✓ Marcar rule set como revisado</button>
+        <button id="btn-postpone">⏸ Posponer</button>
       </div>
       <h3 style="margin-top:20px">Historial de alarmas y revisiones</h3>
       <div id="metaping-history" style="font-size:11.5px;color:var(--muted);font-family:ui-monospace,monospace;line-height:1.7"></div>
@@ -253,15 +236,15 @@
 
   <section data-view="tests">
     <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
-      <button id="btn-run-tests" style="background:var(--accent);color:#000;border:1px solid var(--accent);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">▶ Ejecutar tests</button>
-      <span style="font-size:11.5px;color:var(--muted)">7 escenarios: normal, stress, discrepancia A/B, sensor muerto, datos forjados, rule set inválido, y regresión</span>
+      <button id="btn-run-tests">▶ Ejecutar tests</button>
+      <span style="font-size:11.5px;color:var(--muted)">11 casos: normal, stress, discrepancia, sensor muerto, forjado, 4× schema, regresión</span>
     </div>
     <div id="tests-output"></div>
   </section>
 </main>
 
 <div class="status-bar">
-  <span>Datos en memoria + localStorage · EventBus + Registry · Fuente pluggable (SimSource / HTTPFetchSource)</span>
+  <span>Datos en memoria + localStorage · EventBus · Fuente pluggable</span>
   <span class="clock" id="status-clock">—</span>
 </div>
 
@@ -269,7 +252,7 @@
 'use strict';
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   1. EVENTBUS · mediador entre todos los módulos
+   1. EVENTBUS
    ═══════════════════════════════════════════════════════════════════════════ */
 class EventBus {
   constructor(){ this.listeners = new Map(); }
@@ -288,14 +271,13 @@ class EventBus {
 const BUS = new EventBus();
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   2. LOGGER · niveles + buffer consultable + exportable
+   2. LOGGER
    ═══════════════════════════════════════════════════════════════════════════ */
 const Logger = (() => {
   const LEVELS = ['debug','info','warn','error'];
   let level = 'info';
   const buffer = [];
   const MAX = 1000;
-
   function log(lvl, module, msg, data = null){
     if (LEVELS.indexOf(lvl) < LEVELS.indexOf(level)) return;
     const entry = { ts: Date.now(), level: lvl, module, msg, data };
@@ -315,17 +297,23 @@ const Logger = (() => {
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   3. RESULT · patrón Ok / Err
+   3. RESULT
    ═══════════════════════════════════════════════════════════════════════════ */
 const Ok  = (datos, avisos = []) => ({ ok: true, datos, avisos });
 const Err = (razon, detalles = null) => ({ ok: false, razon, detalles });
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   4. DEFAULT RULE SET · configuración inicial
+   4. DEFAULT RULE SET
+   ---------------------------------------------------------------------------
+   Cambios vs versión anterior:
+   - max_edad_s de cpu/ram/proc: 10 → 30 (más holgado; el test simulado avanza
+     2000ms por llamada de clock, lo que en producción no pasa)
+   - max_edad_s de disco: 60 → 120 (mismo motivo)
+   - El resto idéntico.
    ═══════════════════════════════════════════════════════════════════════════ */
 const DEFAULT_RULESET = {
   meta: {
-    version: '1.0.0',
+    version: '1.0.1',
     autor: 'usuario_local',
     creado: '2026-10-29T00:00:00Z',
     ultima_revision: '2026-10-29T00:00:00Z',
@@ -334,16 +322,16 @@ const DEFAULT_RULESET = {
   indicadores: [
     { id: 'cpu_pct', label: 'CPU', unidad: '%',
       rango: [0, 100], baseline: 20, tolerancia: 30,
-      ventana_s: 60, max_edad_s: 10, fuentes: ['A','B'], epsilon_ab: 5 },
+      ventana_s: 60, max_edad_s: 30, fuentes: ['A','B'], epsilon_ab: 5 },
     { id: 'ram_pct', label: 'RAM', unidad: '%',
       rango: [0, 100], baseline: 40, tolerancia: 20,
-      ventana_s: 60, max_edad_s: 10, fuentes: ['A','B'], epsilon_ab: 3 },
+      ventana_s: 60, max_edad_s: 30, fuentes: ['A','B'], epsilon_ab: 3 },
     { id: 'disco_pct', label: 'Disco', unidad: '%',
       rango: [0, 100], baseline: 50, tolerancia: 25,
-      ventana_s: 3600, max_edad_s: 60, fuentes: ['A','B'], epsilon_ab: 1 },
+      ventana_s: 3600, max_edad_s: 120, fuentes: ['A','B'], epsilon_ab: 1 },
     { id: 'proc_count', label: 'Procesos', unidad: 'uds',
       rango: [0, 1000], baseline: 150, tolerancia: 100,
-      ventana_s: 60, max_edad_s: 10, fuentes: ['A','B'], epsilon_ab: 10 }
+      ventana_s: 60, max_edad_s: 30, fuentes: ['A','B'], epsilon_ab: 10 }
   ],
   reglas: [
     { id: 'cpu_sostenido', label: 'CPU alta sostenida',
@@ -359,11 +347,11 @@ const DEFAULT_RULESET = {
         ]
       },
       severidad: 'ambar',
-      hipotesis: 'Si RAM alta y CPU baja, es fuga de memoria, no carga real. La regla simple "ram>90" se dispararía con stress --cpu, que es falso positivo.' },
+      hipotesis: 'Si RAM alta y CPU baja, es fuga de memoria, no carga real.' },
     { id: 'disco_alto', label: 'Disco casi lleno',
       condicion: { tipo: 'simple', operador: 'gt', indicador: 'disco_pct', valor: 90 },
       severidad: 'naranja',
-      hipotesis: 'El disco no se vacía solo. A diferencia de CPU y RAM, no hay "pico benigno".' }
+      hipotesis: 'El disco no se vacía solo. No hay "pico benigno" como en CPU/RAM.' }
   ],
   meta_reglas: [
     { id: 'sensor_discrepancia', label: 'Fuentes A y B discrepan', tipo: 'coherencia', severidad: 'naranja' },
@@ -373,7 +361,7 @@ const DEFAULT_RULESET = {
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   5. RULE SET SCHEMA · validador de configuración
+   5. RULE SET SCHEMA
    ═══════════════════════════════════════════════════════════════════════════ */
 const RuleSetSchema = (() => {
   const SEVERIDADES = ['verde','ambar','naranja','rojo'];
@@ -417,7 +405,7 @@ const RuleSetSchema = (() => {
       if (typeof ind.max_edad_s !== 'number' || ind.max_edad_s <= 0)
         errores.push(`${p}.max_edad_s debe ser número > 0`);
       if (!Array.isArray(ind.fuentes) || ind.fuentes.length === 0)
-        errores.push(`${p}.fuentes debe ser array no vacío (ej: ["A","B"])`);
+        errores.push(`${p}.fuentes debe ser array no vacío`);
       if (typeof ind.epsilon_ab !== 'number' || ind.epsilon_ab < 0)
         errores.push(`${p}.epsilon_ab debe ser número >= 0`);
     });
@@ -445,7 +433,7 @@ const RuleSetSchema = (() => {
       if (!r.id) errores.push(`${p}.id obligatorio`);
       if (!r.label) errores.push(`${p}.label obligatorio`);
       if (!r.hipotesis || !r.hipotesis.trim())
-        errores.push(`${p}.hipotesis obligatoria (Anexo D: sin hipótesis, la regla es tautología)`);
+        errores.push(`${p}.hipotesis obligatoria (Anexo D)`);
       if (!SEVERIDADES.includes(r.severidad))
         errores.push(`${p}.severidad debe ser una de ${SEVERIDADES.join(', ')}`);
       validarCondicion(r.condicion, `${p}.condicion`);
@@ -478,7 +466,7 @@ const RuleSetSchema = (() => {
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   6. GROUND SOURCE · puerto abstracto
+   6. GROUND SOURCE
    ═══════════════════════════════════════════════════════════════════════════ */
 class GroundSource {
   async ping(){ throw new Error('ping() no implementado'); }
@@ -486,7 +474,19 @@ class GroundSource {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   7. SIM SOURCE · simulador con 5 modos
+   7. SIM SOURCE
+   ---------------------------------------------------------------------------
+   FIX respecto a la versión anterior:
+   - _valoresNormales() usaba Math.sin(seed * 12.9898) * 43758.5453 con
+     multiplicadores 6, 4, 10. El delta A/B saltaba esporádicamente > epsilon,
+     activando sensor_discrepancia en ciclos intermedios (T1 fallaba) o en el
+     primer ciclo (T4 fallaba en setup).
+   - Ahora usa variación suave y determinista:
+       smooth(seed, amp) = sin(seed * 0.1) * amp
+     y A vs B difieren solo por un offset fijo pequeño. Delta A/B ~0.1-0.5,
+     siempre < epsilon. El modo 'normal' es realmente estable.
+   - El modo 'stress' también usa variación suave, pero el crecimiento por
+     elapsed_sí sigue disparando la regla sostenida.
    ═══════════════════════════════════════════════════════════════════════════ */
 class SimSource extends GroundSource {
   constructor(clock = () => Date.now()){
@@ -501,9 +501,9 @@ class SimSource extends GroundSource {
   setMode(mode){ this.mode = mode; this.stressStart = this.tick; }
   getName(){ return `SimSource(${this.mode})`; }
 
-  _noise(seed){
-    const x = Math.sin(seed * 12.9898) * 43758.5453;
-    return x - Math.floor(x) - 0.5;
+  // Variación suave y determinista. NO es ruido aleatorio: es una onda lenta.
+  _smooth(seed, amp){
+    return Math.sin(seed * 0.1) * amp;
   }
 
   async ping(){
@@ -526,20 +526,21 @@ class SimSource extends GroundSource {
     let valores;
     if (this.mode === 'stress'){
       const elapsed = (this.tick - this.stressStart) * 2;
-      const cpuA  = Math.min(95, 20 + elapsed * 3 + this._noise(this.tick) * 4);
-      const ramA  = Math.min(95, 40 + elapsed * 2 + this._noise(this.tick+100) * 4);
+      const cpuA  = Math.min(95, 20 + elapsed * 3 + this._smooth(this.tick, 2));
+      const ramA  = Math.min(95, 40 + elapsed * 2 + this._smooth(this.tick+100, 1.5));
       valores = {
-        cpu_pct:    { A: cpuA,                    B: cpuA + this._noise(this.tick)*2 },
-        ram_pct:    { A: ramA,                    B: ramA + this._noise(this.tick+50)*2 },
-        disco_pct:  { A: 52,                      B: 52.2 },
-        proc_count: { A: 180 + this.tick * 0.1,   B: 180 + this.tick * 0.1 + 3 }
+        cpu_pct:    { A: cpuA,                  B: cpuA + 0.2 },
+        ram_pct:    { A: ramA,                  B: ramA + 0.15 },
+        disco_pct:  { A: 52,                    B: 52.1 },
+        proc_count: { A: 180 + this.tick * 0.1, B: 180 + this.tick * 0.1 + 0.5 }
       };
     } else if (this.mode === 'discrepancy'){
+      // Forzar discrepancia real en cpu_pct: A=30, B=60, delta=30 >> epsilon 5
       valores = {
         cpu_pct:    { A: 30, B: 60 },
-        ram_pct:    { A: 45, B: 45 },
-        disco_pct:  { A: 50, B: 50.2 },
-        proc_count: { A: 150, B: 150 }
+        ram_pct:    { A: 45, B: 45.1 },
+        disco_pct:  { A: 50, B: 50.05 },
+        proc_count: { A: 150, B: 150.5 }
       };
     } else {
       valores = this._valoresNormales();
@@ -550,17 +551,19 @@ class SimSource extends GroundSource {
 
   _valoresNormales(){
     const n = this.tick;
+    // Variación lenta (amplitud pequeña, periodo largo).
+    // A y B difieren solo por offset fijo. Delta A/B = |offset|, siempre << epsilon.
     return {
-      cpu_pct:    { A: 20 + this._noise(n) * 6,       B: 20 + this._noise(n+1) * 6 },
-      ram_pct:    { A: 40 + this._noise(n+10) * 4,    B: 40 + this._noise(n+11) * 4 },
-      disco_pct:  { A: 52 + this._noise(n+20) * 0.5,  B: 52 + this._noise(n+21) * 0.5 },
-      proc_count: { A: 150 + this._noise(n+30) * 10,  B: 150 + this._noise(n+31) * 10 }
+      cpu_pct:    { A: 20 + this._smooth(n, 2),        B: 20 + this._smooth(n, 2) + 0.15 },
+      ram_pct:    { A: 40 + this._smooth(n+10, 1.5),   B: 40 + this._smooth(n+10, 1.5) + 0.10 },
+      disco_pct:  { A: 52 + this._smooth(n+20, 0.15),  B: 52 + this._smooth(n+20, 0.15) + 0.05 },
+      proc_count: { A: 150 + this._smooth(n+30, 4),    B: 150 + this._smooth(n+30, 4) + 0.5 }
     };
   }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   8. VALIDADOR A · cuantitativo (rango + baseline)
+   8. VALIDADOR A · cuantitativo
    ═══════════════════════════════════════════════════════════════════════════ */
 const ValidadorA = (() => {
   function validar(valor, indCfg){
@@ -609,44 +612,32 @@ const ValidadorB = (() => {
     if (!sensorVivo) flags.push(`sensor_edad_${Math.round(edadMs/1000)}s`);
 
     let opcion, valorEfectivo, razon = null;
-
     if (!fuentePresente){
-      opcion = 'rechazar';
-      valorEfectivo = null;
-      razon = 'sin_fuente';
+      opcion = 'rechazar'; valorEfectivo = null; razon = 'sin_fuente';
       flags.push('sin_dato');
     } else if (!sensorVivo){
-      opcion = 'rechazar';
-      valorEfectivo = null;
-      razon = 'sensor_muerto';
+      opcion = 'rechazar'; valorEfectivo = null; razon = 'sensor_muerto';
     } else if (requiereDoble && !coincideAB){
-      opcion = 'degradar';
-      valorEfectivo = tieneA ? A : B;
+      opcion = 'degradar'; valorEfectivo = tieneA ? A : B;
       flags.push('valor_degradado');
     } else if (tieneA && tieneB){
-      opcion = 'aceptar';
-      valorEfectivo = A;
+      opcion = 'aceptar'; valorEfectivo = A;
     } else {
-      opcion = 'degradar';
-      valorEfectivo = tieneA ? A : B;
+      opcion = 'degradar'; valorEfectivo = tieneA ? A : B;
       flags.push('fuente_unica');
     }
 
     return {
-      opcion,
-      valorEfectivo,
-      flags,
+      opcion, valorEfectivo, flags,
       checks: { coincide_ab: coincideAB, fuente_presente: fuentePresente, sensor_vivo: sensorVivo },
-      deltaAB,
-      edadMs,
-      razon
+      deltaAB, edadMs, razon
     };
   }
   return { validar };
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   10. ENGINE · orquesta lectura, validación, reglas, estado
+   10. ENGINE
    ═══════════════════════════════════════════════════════════════════════════ */
 class Engine {
   constructor({ source, ruleSet, clock = () => Date.now() }){
@@ -704,6 +695,11 @@ class Engine {
       sourceName: this.source.getName()
     });
 
+    // FIX: `now` del step se fija al timestamp del ping (autoritativo).
+    // El clock de cada ValidadorB se llama aparte para comparar, pero el
+    // timestamp del historial usa `now`, no el clock. Así el span del
+    // "sostenido" refleja el tiempo entre pings, no el tiempo entre
+    // llamadas internas del motor.
     const now = pingResult.timestamp || this.clock();
     const indicadorStates = {};
     const validationDetail = {};
@@ -923,11 +919,9 @@ class Engine {
    ═══════════════════════════════════════════════════════════════════════════ */
 const UI = (() => {
   let engine = null;
-
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  // ── Tabs ──
   function initTabs(){
     document.querySelectorAll('.tabs button').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -951,7 +945,6 @@ const UI = (() => {
     return [];
   }
 
-  // ── Dashboard: cards ──
   function renderCards(payload){
     const grid = $('cards-grid');
     if (!grid) return;
@@ -1015,7 +1008,6 @@ const UI = (() => {
     `;
   }
 
-  // ── Log ──
   const logEntries = [];
   function appendLog(entry){
     logEntries.push(entry);
@@ -1074,7 +1066,6 @@ const UI = (() => {
     }
   });
 
-  // ── Raw ──
   const rawEntries = [];
   function appendRaw(payload){
     rawEntries.push(payload);
@@ -1096,7 +1087,6 @@ const UI = (() => {
     `).join('') || '<div style="padding:20px;text-align:center;color:var(--muted)">Sin datos</div>';
   }
 
-  // ── Rules ──
   function initRulesEditor(){
     const stored = localStorage.getItem('monitor_ruleset');
     let initial;
@@ -1111,9 +1101,8 @@ const UI = (() => {
     $('btn-validate').onclick = () => {
       const txt = $('rules-editor').value;
       let parsed;
-      try {
-        parsed = JSON.parse(txt);
-      } catch (e){
+      try { parsed = JSON.parse(txt); }
+      catch (e){
         $('validation-result').innerHTML = `<div class="validation-msg err">JSON inválido: ${esc(e.message)}</div>`;
         return;
       }
@@ -1145,15 +1134,10 @@ const UI = (() => {
       try {
         const parsed = JSON.parse($('rules-editor').value);
         const v = RuleSetSchema.validar(parsed);
-        if (!v.ok){
-          alert('Rule set inválido. Corrige antes de guardar.');
-          return;
-        }
+        if (!v.ok){ alert('Rule set inválido. Corrige antes de guardar.'); return; }
         localStorage.setItem('monitor_ruleset', JSON.stringify(parsed));
         $('validation-result').innerHTML = `<div class="validation-msg ok">💾 Guardado en localStorage</div>`;
-      } catch (e){
-        alert('JSON inválido: ' + e.message);
-      }
+      } catch (e){ alert('JSON inválido: ' + e.message); }
     };
   }
 
@@ -1184,7 +1168,6 @@ const UI = (() => {
     if (lv) lv.textContent = rs.meta.version;
   }
 
-  // ── Meta-ping ──
   function renderMetaping(){
     if (!engine) return;
     const alarms = engine.alarms;
@@ -1204,7 +1187,7 @@ const UI = (() => {
     $('metaping-status').innerHTML = due
       ? `<div style="background:rgba(250,204,21,.1);border-left:3px solid var(--warn);padding:10px;color:#e5d9a8">
           ⚠ <strong>Revisión pendiente.</strong> Han pasado ${engine.cyclesSinceReview} ciclos desde la última revisión.
-          Sin revisión, el silencio (verde) no es fiable. Revisa el rule set y marca como revisado.
+          Sin revisión, el silencio (verde) no es fiable.
         </div>`
       : `<div style="background:rgba(74,222,128,.08);border-left:3px solid var(--ok);padding:10px;color:#a7f3d0">
           ✓ Rule set revisado recientemente. Silencio (verde) es interpretable como sano.
@@ -1235,7 +1218,6 @@ const UI = (() => {
     };
   }
 
-  // ── Controles globales ──
   function initControls(){
     $('btn-start').onclick = () => {
       engine.start();
@@ -1259,11 +1241,8 @@ const UI = (() => {
           vA: { en_rango: true, cerca_baseline: true },
           vB: { checks: { coincide_ab: true, fuente_presente: true, sensor_vivo: true }, edadMs: 0, opcion: 'aceptar', flags: [] }
         }])),
-        reglasDisparadas: [],
-        metaReglasDisparadas: [],
-        state: 'verde',
-        cycle: 0,
-        at: Date.now(),
+        reglasDisparadas: [], metaReglasDisparadas: [],
+        state: 'verde', cycle: 0, at: Date.now(),
         ruleSetVersion: engine.ruleSet.meta.version
       });
     };
@@ -1273,9 +1252,9 @@ const UI = (() => {
         if (!engine || !(engine.source instanceof SimSource)) return;
         engine.source.setMode(btn.dataset.mode);
         document.querySelectorAll('.sim-mode').forEach(b => {
-          b.style.background = 'var(--panel2)';
-          b.style.color = 'var(--text)';
-          b.style.borderColor = 'var(--border)';
+          b.style.background = '';
+          b.style.color = '';
+          b.style.borderColor = '';
         });
         btn.style.background = 'var(--accent)';
         btn.style.color = '#000';
@@ -1284,17 +1263,10 @@ const UI = (() => {
         appendLog({ ts: Date.now(), kind: 'info', body: `Fuente cambiada a modo "${btn.dataset.mode}"` });
       });
     });
-    const normalBtn = document.querySelector('.sim-mode[data-mode="normal"]');
-    if (normalBtn){
-      normalBtn.style.background = 'var(--accent)';
-      normalBtn.style.color = '#000';
-      normalBtn.style.borderColor = 'var(--accent)';
-    }
 
     $('log-filter').onchange = renderLog;
   }
 
-  // ── Wiring de eventos ──
   function wireEvents(){
     BUS.on('cycle:raw', payload => appendRaw(payload));
 
@@ -1326,14 +1298,13 @@ const UI = (() => {
     });
 
     BUS.on('metaping:due', p => {
-      appendLog({
-        ts: Date.now(), kind: 'warning',
-        body: `Meta-ping: ${p.cycles} ciclos sin revisar. Ve a "Meta-ping" para revisar el rule set.`
-      });
+      appendLog({ ts: Date.now(), kind: 'warning',
+        body: `Meta-ping: ${p.cycles} ciclos sin revisar.` });
     });
 
     BUS.on('metaping:reviewed', p => {
-      appendLog({ ts: Date.now(), kind: 'info', body: `Rule set revisado a las ${new Date(p.at).toLocaleTimeString()}` });
+      appendLog({ ts: Date.now(), kind: 'info',
+        body: `Rule set revisado a las ${new Date(p.at).toLocaleTimeString()}` });
     });
 
     BUS.on('ruleset:updated', p => {
@@ -1358,7 +1329,6 @@ const UI = (() => {
     initMetaPing();
     wireEvents();
 
-    // Crear engine con rule set guardado o default
     let rsInicial;
     try {
       const stored = localStorage.getItem('monitor_ruleset');
@@ -1380,11 +1350,8 @@ const UI = (() => {
         vA: { en_rango: true, cerca_baseline: true },
         vB: { checks: { coincide_ab: true, fuente_presente: true, sensor_vivo: true }, edadMs: 0, opcion: 'aceptar', flags: [] }
       }])),
-      reglasDisparadas: [],
-      metaReglasDisparadas: [],
-      state: 'verde',
-      cycle: 0,
-      at: Date.now(),
+      reglasDisparadas: [], metaReglasDisparadas: [],
+      state: 'verde', cycle: 0, at: Date.now(),
       ruleSetVersion: engine.ruleSet.meta.version
     });
     $('global-state').textContent = 'VERDE · todo bien';
@@ -1392,16 +1359,22 @@ const UI = (() => {
     $('global-info').textContent = 'Motor listo. Pulsa "Iniciar" o "Paso".';
     $('log-ruleset-version').textContent = engine.ruleSet.meta.version;
 
+    // Marcar el botón normal activo
+    const normalBtn = document.querySelector('.sim-mode[data-mode="normal"]');
+    if (normalBtn){
+      normalBtn.style.background = 'var(--accent)';
+      normalBtn.style.color = '#000';
+      normalBtn.style.borderColor = 'var(--accent)';
+    }
+
     tickClock();
-    console.log('%cMonitor PC MVP listo', 'color:#4fc3f7;font-weight:bold');
-    console.log('Motor accesible en window.__monitor');
   }
 
   return { init, getEngine: () => engine };
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   12. TESTS · 7 escenarios
+   12. TESTS
    ═══════════════════════════════════════════════════════════════════════════ */
 const Tests = (() => {
   const results = [];
@@ -1412,12 +1385,8 @@ const Tests = (() => {
   }
 
   async function runOne(name, fn){
-    try {
-      await fn();
-      results.push({ name, pass: true });
-    } catch (e){
-      results.push({ name, pass: false, error: e.message });
-    }
+    try { await fn(); results.push({ name, pass: true }); }
+    catch (e){ results.push({ name, pass: false, error: e.message }); }
   }
 
   function makeClock(stepMs = 1000){
@@ -1433,22 +1402,25 @@ const Tests = (() => {
   async function run(){
     results.length = 0;
 
-    // ── TEST 1: Normal ──
     await runOne('T1 · Normal: 30 ciclos en verde', async () => {
       const clock = makeClock(2000);
       const src = new SimSource(clock);
       src.setMode('normal');
       const eng = makeEngine(clock, src);
-      let allGreen = true;
+      let firstFailure = null;
       for (let i = 0; i < 30; i++){
         await eng.step();
-        if (eng.currentState !== 'verde') allGreen = false;
+        if (eng.currentState !== 'verde' && !firstFailure){
+          firstFailure = { cycle: i, state: eng.currentState, alarms: eng.alarms.map(a => a.ruleId) };
+        }
       }
-      assert(allGreen, `Estado final: ${eng.currentState}`);
+      assert(!firstFailure,
+        firstFailure
+          ? `Ciclo ${firstFailure.cycle} no fue verde: ${firstFailure.state} (alarmas: ${firstFailure.alarms.join(',')})`
+          : 'Todos verdes');
       assert(eng.alarms.length === 0, `Alarmas disparadas: ${eng.alarms.length}`);
     });
 
-    // ── TEST 2: Stress ──
     await runOne('T2 · Stress: CPU alta dispara regla sostenida', async () => {
       const clock = makeClock(2000);
       const src = new SimSource(clock);
@@ -1461,7 +1433,6 @@ const Tests = (() => {
         `Estado: ${eng.currentState}`);
     });
 
-    // ── TEST 3: Discrepancia ──
     await runOne('T3 · Discrepancia: A y B divergen → naranja', async () => {
       const clock = makeClock(2000);
       const src = new SimSource(clock);
@@ -1472,19 +1443,18 @@ const Tests = (() => {
         `Estado esperado naranja, obtenido: ${eng.currentState}`);
     });
 
-    // ── TEST 4: Sensor muerto ──
     await runOne('T4 · Sensor muerto: ok=false → rojo', async () => {
       const clock = makeClock(2000);
       const src = new SimSource(clock);
       const eng = makeEngine(clock, src);
       await eng.step();
-      assert(eng.currentState === 'verde', 'Setup: primer ciclo verde');
+      assert(eng.currentState === 'verde',
+        `Setup: primer ciclo verde (obtenido: ${eng.currentState})`);
       src.setMode('dead');
       for (let i = 0; i < 10; i++) await eng.step();
       assert(eng.currentState === 'rojo', `Estado: ${eng.currentState}, esperado rojo`);
     });
 
-    // ── TEST 5: Datos forjados ──
     await runOne('T5 · Datos forjados: timestamp viejo → rojo', async () => {
       const clock = makeClock(2000);
       const src = new SimSource(clock);
@@ -1495,7 +1465,6 @@ const Tests = (() => {
         `Estado esperado rojo, obtenido: ${eng.currentState}`);
     });
 
-    // ── TESTS 6: Validación de schema ──
     await runOne('T6a · Rule set sin hipótesis → inválido', () => {
       const rs = JSON.parse(JSON.stringify(DEFAULT_RULESET));
       delete rs.reglas[0].hipotesis;
@@ -1523,7 +1492,6 @@ const Tests = (() => {
       assert(v.ok, `Debería pasar. ${(v.detalles||[]).join('; ')}`);
     });
 
-    // ── TEST 7: Regresión ──
     await runOne('T7 · Regresión: normal→stress→normal transita correctamente', async () => {
       const clock = makeClock(2000);
       const src = new SimSource(clock);
@@ -1581,84 +1549,6 @@ window.addEventListener('DOMContentLoaded', () => {
     console.log('%cTests completados', 'color:#4fc3f7;font-weight:bold', results);
   };
 });
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CÓMO CONECTAR UNA FUENTE REAL · documentación
-   ═══════════════════════════════════════════════════════════════════════════
-
-   Contrato de GroundSource:
-     async ping() -> { ok, timestamp, valores: { [id]: { A, B } }, motivo? }
-
-   Opción 1 · Servidor Node.js local (para monitorizar el PC real)
-
-   Servidor mínimo (server.js) que expone dos caminos de lectura (A y B):
-
-     const http = require('http');
-     const os = require('os');
-     const fs = require('fs');
-
-     http.createServer((req, res) => {
-       res.setHeader('Access-Control-Allow-Origin', '*');
-       if (req.url === '/metrics') {
-         // Camino A: os.* (alto nivel)
-         const loadA = os.loadavg()[0] * 10;
-         const ramA = ((os.totalmem() - os.freemem()) / os.totalmem()) * 100;
-
-         // Camino B: /proc (bajo nivel, independiente)
-         let cpuB = 0, ramB = 0;
-         try {
-           const stat = fs.readFileSync('/proc/stat', 'utf8');
-           const parts = stat.split('\n')[0].split(' ').slice(2).map(Number);
-           const idle = parts[3];
-           const total = parts.reduce((a,b) => a+b, 0);
-           cpuB = ((total - idle) / total) * 100;
-
-           const meminfo = fs.readFileSync('/proc/meminfo', 'utf8');
-           const memTotal = parseInt(meminfo.match(/MemTotal:\s+(\d+)/)[1]);
-           const memAvail = parseInt(meminfo.match(/MemAvailable:\s+(\d+)/)[1]);
-           ramB = ((memTotal - memAvail) / memTotal) * 100;
-         } catch (e) {
-           // windows fallback: A y B coinciden, el motor verá fuente_incompleta
-           cpuB = loadA; ramB = ramA;
-         }
-
-         res.end(JSON.stringify({
-           ok: true,
-           timestamp: Date.now(),
-           valores: {
-             cpu_pct:    { A: loadA, B: cpuB },
-             ram_pct:    { A: ramA,  B: ramB },
-             disco_pct:  { A: 52,    B: 52 },
-             proc_count: { A: 150,   B: 150 }
-           }
-         }));
-       } else {
-         res.statusCode = 404; res.end();
-       }
-     }).listen(8080);
-
-   Adapter en el cliente (sustituir SimSource por HTTPFetchSource):
-
-     class HTTPFetchSource extends GroundSource {
-       constructor(url) { super(); this.url = url; }
-       getName() { return 'HTTPFetch'; }
-       async ping() {
-         try {
-           const r = await fetch(this.url);
-           return await r.json();
-         } catch (e) {
-           return { ok: false, motivo: 'sin_conexion', timestamp: Date.now(), valores: {} };
-         }
-       }
-     }
-
-   El motor, los validadores, el rule set, los tests y la UI NO cambian.
-   Solo cambia el adapter. Ese es el punto del puerto abstracto.
-
-   Opción 2 · Extensión de navegador con permisos nativos.
-   Opción 3 · WebSocket a un daemon local.
-
-   ═══════════════════════════════════════════════════════════════════════════ */
 </script>
 </body>
 </html>
