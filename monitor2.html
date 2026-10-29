@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor PC · MVP · Doble seguridad + Reglas JSON</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#141a22; --panel2:#1c2530; --border:#2a3540;
+    --text:#e6edf5; --muted:#7d8ea0; --accent:#4fc3f7;
+    --ok:#4ade80; --warn:#facc15; --naranja:#fb923c; --bad:#ef4444;
+    --radius:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;
+    font-size:13px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+
+  header{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 16px;position:sticky;top:0;z-index:10}
+  header h1{font-size:15px;font-weight:600;margin-bottom:6px}
+  .self-disclosure{background:rgba(250,204,21,.08);border-left:3px solid var(--warn);
+    padding:6px 10px;border-radius:4px;font-size:11.5px;color:#e5d9a8;margin-bottom:8px;line-height:1.5}
+  .self-disclosure strong{color:var(--warn)}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap}
+  .tabs button{background:var(--panel2);color:var(--muted);border:1px solid var(--border);
+    padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit}
+  .tabs button.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+  .tabs button:hover:not(.active){color:var(--text)}
+
+  main{flex:1;padding:16px;max-width:1500px;margin:0 auto;width:100%}
+  section[data-view]{display:none}
+  section[data-view].active{display:block}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-bottom:16px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:12px;position:relative}
+  .card.verde{border-color:var(--ok)}
+  .card.ambar{border-color:var(--warn);background:rgba(250,204,21,.04)}
+  .card.naranja{border-color:var(--naranja);background:rgba(251,146,60,.06)}
+  .card.rojo{border-color:var(--bad);background:rgba(239,68,68,.08)}
+  .card-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;
+    margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+  .card-title .light{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .card-value{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;margin:4px 0}
+  .card-detail{font-size:11px;color:var(--muted);line-height:1.5}
+  .card-detail .kv{display:flex;justify-content:space-between;padding:1px 0}
+  .card-detail .kv span:last-child{color:var(--text);font-family:ui-monospace,monospace}
+
+  .state-bar{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .state-bar .big{font-size:20px;font-weight:700}
+  .state-bar .info{font-size:11.5px;color:var(--muted);line-height:1.5;flex:1}
+  .state-bar .controls{display:flex;gap:6px;flex-wrap:wrap}
+  .state-bar .controls button{background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11.5px;font-family:inherit}
+  .state-bar .controls button:hover{background:#253040}
+  .state-bar .controls button.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+  .state-bar .controls button.danger{border-color:var(--bad);color:var(--bad)}
+
+  table{width:100%;border-collapse:collapse;font-size:12px;font-family:ui-monospace,monospace}
+  th{text-align:left;padding:6px 8px;background:var(--panel2);color:var(--muted);
+    font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.05em;
+    border-bottom:1px solid var(--border);position:sticky;top:0}
+  td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:top}
+  tr:hover{background:rgba(255,255,255,.02)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+
+  .log-scroll{max-height:500px;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius)}
+  .log-entry{padding:8px 12px;border-bottom:1px solid var(--border);font-size:11.5px;
+    display:grid;grid-template-columns:80px 100px 1fr;gap:10px;align-items:start}
+  .log-entry:last-child{border-bottom:none}
+  .log-entry .ts{color:var(--muted);font-family:ui-monospace,monospace}
+  .log-entry .kind{font-weight:600;text-transform:uppercase;font-size:10px}
+  .log-entry .kind.transition{color:var(--accent)}
+  .log-entry .kind.alarm{color:var(--naranja)}
+  .log-entry .kind.warning{color:var(--warn)}
+  .log-entry .kind.error{color:var(--bad)}
+  .log-entry .kind.info{color:var(--muted)}
+  .log-entry .body{color:#cdd9e6}
+  .log-entry .review{margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .log-entry .review input{background:var(--bg);color:var(--text);border:1px solid var(--border);
+    border-radius:4px;padding:3px 6px;font-size:11px;font-family:inherit;flex:1;min-width:150px}
+  .log-entry .review button{background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10.5px;font-family:inherit}
+  .log-entry .review button.selected{background:var(--accent);color:#000;border-color:var(--accent)}
+
+  .rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:1000px){.rules-grid{grid-template-columns:1fr}}
+  .rules-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+  .rules-panel h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  textarea.code{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);
+    border-radius:6px;padding:10px;font-family:ui-monospace,monospace;font-size:11.5px;
+    resize:vertical;min-height:400px;line-height:1.5}
+  .validation-msg{padding:8px 12px;border-radius:6px;font-size:12px;margin-top:8px}
+  .validation-msg.ok{background:rgba(74,222,128,.1);border:1px solid var(--ok);color:var(--ok)}
+  .validation-msg.err{background:rgba(239,68,68,.1);border:1px solid var(--bad);color:var(--bad)}
+  .validation-msg .list{margin-top:6px;padding-left:20px;color:var(--muted);font-family:ui-monospace,monospace;font-size:11px}
+
+  .raw-info{padding:10px;background:rgba(79,195,247,.06);border-left:3px solid var(--accent);
+    border-radius:4px;font-size:11.5px;color:#b8d4e8;margin-bottom:12px;line-height:1.6}
+  .raw-scroll{max-height:500px;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius)}
+  .raw-row{padding:8px 12px;border-bottom:1px solid var(--border);font-family:ui-monospace,monospace;font-size:11px}
+  .raw-row:last-child{border-bottom:none}
+  .raw-row .head{display:flex;justify-content:space-between;color:var(--muted);margin-bottom:4px}
+  .raw-row .data{color:#cdd9e6;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+
+  .metaping-box{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+  .metaping-box h3{font-size:13px;color:var(--accent);margin-bottom:10px}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+  .stat{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:10px}
+  .stat .label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .stat .value{font-size:20px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums}
+
+  .test-suite{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px}
+  .test-suite h3{font-size:12.5px;color:var(--accent);margin-bottom:8px}
+  .test-case{padding:5px 8px;font-size:11.5px;border-left:3px solid;margin-bottom:4px;
+    background:var(--panel2);border-radius:3px;font-family:ui-monospace,monospace}
+  .test-case.pass{border-color:var(--ok);color:#a7f3d0}
+  .test-case.fail{border-color:var(--bad);color:#fecaca}
+  .test-case .err{color:var(--muted);font-size:10.5px;margin-left:8px}
+  .test-summary{padding:10px;background:var(--panel2);border-radius:6px;margin-bottom:12px;font-weight:600}
+
+  .status-bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);
+    padding:6px 16px;font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;z-index:10}
+  .status-bar .clock{font-family:ui-monospace,monospace}
+  main{padding-bottom:40px}
+
+  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10.5px;
+    font-family:ui-monospace,monospace;font-weight:600;text-transform:uppercase}
+  .pill.verde{background:rgba(74,222,128,.15);color:var(--ok)}
+  .pill.ambar{background:rgba(250,204,21,.15);color:var(--warn)}
+  .pill.naranja{background:rgba(251,146,60,.15);color:var(--naranja)}
+  .pill.rojo{background:rgba(239,68,68,.15);color:var(--bad)}
+  .pill.info{background:rgba(79,195,247,.15);color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🖥️ Monitor PC · MVP</h1>
+  <div class="self-disclosure">
+    <strong>⚠️ Esto mide un ordenador, no a ti.</strong>
+    Coincidencia interna ≠ verdad. Dos sensores de acuerdo no garantizan salud.
+    El silencio = "sano" solo si el sensor está vivo. Si el sensor muere, silencio = "no sé".
+  </div>
+  <div class="tabs">
+    <button data-tab="dashboard" class="active">📊 Dashboard</button>
+    <button data-tab="log">📜 Log</button>
+    <button data-tab="raw">🔎 Raw</button>
+    <button data-tab="rules">📋 Rule Set</button>
+    <button data-tab="metaping">🔄 Meta-ping</button>
+    <button data-tab="tests">🧪 Tests</button>
+  </div>
+</header>
+
+<main>
+  <section data-view="dashboard" class="active">
+    <div class="state-bar">
+      <div class="big" id="global-state">—</div>
+      <div class="info" id="global-info">Iniciando…</div>
+      <div class="controls">
+        <button id="btn-start" class="primary">▶ Iniciar</button>
+        <button id="btn-stop">⏸ Pausar</button>
+        <button id="btn-step">⏭ Paso</button>
+        <button id="btn-reset" class="danger">↺ Reset</button>
+      </div>
+    </div>
+
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+        🎛 Fuente de datos (simulador)
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="sim-mode" data-mode="normal" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">Normal</button>
+        <button class="sim-mode" data-mode="stress" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">⚡ Stress</button>
+        <button class="sim-mode" data-mode="discrepancy" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">⚠ Discrepancia A/B</button>
+        <button class="sim-mode" data-mode="dead" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">💀 Sensor muerto</button>
+        <button class="sim-mode" data-mode="forged" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11.5px">🔒 Datos forjados</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px" id="sim-mode-desc">Modo actual: normal</div>
+    </div>
+
+    <div class="grid" id="cards-grid"></div>
+  </section>
+
+  <section data-view="log">
+    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:11.5px;color:var(--muted)">Filtro:</label>
+      <select id="log-filter" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:5px 10px;font-size:11.5px;font-family:inherit">
+        <option value="">Todos</option>
+        <option value="transition">Solo transiciones de estado</option>
+        <option value="alarm">Solo alarmas</option>
+        <option value="warning">Solo warnings</option>
+        <option value="error">Solo errores</option>
+      </select>
+      <label style="font-size:11.5px;color:var(--muted);margin-left:8px">Versión rule set:</label>
+      <span id="log-ruleset-version" style="font-family:ui-monospace,monospace;color:var(--accent)">—</span>
+    </div>
+    <div class="log-scroll" id="log-scroll"></div>
+  </section>
+
+  <section data-view="raw">
+    <div class="raw-info">
+      <strong>Modo Raw (obligatorio, Anexo D).</strong>
+      Todo lo que llega de la fuente se muestra aquí <em>antes</em> de cualquier filtro de reglas.
+      Sirve para que puedas ver lo que las reglas NO están mirando. Si solo ves lo que el dashboard filtra,
+      estás en un filtro excluyente y no lo sabes.
+    </div>
+    <div class="raw-scroll" id="raw-scroll"></div>
+  </section>
+
+  <section data-view="rules">
+    <div class="raw-info">
+      El rule set es un JSON editable. <strong>Si no pasa la validación, el motor no arranca.</strong>
+      Un rule set roto debe gritar, no degradar en silencio. Toda regla debe tener <code>hipotesis</code>
+      declarada (Anexo D): un supuesto que puede ser falso.
+    </div>
+    <div class="rules-grid">
+      <div class="rules-panel">
+        <h3>Editor JSON</h3>
+        <textarea class="code" id="rules-editor" spellcheck="false"></textarea>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button id="btn-validate" style="background:var(--accent);color:#000;border:1px solid var(--accent);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">Validar y aplicar</button>
+          <button id="btn-reset-rules" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit">Restaurar por defecto</button>
+          <button id="btn-save-rules" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit">💾 Guardar en localStorage</button>
+        </div>
+        <div id="validation-result"></div>
+      </div>
+      <div class="rules-panel">
+        <h3>Estado del rule set activo</h3>
+        <div id="rules-status" style="font-size:12px;line-height:1.7;color:#cdd9e6"></div>
+        <h3 style="margin-top:16px">Última revisión</h3>
+        <div id="rules-last-review" style="font-size:12px;line-height:1.7;color:#cdd9e6"></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-view="metaping">
+    <div class="metaping-box">
+      <h3>🔄 Meta-ping · Revisión del rule set</h3>
+      <p style="font-size:12px;color:var(--muted);line-height:1.7">
+        Cada N ciclos, el monitor pide revisión humana. No es introspección: es mantenimiento de SIS.
+        Sin revisión periódica, el silencio (verde) no es fiable.
+      </p>
+      <div class="stats-grid" id="metaping-stats"></div>
+      <div id="metaping-status" style="padding:12px;border-radius:6px;font-size:12.5px;margin-top:12px"></div>
+      <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+        <button id="btn-mark-reviewed" style="background:var(--accent);color:#000;border:1px solid var(--accent);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">✓ Marcar rule set como revisado</button>
+        <button id="btn-postpone" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit">⏸ Posponer</button>
+      </div>
+      <h3 style="margin-top:20px">Historial de alarmas y revisiones</h3>
+      <div id="metaping-history" style="font-size:11.5px;color:var(--muted);font-family:ui-monospace,monospace;line-height:1.7"></div>
+    </div>
+  </section>
+
+  <section data-view="tests">
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+      <button id="btn-run-tests" style="background:var(--accent);color:#000;border:1px solid var(--accent);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">▶ Ejecutar tests</button>
+      <span style="font-size:11.5px;color:var(--muted)">7 escenarios: normal, stress, discrepancia A/B, sensor muerto, datos forjados, rule set inválido, y regresión</span>
+    </div>
+    <div id="tests-output"></div>
+  </section>
+</main>
+
+<div class="status-bar">
+  <span>Datos en memoria + localStorage · EventBus + Registry · Fuente pluggable (SimSource / HTTPFetchSource)</span>
+  <span class="clock" id="status-clock">—</span>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. EVENTBUS · mediador entre todos los módulos
+   ═══════════════════════════════════════════════════════════════════════════ */
+class EventBus {
+  constructor(){ this.listeners = new Map(); }
+  on(event, cb){
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event).add(cb);
+    return () => this.off(event, cb);
+  }
+  off(event, cb){ this.listeners.get(event)?.delete(cb); }
+  emit(event, payload){
+    this.listeners.get(event)?.forEach(cb => {
+      try { cb(payload); } catch (e){ console.error(`[bus:${event}]`, e); }
+    });
+  }
+}
+const BUS = new EventBus();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. LOGGER · niveles + buffer consultable + exportable
+   ═══════════════════════════════════════════════════════════════════════════ */
+const Logger = (() => {
+  const LEVELS = ['debug','info','warn','error'];
+  let level = 'info';
+  const buffer = [];
+  const MAX = 1000;
+
+  function log(lvl, module, msg, data = null){
+    if (LEVELS.indexOf(lvl) < LEVELS.indexOf(level)) return;
+    const entry = { ts: Date.now(), level: lvl, module, msg, data };
+    buffer.push(entry);
+    if (buffer.length > MAX) buffer.shift();
+    BUS.emit('log:new', entry);
+  }
+  return {
+    setLevel: l => { if (LEVELS.includes(l)) level = l; },
+    debug: (m, msg, d) => log('debug', m, msg, d),
+    info:  (m, msg, d) => log('info',  m, msg, d),
+    warn:  (m, msg, d) => log('warn',  m, msg, d),
+    error: (m, msg, d) => log('error', m, msg, d),
+    all: () => [...buffer],
+    clear: () => { buffer.length = 0; }
+  };
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. RESULT · patrón Ok / Err
+   ═══════════════════════════════════════════════════════════════════════════ */
+const Ok  = (datos, avisos = []) => ({ ok: true, datos, avisos });
+const Err = (razon, detalles = null) => ({ ok: false, razon, detalles });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. DEFAULT RULE SET · configuración inicial
+   ═══════════════════════════════════════════════════════════════════════════ */
+const DEFAULT_RULESET = {
+  meta: {
+    version: '1.0.0',
+    autor: 'usuario_local',
+    creado: '2026-10-29T00:00:00Z',
+    ultima_revision: '2026-10-29T00:00:00Z',
+    hipotesis_global: 'Monitorizar un PC de desarrollo. CPU y RAM tienen picos benignos. Disco no. Ruido de fondo esperado: ±5% en CPU/RAM.'
+  },
+  indicadores: [
+    { id: 'cpu_pct', label: 'CPU', unidad: '%',
+      rango: [0, 100], baseline: 20, tolerancia: 30,
+      ventana_s: 60, max_edad_s: 10, fuentes: ['A','B'], epsilon_ab: 5 },
+    { id: 'ram_pct', label: 'RAM', unidad: '%',
+      rango: [0, 100], baseline: 40, tolerancia: 20,
+      ventana_s: 60, max_edad_s: 10, fuentes: ['A','B'], epsilon_ab: 3 },
+    { id: 'disco_pct', label: 'Disco', unidad: '%',
+      rango: [0, 100], baseline: 50, tolerancia: 25,
+      ventana_s: 3600, max_edad_s: 60, fuentes: ['A','B'], epsilon_ab: 1 },
+    { id: 'proc_count', label: 'Procesos', unidad: 'uds',
+      rango: [0, 1000], baseline: 150, tolerancia: 100,
+      ventana_s: 60, max_edad_s: 10, fuentes: ['A','B'], epsilon_ab: 10 }
+  ],
+  reglas: [
+    { id: 'cpu_sostenido', label: 'CPU alta sostenida',
+      condicion: { tipo: 'sostenido', operador: 'gt', indicador: 'cpu_pct', valor: 80, duracion_s: 60 },
+      severidad: 'ambar',
+      hipotesis: 'Un pico de 5s es normal (compilación, arranque). 60s seguidos no.' },
+    { id: 'ram_alta_cpu_baja', label: 'RAM alta con CPU baja',
+      condicion: {
+        tipo: 'and',
+        operandos: [
+          { tipo: 'simple', operador: 'gt', indicador: 'ram_pct', valor: 90 },
+          { tipo: 'simple', operador: 'lt', indicador: 'cpu_pct', valor: 20 }
+        ]
+      },
+      severidad: 'ambar',
+      hipotesis: 'Si RAM alta y CPU baja, es fuga de memoria, no carga real. La regla simple "ram>90" se dispararía con stress --cpu, que es falso positivo.' },
+    { id: 'disco_alto', label: 'Disco casi lleno',
+      condicion: { tipo: 'simple', operador: 'gt', indicador: 'disco_pct', valor: 90 },
+      severidad: 'naranja',
+      hipotesis: 'El disco no se vacía solo. A diferencia de CPU y RAM, no hay "pico benigno".' }
+  ],
+  meta_reglas: [
+    { id: 'sensor_discrepancia', label: 'Fuentes A y B discrepan', tipo: 'coherencia', severidad: 'naranja' },
+    { id: 'sensor_muerto', label: 'Sensor sin datos frescos', tipo: 'frescura', severidad: 'rojo' }
+  ],
+  config: { ciclo_ms: 2000, meta_ping_cada_ciclos: 60 }
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. RULE SET SCHEMA · validador de configuración
+   ═══════════════════════════════════════════════════════════════════════════ */
+const RuleSetSchema = (() => {
+  const SEVERIDADES = ['verde','ambar','naranja','rojo'];
+  const TIPOS_CONDICION = ['simple','and','or','sostenido'];
+
+  function validar(rs){
+    const errores = [];
+    const warns = [];
+
+    if (!rs || typeof rs !== 'object') return Err('Rule set debe ser un objeto JSON');
+    if (!rs.meta) errores.push('Falta "meta"');
+    if (!rs.indicadores || !Array.isArray(rs.indicadores)) errores.push('Falta "indicadores" (array)');
+    if (!rs.reglas || !Array.isArray(rs.reglas)) errores.push('Falta "reglas" (array)');
+    if (!rs.config) errores.push('Falta "config"');
+    if (errores.length) return Err('Estructura incompleta', errores);
+
+    ['version','autor','creado','ultima_revision','hipotesis_global'].forEach(k => {
+      if (!rs.meta[k]) errores.push(`meta.${k} es obligatorio`);
+    });
+
+    const indicadorIds = new Set();
+    rs.indicadores.forEach((ind, i) => {
+      const p = `indicadores[${i}]`;
+      if (!ind.id) errores.push(`${p}.id obligatorio`);
+      else if (indicadorIds.has(ind.id)) errores.push(`${p}.id "${ind.id}" duplicado`);
+      else indicadorIds.add(ind.id);
+
+      if (!Array.isArray(ind.rango) || ind.rango.length !== 2)
+        errores.push(`${p}.rango debe ser [min, max]`);
+      else if (ind.rango[0] >= ind.rango[1])
+        errores.push(`${p}.rango inválido (min >= max)`);
+
+      if (typeof ind.baseline !== 'number') errores.push(`${p}.baseline debe ser número`);
+      else if (Array.isArray(ind.rango) && (ind.baseline < ind.rango[0] || ind.baseline > ind.rango[1]))
+        errores.push(`${p}.baseline fuera de rango`);
+
+      if (typeof ind.tolerancia !== 'number' || ind.tolerancia <= 0)
+        errores.push(`${p}.tolerancia debe ser número > 0`);
+      if (typeof ind.ventana_s !== 'number' || ind.ventana_s <= 0)
+        errores.push(`${p}.ventana_s debe ser número > 0`);
+      if (typeof ind.max_edad_s !== 'number' || ind.max_edad_s <= 0)
+        errores.push(`${p}.max_edad_s debe ser número > 0`);
+      if (!Array.isArray(ind.fuentes) || ind.fuentes.length === 0)
+        errores.push(`${p}.fuentes debe ser array no vacío (ej: ["A","B"])`);
+      if (typeof ind.epsilon_ab !== 'number' || ind.epsilon_ab < 0)
+        errores.push(`${p}.epsilon_ab debe ser número >= 0`);
+    });
+
+    function validarCondicion(c, p){
+      if (!c || typeof c !== 'object') { errores.push(`${p} debe ser objeto`); return; }
+      if (!TIPOS_CONDICION.includes(c.tipo)) { errores.push(`${p}.tipo inválido`); return; }
+      if (c.tipo === 'simple' || c.tipo === 'sostenido'){
+        if (!indicadorIds.has(c.indicador)) errores.push(`${p}.indicador "${c.indicador}" no existe`);
+        if (!['gt','lt','gte','lte','eq','ne'].includes(c.operador))
+          errores.push(`${p}.operador inválido: ${c.operador}`);
+        if (typeof c.valor !== 'number') errores.push(`${p}.valor debe ser número`);
+        if (c.tipo === 'sostenido' && (typeof c.duracion_s !== 'number' || c.duracion_s <= 0))
+          errores.push(`${p}.duracion_s debe ser número > 0`);
+      }
+      if (c.tipo === 'and' || c.tipo === 'or'){
+        if (!Array.isArray(c.operandos) || c.operandos.length === 0)
+          errores.push(`${p}.operandos debe ser array no vacío`);
+        else c.operandos.forEach((o, i) => validarCondicion(o, `${p}.operandos[${i}]`));
+      }
+    }
+
+    rs.reglas.forEach((r, i) => {
+      const p = `reglas[${i}]`;
+      if (!r.id) errores.push(`${p}.id obligatorio`);
+      if (!r.label) errores.push(`${p}.label obligatorio`);
+      if (!r.hipotesis || !r.hipotesis.trim())
+        errores.push(`${p}.hipotesis obligatoria (Anexo D: sin hipótesis, la regla es tautología)`);
+      if (!SEVERIDADES.includes(r.severidad))
+        errores.push(`${p}.severidad debe ser una de ${SEVERIDADES.join(', ')}`);
+      validarCondicion(r.condicion, `${p}.condicion`);
+    });
+
+    (rs.meta_reglas || []).forEach((mr, i) => {
+      const p = `meta_reglas[${i}]`;
+      if (!mr.id) errores.push(`${p}.id obligatorio`);
+      if (!['coherencia','frescura'].includes(mr.tipo))
+        errores.push(`${p}.tipo debe ser "coherencia" o "frescura"`);
+      if (!SEVERIDADES.includes(mr.severidad))
+        errores.push(`${p}.severidad inválida`);
+    });
+
+    if (typeof rs.config.ciclo_ms !== 'number' || rs.config.ciclo_ms < 100)
+      errores.push('config.ciclo_ms debe ser número >= 100');
+    if (typeof rs.config.meta_ping_cada_ciclos !== 'number' || rs.config.meta_ping_cada_ciclos < 1)
+      errores.push('config.meta_ping_cada_ciclos debe ser número >= 1');
+
+    if (errores.length) return Err('Validación fallida', errores);
+
+    const horasDesdeRevision = (Date.now() - new Date(rs.meta.ultima_revision).getTime()) / 3600000;
+    if (horasDesdeRevision > 24 * 7)
+      warns.push(`Rule set no revisado en ${Math.round(horasDesdeRevision/24)} días (Anexo D)`);
+
+    return Ok({ ruleSet: rs }, warns);
+  }
+
+  return { validar, SEVERIDADES };
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. GROUND SOURCE · puerto abstracto
+   ═══════════════════════════════════════════════════════════════════════════ */
+class GroundSource {
+  async ping(){ throw new Error('ping() no implementado'); }
+  getName(){ return 'abstract'; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. SIM SOURCE · simulador con 5 modos
+   ═══════════════════════════════════════════════════════════════════════════ */
+class SimSource extends GroundSource {
+  constructor(clock = () => Date.now()){
+    super();
+    this.clock = clock;
+    this.mode = 'normal';
+    this.tick = 0;
+    this.stressStart = 0;
+    this.forgedTimestampOffset = 60000;
+  }
+
+  setMode(mode){ this.mode = mode; this.stressStart = this.tick; }
+  getName(){ return `SimSource(${this.mode})`; }
+
+  _noise(seed){
+    const x = Math.sin(seed * 12.9898) * 43758.5453;
+    return x - Math.floor(x) - 0.5;
+  }
+
+  async ping(){
+    const t = this.clock();
+    this.tick++;
+
+    if (this.mode === 'dead'){
+      return { ok: false, motivo: 'timeout', timestamp: t, valores: {} };
+    }
+
+    if (this.mode === 'forged'){
+      const valores = this._valoresNormales();
+      return {
+        ok: true,
+        timestamp: t - this.forgedTimestampOffset,
+        valores
+      };
+    }
+
+    let valores;
+    if (this.mode === 'stress'){
+      const elapsed = (this.tick - this.stressStart) * 2;
+      const cpuA  = Math.min(95, 20 + elapsed * 3 + this._noise(this.tick) * 4);
+      const ramA  = Math.min(95, 40 + elapsed * 2 + this._noise(this.tick+100) * 4);
+      valores = {
+        cpu_pct:    { A: cpuA,                    B: cpuA + this._noise(this.tick)*2 },
+        ram_pct:    { A: ramA,                    B: ramA + this._noise(this.tick+50)*2 },
+        disco_pct:  { A: 52,                      B: 52.2 },
+        proc_count: { A: 180 + this.tick * 0.1,   B: 180 + this.tick * 0.1 + 3 }
+      };
+    } else if (this.mode === 'discrepancy'){
+      valores = {
+        cpu_pct:    { A: 30, B: 60 },
+        ram_pct:    { A: 45, B: 45 },
+        disco_pct:  { A: 50, B: 50.2 },
+        proc_count: { A: 150, B: 150 }
+      };
+    } else {
+      valores = this._valoresNormales();
+    }
+
+    return { ok: true, timestamp: t, valores };
+  }
+
+  _valoresNormales(){
+    const n = this.tick;
+    return {
+      cpu_pct:    { A: 20 + this._noise(n) * 6,       B: 20 + this._noise(n+1) * 6 },
+      ram_pct:    { A: 40 + this._noise(n+10) * 4,    B: 40 + this._noise(n+11) * 4 },
+      disco_pct:  { A: 52 + this._noise(n+20) * 0.5,  B: 52 + this._noise(n+21) * 0.5 },
+      proc_count: { A: 150 + this._noise(n+30) * 10,  B: 150 + this._noise(n+31) * 10 }
+    };
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8. VALIDADOR A · cuantitativo (rango + baseline)
+   ═══════════════════════════════════════════════════════════════════════════ */
+const ValidadorA = (() => {
+  function validar(valor, indCfg){
+    if (valor === null || valor === undefined)
+      return { en_rango: false, cerca_baseline: false, motivo: 'sin_valor' };
+    const enRango = valor >= indCfg.rango[0] && valor <= indCfg.rango[1];
+    const cerca = Math.abs(valor - indCfg.baseline) <= indCfg.tolerancia;
+    return {
+      en_rango: enRango,
+      cerca_baseline: cerca,
+      motivo: !enRango ? 'fuera_rango' : (!cerca ? 'lejos_baseline' : 'ok')
+    };
+  }
+  return { validar };
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9. VALIDADOR B · procedencia del dato (Anexo B de TUSE)
+   ═══════════════════════════════════════════════════════════════════════════ */
+const ValidadorB = (() => {
+  function validar(valoresAB, timestamp, now, indCfg){
+    const { A, B } = valoresAB;
+    const flags = [];
+
+    const tieneA = A !== null && A !== undefined;
+    const tieneB = B !== null && B !== undefined;
+    const fuentePresente = tieneA || tieneB;
+
+    const requiereDoble = indCfg.fuentes.length >= 2 && indCfg.fuentes.includes('A') && indCfg.fuentes.includes('B');
+    let coincideAB = true;
+    let deltaAB = null;
+    if (requiereDoble){
+      if (!tieneA || !tieneB){
+        coincideAB = false;
+        flags.push('fuente_incompleta');
+      } else {
+        deltaAB = Math.abs(A - B);
+        coincideAB = deltaAB <= indCfg.epsilon_ab;
+        if (!coincideAB) flags.push(`delta_ab_${deltaAB.toFixed(1)}`);
+      }
+    }
+
+    const edadMs = now - timestamp;
+    const maxEdadMs = indCfg.max_edad_s * 1000;
+    const sensorVivo = edadMs <= maxEdadMs && edadMs >= 0;
+    if (!sensorVivo) flags.push(`sensor_edad_${Math.round(edadMs/1000)}s`);
+
+    let opcion, valorEfectivo, razon = null;
+
+    if (!fuentePresente){
+      opcion = 'rechazar';
+      valorEfectivo = null;
+      razon = 'sin_fuente';
+      flags.push('sin_dato');
+    } else if (!sensorVivo){
+      opcion = 'rechazar';
+      valorEfectivo = null;
+      razon = 'sensor_muerto';
+    } else if (requiereDoble && !coincideAB){
+      opcion = 'degradar';
+      valorEfectivo = tieneA ? A : B;
+      flags.push('valor_degradado');
+    } else if (tieneA && tieneB){
+      opcion = 'aceptar';
+      valorEfectivo = A;
+    } else {
+      opcion = 'degradar';
+      valorEfectivo = tieneA ? A : B;
+      flags.push('fuente_unica');
+    }
+
+    return {
+      opcion,
+      valorEfectivo,
+      flags,
+      checks: { coincide_ab: coincideAB, fuente_presente: fuentePresente, sensor_vivo: sensorVivo },
+      deltaAB,
+      edadMs,
+      razon
+    };
+  }
+  return { validar };
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10. ENGINE · orquesta lectura, validación, reglas, estado
+   ═══════════════════════════════════════════════════════════════════════════ */
+class Engine {
+  constructor({ source, ruleSet, clock = () => Date.now() }){
+    this.source = source;
+    this.ruleSet = ruleSet;
+    this.clock = clock;
+    this.history = {};
+    this.lastTimestamp = {};
+    this.cycle = 0;
+    this.running = false;
+    this.intervalId = null;
+    this.currentState = 'verde';
+    this.lastCycleAt = null;
+    this.alarms = [];
+    this.firedRules = new Set();
+    this.cyclesSinceReview = 0;
+    this.indices = {};
+    this.ruleSet.indicadores.forEach(i => { this.indices[i.id] = i; });
+  }
+
+  start(){
+    if (this.running) return;
+    this.running = true;
+    const ms = this.ruleSet.config.ciclo_ms;
+    this.intervalId = setInterval(() => this.step().catch(e => {
+      Logger.error('engine', 'Error en ciclo', e.message);
+    }), ms);
+    BUS.emit('engine:started', { ms });
+  }
+
+  stop(){
+    if (!this.running) return;
+    this.running = false;
+    if (this.intervalId) clearInterval(this.intervalId);
+    this.intervalId = null;
+    BUS.emit('engine:stopped');
+  }
+
+  async step(){
+    if (!this.ruleSet) return;
+    this.cycle++;
+
+    let pingResult;
+    try {
+      pingResult = await this.source.ping();
+    } catch (e) {
+      Logger.error('source', 'ping() lanzó excepción', e.message);
+      pingResult = { ok: false, motivo: 'excepcion', timestamp: this.clock(), valores: {} };
+    }
+
+    BUS.emit('cycle:raw', {
+      cycle: this.cycle,
+      at: this.clock(),
+      ping: pingResult,
+      sourceName: this.source.getName()
+    });
+
+    const now = pingResult.timestamp || this.clock();
+    const indicadorStates = {};
+    const validationDetail = {};
+
+    for (const ind of this.ruleSet.indicadores){
+      const valoresAB = pingResult.valores?.[ind.id] || { A: null, B: null };
+      const tsIndicador = pingResult.ok ? pingResult.timestamp : (this.lastTimestamp[ind.id] || 0);
+
+      const vB = ValidadorB.validar(valoresAB, tsIndicador, this.clock(), ind);
+      const vA = vB.valorEfectivo !== null
+        ? ValidadorA.validar(vB.valorEfectivo, ind)
+        : { en_rango: false, cerca_baseline: false, motivo: 'sin_valor' };
+
+      if (vB.checks.sensor_vivo && vB.checks.fuente_presente) {
+        this.lastTimestamp[ind.id] = tsIndicador;
+      }
+
+      let estado;
+      if (vB.opcion === 'rechazar') estado = 'rojo';
+      else if (!vA.en_rango) estado = 'rojo';
+      else if (!vB.checks.coincide_ab) estado = 'naranja';
+      else if (!vA.cerca_baseline) estado = 'ambar';
+      else estado = 'verde';
+
+      indicadorStates[ind.id] = { estado, valor: vB.valorEfectivo, flags: vB.flags };
+      validationDetail[ind.id] = { vA, vB, estado };
+
+      if (vB.valorEfectivo !== null && vB.opcion !== 'rechazar'){
+        if (!this.history[ind.id]) this.history[ind.id] = [];
+        this.history[ind.id].push({ ts: now, valor: vB.valorEfectivo });
+        const cutoff = now - (ind.ventana_s * 2 * 1000);
+        this.history[ind.id] = this.history[ind.id].filter(h => h.ts > cutoff);
+      }
+    }
+
+    const reglasDisparadas = [];
+    for (const regla of this.ruleSet.reglas){
+      const dispara = this._evaluarCondicion(regla.condicion, indicadorStates, now);
+      if (dispara){
+        reglasDisparadas.push(regla);
+        if (!this.firedRules.has(regla.id)){
+          this.firedRules.add(regla.id);
+          this._registrarAlarma(regla, indicadorStates, now);
+        }
+      } else {
+        this.firedRules.delete(regla.id);
+      }
+    }
+
+    const metaReglasDisparadas = [];
+    const hayDiscrepancia = Object.values(validationDetail).some(d => !d.vB.checks.coincide_ab && d.vB.checks.fuente_presente);
+    const haySensorMuerto = Object.values(validationDetail).some(d => !d.vB.checks.sensor_vivo);
+
+    if (hayDiscrepancia){
+      const mr = this.ruleSet.meta_reglas.find(m => m.tipo === 'coherencia');
+      if (mr) metaReglasDisparadas.push(mr);
+    }
+    if (haySensorMuerto){
+      const mr = this.ruleSet.meta_reglas.find(m => m.tipo === 'frescura');
+      if (mr) metaReglasDisparadas.push(mr);
+    }
+
+    const SEV_ORDER = { verde: 0, ambar: 1, naranja: 2, rojo: 3 };
+    let maxSev = 0;
+    let maxSevFuente = null;
+
+    Object.entries(indicadorStates).forEach(([id, s]) => {
+      if (SEV_ORDER[s.estado] > maxSev){
+        maxSev = SEV_ORDER[s.estado];
+        maxSevFuente = `indicador:${id}`;
+      }
+    });
+    reglasDisparadas.forEach(r => {
+      if (SEV_ORDER[r.severidad] > maxSev){
+        maxSev = SEV_ORDER[r.severidad];
+        maxSevFuente = `regla:${r.id}`;
+      }
+    });
+    metaReglasDisparadas.forEach(mr => {
+      if (SEV_ORDER[mr.severidad] > maxSev){
+        maxSev = SEV_ORDER[mr.severidad];
+        maxSevFuente = `meta:${mr.id}`;
+      }
+    });
+
+    const nuevoEstado = ['verde','ambar','naranja','rojo'][maxSev];
+
+    if (nuevoEstado !== this.currentState){
+      BUS.emit('state:transition', {
+        cycle: this.cycle,
+        from: this.currentState,
+        to: nuevoEstado,
+        cause: maxSevFuente,
+        at: now
+      });
+      this.currentState = nuevoEstado;
+    }
+
+    BUS.emit('cycle:done', {
+      cycle: this.cycle,
+      at: now,
+      state: nuevoEstado,
+      indicadores: indicadorStates,
+      validaciones: validationDetail,
+      reglasDisparadas,
+      metaReglasDisparadas,
+      ruleSetVersion: this.ruleSet.meta.version
+    });
+
+    this.cyclesSinceReview++;
+    if (this.cyclesSinceReview >= this.ruleSet.config.meta_ping_cada_ciclos){
+      BUS.emit('metaping:due', {
+        cycles: this.cyclesSinceReview,
+        since: this.ruleSet.meta.ultima_revision
+      });
+    }
+
+    this.lastCycleAt = now;
+    return { state: nuevoEstado, indicadorStates, reglasDisparadas };
+  }
+
+  _evaluarCondicion(cond, indicadorStates, now){
+    if (cond.tipo === 'simple'){
+      const s = indicadorStates[cond.indicador];
+      if (!s || s.valor === null || s.valor === undefined) return false;
+      return this._comparar(s.valor, cond.operador, cond.valor);
+    }
+    if (cond.tipo === 'and'){
+      return cond.operandos.every(o => this._evaluarCondicion(o, indicadorStates, now));
+    }
+    if (cond.tipo === 'or'){
+      return cond.operandos.some(o => this._evaluarCondicion(o, indicadorStates, now));
+    }
+    if (cond.tipo === 'sostenido'){
+      const hist = this.history[cond.indicador] || [];
+      const cutoff = now - cond.duracion_s * 1000;
+      const ventana = hist.filter(h => h.ts >= cutoff);
+      if (ventana.length === 0) return false;
+      const spanSegundos = (now - ventana[0].ts) / 1000;
+      if (spanSegundos < cond.duracion_s * 0.9) return false;
+      return ventana.every(h => this._comparar(h.valor, cond.operador, cond.valor));
+    }
+    return false;
+  }
+
+  _comparar(a, op, b){
+    switch (op){
+      case 'gt':  return a > b;
+      case 'lt':  return a < b;
+      case 'gte': return a >= b;
+      case 'lte': return a <= b;
+      case 'eq':  return Math.abs(a - b) < 1e-9;
+      case 'ne':  return Math.abs(a - b) >= 1e-9;
+      default: return false;
+    }
+  }
+
+  _registrarAlarma(regla, indicadorStates, now){
+    const alarma = {
+      id: `${regla.id}_${now}`,
+      ruleId: regla.id,
+      ruleLabel: regla.label,
+      severidad: regla.severidad,
+      ciclo: this.cycle,
+      at: now,
+      revision: 'pendiente',
+      nota: ''
+    };
+    this.alarms.push(alarma);
+    Logger.warn('alarm', `Regla "${regla.label}" disparó (${regla.severidad})`, {
+      ciclo: this.cycle, hipotesis: regla.hipotesis
+    });
+    BUS.emit('alarm:fired', alarma);
+  }
+
+  reset(){
+    this.stop();
+    this.history = {};
+    this.lastTimestamp = {};
+    this.cycle = 0;
+    this.currentState = 'verde';
+    this.alarms = [];
+    this.firedRules.clear();
+    this.cyclesSinceReview = 0;
+    BUS.emit('engine:reset');
+  }
+
+  markReviewed(){
+    this.cyclesSinceReview = 0;
+    this.ruleSet.meta.ultima_revision = new Date(this.clock()).toISOString();
+    BUS.emit('metaping:reviewed', { at: this.ruleSet.meta.ultima_revision });
+  }
+
+  updateRuleSet(nuevo){
+    const v = RuleSetSchema.validar(nuevo);
+    if (!v.ok) return v;
+    this.stop();
+    this.ruleSet = v.datos.ruleSet;
+    this.indices = {};
+    this.ruleSet.indicadores.forEach(i => { this.indices[i.id] = i; });
+    this.reset();
+    BUS.emit('ruleset:updated', { version: this.ruleSet.meta.version });
+    return v;
+  }
+
+  reviewAlarm(alarmId, revision, nota){
+    const a = this.alarms.find(x => x.id === alarmId);
+    if (!a) return;
+    a.revision = revision;
+    a.nota = nota || '';
+    BUS.emit('alarm:reviewed', a);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   11. UI
+   ═══════════════════════════════════════════════════════════════════════════ */
+const UI = (() => {
+  let engine = null;
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // ── Tabs ──
+  function initTabs(){
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const view = btn.dataset.tab;
+        document.querySelectorAll('section[data-view]').forEach(s => {
+          s.classList.toggle('active', s.dataset.view === view);
+        });
+        if (view === 'metaping') renderMetaping();
+        if (view === 'rules') renderRulesStatus();
+        if (view === 'raw') renderRaw();
+      });
+    });
+  }
+
+  function extraerIndicadores(cond){
+    if (!cond) return [];
+    if (cond.tipo === 'simple' || cond.tipo === 'sostenido') return [cond.indicador];
+    if (cond.tipo === 'and' || cond.tipo === 'or') return cond.operandos.flatMap(o => extraerIndicadores(o));
+    return [];
+  }
+
+  // ── Dashboard: cards ──
+  function renderCards(payload){
+    const grid = $('cards-grid');
+    if (!grid) return;
+    const indicadores = payload.indicadores || {};
+    const validaciones = payload.validaciones || {};
+    const reglasDisparadas = payload.reglasDisparadas || [];
+
+    const reglasPorInd = {};
+    reglasDisparadas.forEach(r => {
+      const ids = extraerIndicadores(r.condicion);
+      ids.forEach(id => {
+        if (!reglasPorInd[id]) reglasPorInd[id] = [];
+        reglasPorInd[id].push(r);
+      });
+    });
+
+    let html = '';
+    for (const [id, s] of Object.entries(indicadores)){
+      const cfg = engine?.indices?.[id];
+      if (!cfg) continue;
+      const v = validaciones[id] || { vA: { en_rango: true, cerca_baseline: true }, vB: { checks: { coincide_ab: true, sensor_vivo: true }, edadMs: 0, opcion: 'aceptar', flags: [] } };
+      const colorVar = s.estado === 'verde' ? 'var(--ok)' : s.estado === 'ambar' ? 'var(--warn)' : s.estado === 'naranja' ? 'var(--naranja)' : 'var(--bad)';
+      const valorStr = s.valor !== null && s.valor !== undefined ? `${s.valor.toFixed(1)}${cfg.unidad}` : '—';
+      const reglasHere = reglasPorInd[id] || [];
+
+      html += `
+        <div class="card ${s.estado}">
+          <div class="card-title">
+            <span>${esc(cfg.label)} · ${esc(id)}</span>
+            <span class="light" style="background:${colorVar}"></span>
+          </div>
+          <div class="card-value" style="color:${colorVar}">${valorStr}</div>
+          <div class="card-detail">
+            <div class="kv"><span>Rango</span><span>[${cfg.rango[0]}, ${cfg.rango[1]}]</span></div>
+            <div class="kv"><span>Baseline</span><span>${cfg.baseline} ±${cfg.tolerancia}</span></div>
+            <div class="kv"><span>V-A · rango</span><span style="color:${v.vA.en_rango ? 'var(--ok)' : 'var(--bad)'}">${v.vA.en_rango ? '✓' : '✗'}</span></div>
+            <div class="kv"><span>V-A · baseline</span><span style="color:${v.vA.cerca_baseline ? 'var(--ok)' : 'var(--warn)'}">${v.vA.cerca_baseline ? '✓' : '✗'}</span></div>
+            <div class="kv"><span>V-B · A≈B</span><span style="color:${v.vB.checks.coincide_ab ? 'var(--ok)' : 'var(--naranja)'}">${v.vB.checks.coincide_ab ? '✓' : '✗'}</span></div>
+            <div class="kv"><span>V-B · sensor</span><span style="color:${v.vB.checks.sensor_vivo ? 'var(--ok)' : 'var(--bad)'}">${v.vB.checks.sensor_vivo ? `vivo (${Math.round(v.vB.edadMs/1000)}s)` : 'MUERTO'}</span></div>
+            <div class="kv"><span>Opción</span><span style="color:${v.vB.opcion === 'aceptar' ? 'var(--ok)' : v.vB.opcion === 'degradar' ? 'var(--naranja)' : 'var(--bad)'}">${v.vB.opcion}</span></div>
+            ${v.vB.flags.length ? `<div class="kv"><span>Flags</span><span style="font-size:10px">${v.vB.flags.join(', ')}</span></div>` : ''}
+          </div>
+          ${reglasHere.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:10.5px;color:var(--warn)">⚠ ${reglasHere.map(r => esc(r.label)).join(', ')}</div>` : ''}
+        </div>
+      `;
+    }
+    grid.innerHTML = html;
+  }
+
+  function renderStateBar(payload){
+    const s = payload.state;
+    const label = { verde: 'VERDE · todo bien', ambar: 'ÁMBAR · atención', naranja: 'NARANJA · degradado', rojo: 'ROJO · fallo' }[s];
+    const color = { verde: 'var(--ok)', ambar: 'var(--warn)', naranja: 'var(--naranja)', rojo: 'var(--bad)' }[s];
+    $('global-state').textContent = label;
+    $('global-state').style.color = color;
+    $('global-info').innerHTML = `
+      Ciclo ${payload.cycle} · ${new Date(payload.at).toLocaleTimeString()} ·
+      Rule set v${esc(payload.ruleSetVersion)} ·
+      ${(payload.reglasDisparadas||[]).length} regla(s) disparada(s) ·
+      ${(payload.metaReglasDisparadas||[]).length} meta-regla(s)
+    `;
+  }
+
+  // ── Log ──
+  const logEntries = [];
+  function appendLog(entry){
+    logEntries.push(entry);
+    if (logEntries.length > 500) logEntries.shift();
+    renderLog();
+  }
+
+  function renderLog(){
+    const filter = $('log-filter')?.value || '';
+    const el = $('log-scroll');
+    if (!el) return;
+    const filtered = logEntries.filter(e => !filter || e.kind === filter).slice().reverse();
+    el.innerHTML = filtered.length ? filtered.map(e => `
+      <div class="log-entry">
+        <span class="ts">${new Date(e.ts).toLocaleTimeString()}</span>
+        <span class="kind ${e.kind}">${e.kind}</span>
+        <span class="body">${e.body}${renderReviewControls(e)}</span>
+      </div>
+    `).join('') : '<div style="padding:20px;text-align:center;color:var(--muted)">Sin entradas</div>';
+  }
+
+  function renderReviewControls(entry){
+    if (!entry.alarmId || !engine) return '';
+    const alarm = engine.alarms.find(a => a.id === entry.alarmId);
+    if (!alarm) return '';
+    const opts = [
+      { v: 'correcta', label: '✓ Correcta' },
+      { v: 'falso_positivo', label: '✗ Falso positivo' },
+      { v: 'no_evaluado', label: '? No evaluado' }
+    ];
+    return `
+      <div class="review">
+        <strong style="font-size:10px;color:var(--muted)">¿Qué pasó después?</strong>
+        ${opts.map(o => `<button class="${alarm.revision === o.v ? 'selected' : ''}" data-alarm="${esc(alarm.id)}" data-rev="${o.v}">${o.label}</button>`).join('')}
+        <input placeholder="nota opcional…" value="${esc(alarm.nota)}" data-alarm-note="${esc(alarm.id)}">
+      </div>
+    `;
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-alarm]');
+    if (btn && engine){
+      const alarmId = btn.dataset.alarm;
+      const rev = btn.dataset.rev;
+      const alarm = engine.alarms.find(a => a.id === alarmId);
+      const note = document.querySelector(`[data-alarm-note="${CSS.escape(alarmId)}"]`);
+      engine.reviewAlarm(alarmId, rev, note ? note.value : (alarm?.nota || ''));
+      renderLog();
+    }
+  });
+  document.addEventListener('change', (e) => {
+    const note = e.target.closest('[data-alarm-note]');
+    if (note && engine){
+      const alarm = engine.alarms.find(a => a.id === note.dataset.alarmNote);
+      if (alarm) engine.reviewAlarm(alarm.id, alarm.revision, note.value);
+    }
+  });
+
+  // ── Raw ──
+  const rawEntries = [];
+  function appendRaw(payload){
+    rawEntries.push(payload);
+    if (rawEntries.length > 200) rawEntries.shift();
+    if (document.querySelector('[data-view="raw"]')?.classList.contains('active')) renderRaw();
+  }
+
+  function renderRaw(){
+    const el = $('raw-scroll');
+    if (!el) return;
+    el.innerHTML = rawEntries.slice().reverse().map(r => `
+      <div class="raw-row">
+        <div class="head">
+          <span>Ciclo ${r.cycle} · ${new Date(r.at).toLocaleTimeString()}</span>
+          <span>${esc(r.sourceName)}</span>
+        </div>
+        <div class="data">${esc(JSON.stringify(r.ping, null, 2))}</div>
+      </div>
+    `).join('') || '<div style="padding:20px;text-align:center;color:var(--muted)">Sin datos</div>';
+  }
+
+  // ── Rules ──
+  function initRulesEditor(){
+    const stored = localStorage.getItem('monitor_ruleset');
+    let initial;
+    try {
+      initial = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(DEFAULT_RULESET));
+    } catch {
+      initial = JSON.parse(JSON.stringify(DEFAULT_RULESET));
+    }
+    $('rules-editor').value = JSON.stringify(initial, null, 2);
+    renderRulesStatus();
+
+    $('btn-validate').onclick = () => {
+      const txt = $('rules-editor').value;
+      let parsed;
+      try {
+        parsed = JSON.parse(txt);
+      } catch (e){
+        $('validation-result').innerHTML = `<div class="validation-msg err">JSON inválido: ${esc(e.message)}</div>`;
+        return;
+      }
+      const v = RuleSetSchema.validar(parsed);
+      if (!v.ok){
+        $('validation-result').innerHTML = `<div class="validation-msg err">
+          <strong>❌ Rule set inválido — el motor NO arrancará</strong>
+          <ul class="list">${(v.detalles || []).map(d => `<li>${esc(d)}</li>`).join('')}</ul>
+        </div>`;
+        return;
+      }
+      const r = engine.updateRuleSet(parsed);
+      if (!r.ok){
+        $('validation-result').innerHTML = `<div class="validation-msg err">${esc(r.razon)}</div>`;
+        return;
+      }
+      $('validation-result').innerHTML = `<div class="validation-msg ok">
+        ✓ Rule set aplicado. ${v.avisos.length ? '<br>Avisos: ' + v.avisos.map(esc).join('; ') : ''}
+      </div>`;
+      renderRulesStatus();
+      appendLog({ ts: Date.now(), kind: 'info', body: `Rule set actualizado a v${esc(parsed.meta.version)}` });
+    };
+
+    $('btn-reset-rules').onclick = () => {
+      $('rules-editor').value = JSON.stringify(DEFAULT_RULESET, null, 2);
+    };
+
+    $('btn-save-rules').onclick = () => {
+      try {
+        const parsed = JSON.parse($('rules-editor').value);
+        const v = RuleSetSchema.validar(parsed);
+        if (!v.ok){
+          alert('Rule set inválido. Corrige antes de guardar.');
+          return;
+        }
+        localStorage.setItem('monitor_ruleset', JSON.stringify(parsed));
+        $('validation-result').innerHTML = `<div class="validation-msg ok">💾 Guardado en localStorage</div>`;
+      } catch (e){
+        alert('JSON inválido: ' + e.message);
+      }
+    };
+  }
+
+  function renderRulesStatus(){
+    if (!engine) return;
+    const rs = engine.ruleSet;
+    const el = $('rules-status');
+    if (el) el.innerHTML = `
+      <div><strong>Versión:</strong> ${esc(rs.meta.version)}</div>
+      <div><strong>Autor:</strong> ${esc(rs.meta.autor)}</div>
+      <div><strong>Indicadores:</strong> ${rs.indicadores.length}</div>
+      <div><strong>Reglas:</strong> ${rs.reglas.length}</div>
+      <div><strong>Meta-reglas:</strong> ${rs.meta_reglas.length}</div>
+      <div><strong>Ciclo:</strong> ${rs.config.ciclo_ms}ms</div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)">
+        <em>Hipótesis global:</em> ${esc(rs.meta.hipotesis_global)}
+      </div>
+    `;
+    const lastRev = new Date(rs.meta.ultima_revision);
+    const hoursAgo = Math.round((Date.now() - lastRev.getTime()) / 3600000);
+    const cls = hoursAgo > 168 ? 'var(--bad)' : hoursAgo > 24 ? 'var(--warn)' : 'var(--ok)';
+    const el2 = $('rules-last-review');
+    if (el2) el2.innerHTML = `
+      <div>Última revisión: <span style="color:${cls}">${lastRev.toLocaleString()}</span></div>
+      <div style="color:${cls}">Hace ${hoursAgo}h ${hoursAgo > 168 ? '(>7 días: revisar)' : ''}</div>
+    `;
+    const lv = $('log-ruleset-version');
+    if (lv) lv.textContent = rs.meta.version;
+  }
+
+  // ── Meta-ping ──
+  function renderMetaping(){
+    if (!engine) return;
+    const alarms = engine.alarms;
+    const correctas = alarms.filter(a => a.revision === 'correcta').length;
+    const falsos = alarms.filter(a => a.revision === 'falso_positivo').length;
+    const pendientes = alarms.filter(a => a.revision === 'pendiente' || a.revision === 'no_evaluado').length;
+
+    $('metaping-stats').innerHTML = `
+      <div class="stat"><div class="label">Ciclos desde revisión</div><div class="value">${engine.cyclesSinceReview}</div></div>
+      <div class="stat"><div class="label">Alarmas correctas</div><div class="value" style="color:var(--ok)">${correctas}</div></div>
+      <div class="stat"><div class="label">Falsos positivos</div><div class="value" style="color:var(--bad)">${falsos}</div></div>
+      <div class="stat"><div class="label">Pendientes revisión</div><div class="value" style="color:var(--warn)">${pendientes}</div></div>
+      <div class="stat"><div class="label">Total alarmas</div><div class="value">${alarms.length}</div></div>
+    `;
+
+    const due = engine.cyclesSinceReview >= engine.ruleSet.config.meta_ping_cada_ciclos;
+    $('metaping-status').innerHTML = due
+      ? `<div style="background:rgba(250,204,21,.1);border-left:3px solid var(--warn);padding:10px;color:#e5d9a8">
+          ⚠ <strong>Revisión pendiente.</strong> Han pasado ${engine.cyclesSinceReview} ciclos desde la última revisión.
+          Sin revisión, el silencio (verde) no es fiable. Revisa el rule set y marca como revisado.
+        </div>`
+      : `<div style="background:rgba(74,222,128,.08);border-left:3px solid var(--ok);padding:10px;color:#a7f3d0">
+          ✓ Rule set revisado recientemente. Silencio (verde) es interpretable como sano.
+        </div>`;
+
+    $('metaping-history').innerHTML = alarms.length ? alarms.slice().reverse().map(a => {
+      const colorRev = a.revision === 'correcta' ? 'var(--ok)' : a.revision === 'falso_positivo' ? 'var(--bad)' : 'var(--warn)';
+      return `
+        <div style="padding:4px 0;border-bottom:1px solid var(--border)">
+          [${new Date(a.at).toLocaleTimeString()}] ${esc(a.ruleLabel)} (${esc(a.severidad)})
+          → <span style="color:${colorRev}">${esc(a.revision)}</span>
+          ${a.nota ? ` · <em>${esc(a.nota)}</em>` : ''}
+        </div>
+      `;
+    }).join('') : '<em>Sin alarmas registradas.</em>';
+  }
+
+  function initMetaPing(){
+    $('btn-mark-reviewed').onclick = () => {
+      engine.markReviewed();
+      renderMetaping();
+      renderRulesStatus();
+      appendLog({ ts: Date.now(), kind: 'info', body: 'Rule set marcado como revisado' });
+    };
+    $('btn-postpone').onclick = () => {
+      engine.cyclesSinceReview = 0;
+      renderMetaping();
+    };
+  }
+
+  // ── Controles globales ──
+  function initControls(){
+    $('btn-start').onclick = () => {
+      engine.start();
+      $('btn-start').disabled = true;
+      $('btn-stop').disabled = false;
+    };
+    $('btn-stop').onclick = () => {
+      engine.stop();
+      $('btn-start').disabled = false;
+      $('btn-stop').disabled = true;
+    };
+    $('btn-step').onclick = () => engine.step();
+    $('btn-reset').onclick = () => {
+      if (!confirm('¿Resetear el motor? Se borra el historial y las alarmas.')) return;
+      engine.reset();
+      logEntries.length = 0; rawEntries.length = 0;
+      renderLog(); renderRaw();
+      renderCards({
+        indicadores: Object.fromEntries(engine.ruleSet.indicadores.map(i => [i.id, { estado: 'verde', valor: null, flags: [] }])),
+        validaciones: Object.fromEntries(engine.ruleSet.indicadores.map(i => [i.id, {
+          vA: { en_rango: true, cerca_baseline: true },
+          vB: { checks: { coincide_ab: true, fuente_presente: true, sensor_vivo: true }, edadMs: 0, opcion: 'aceptar', flags: [] }
+        }])),
+        reglasDisparadas: [],
+        metaReglasDisparadas: [],
+        state: 'verde',
+        cycle: 0,
+        at: Date.now(),
+        ruleSetVersion: engine.ruleSet.meta.version
+      });
+    };
+
+    document.querySelectorAll('.sim-mode').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!engine || !(engine.source instanceof SimSource)) return;
+        engine.source.setMode(btn.dataset.mode);
+        document.querySelectorAll('.sim-mode').forEach(b => {
+          b.style.background = 'var(--panel2)';
+          b.style.color = 'var(--text)';
+          b.style.borderColor = 'var(--border)';
+        });
+        btn.style.background = 'var(--accent)';
+        btn.style.color = '#000';
+        btn.style.borderColor = 'var(--accent)';
+        $('sim-mode-desc').textContent = `Modo actual: ${btn.dataset.mode}`;
+        appendLog({ ts: Date.now(), kind: 'info', body: `Fuente cambiada a modo "${btn.dataset.mode}"` });
+      });
+    });
+    const normalBtn = document.querySelector('.sim-mode[data-mode="normal"]');
+    if (normalBtn){
+      normalBtn.style.background = 'var(--accent)';
+      normalBtn.style.color = '#000';
+      normalBtn.style.borderColor = 'var(--accent)';
+    }
+
+    $('log-filter').onchange = renderLog;
+  }
+
+  // ── Wiring de eventos ──
+  function wireEvents(){
+    BUS.on('cycle:raw', payload => appendRaw(payload));
+
+    BUS.on('cycle:done', payload => {
+      renderCards(payload);
+      renderStateBar(payload);
+      if (payload.reglasDisparadas.length){
+        appendLog({
+          ts: payload.at, kind: 'alarm',
+          body: `Ciclo ${payload.cycle}: reglas disparadas → ${payload.reglasDisparadas.map(r => esc(r.label)).join(', ')}`,
+          alarmId: payload.reglasDisparadas.length === 1 ? `${payload.reglasDisparadas[0].id}_${payload.at}` : null
+        });
+      }
+    });
+
+    BUS.on('state:transition', t => {
+      appendLog({
+        ts: t.at, kind: 'transition',
+        body: `Ciclo ${t.cycle}: estado ${t.from.toUpperCase()} → ${t.to.toUpperCase()} (${t.cause})`
+      });
+    });
+
+    BUS.on('alarm:fired', a => {
+      appendLog({
+        ts: a.at, kind: 'alarm',
+        body: `Alarma: "${esc(a.ruleLabel)}" (${esc(a.severidad)}) · ciclo ${a.ciclo}`,
+        alarmId: a.id
+      });
+    });
+
+    BUS.on('metaping:due', p => {
+      appendLog({
+        ts: Date.now(), kind: 'warning',
+        body: `Meta-ping: ${p.cycles} ciclos sin revisar. Ve a "Meta-ping" para revisar el rule set.`
+      });
+    });
+
+    BUS.on('metaping:reviewed', p => {
+      appendLog({ ts: Date.now(), kind: 'info', body: `Rule set revisado a las ${new Date(p.at).toLocaleTimeString()}` });
+    });
+
+    BUS.on('ruleset:updated', p => {
+      appendLog({ ts: Date.now(), kind: 'info', body: `Rule set recargado a v${esc(p.version)}` });
+    });
+
+    BUS.on('engine:reset', () => {
+      appendLog({ ts: Date.now(), kind: 'info', body: 'Motor reseteado' });
+    });
+  }
+
+  function tickClock(){
+    const el = $('status-clock');
+    if (el) el.textContent = new Date().toLocaleTimeString();
+    setTimeout(tickClock, 1000);
+  }
+
+  function init(){
+    initTabs();
+    initControls();
+    initRulesEditor();
+    initMetaPing();
+    wireEvents();
+
+    // Crear engine con rule set guardado o default
+    let rsInicial;
+    try {
+      const stored = localStorage.getItem('monitor_ruleset');
+      rsInicial = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(DEFAULT_RULESET));
+    } catch {
+      rsInicial = JSON.parse(JSON.stringify(DEFAULT_RULESET));
+    }
+    const v = RuleSetSchema.validar(rsInicial);
+    if (!v.ok){
+      console.error('Rule set guardado inválido, usando default', v);
+      engine = new Engine({ source: new SimSource(), ruleSet: JSON.parse(JSON.stringify(DEFAULT_RULESET)) });
+    } else {
+      engine = new Engine({ source: new SimSource(), ruleSet: v.datos.ruleSet });
+    }
+
+    renderCards({
+      indicadores: Object.fromEntries(engine.ruleSet.indicadores.map(i => [i.id, { estado: 'verde', valor: null, flags: [] }])),
+      validaciones: Object.fromEntries(engine.ruleSet.indicadores.map(i => [i.id, {
+        vA: { en_rango: true, cerca_baseline: true },
+        vB: { checks: { coincide_ab: true, fuente_presente: true, sensor_vivo: true }, edadMs: 0, opcion: 'aceptar', flags: [] }
+      }])),
+      reglasDisparadas: [],
+      metaReglasDisparadas: [],
+      state: 'verde',
+      cycle: 0,
+      at: Date.now(),
+      ruleSetVersion: engine.ruleSet.meta.version
+    });
+    $('global-state').textContent = 'VERDE · todo bien';
+    $('global-state').style.color = 'var(--ok)';
+    $('global-info').textContent = 'Motor listo. Pulsa "Iniciar" o "Paso".';
+    $('log-ruleset-version').textContent = engine.ruleSet.meta.version;
+
+    tickClock();
+    console.log('%cMonitor PC MVP listo', 'color:#4fc3f7;font-weight:bold');
+    console.log('Motor accesible en window.__monitor');
+  }
+
+  return { init, getEngine: () => engine };
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   12. TESTS · 7 escenarios
+   ═══════════════════════════════════════════════════════════════════════════ */
+const Tests = (() => {
+  const results = [];
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function assert(cond, msg){
+    if (!cond) throw new Error(msg || 'assert falló');
+  }
+
+  async function runOne(name, fn){
+    try {
+      await fn();
+      results.push({ name, pass: true });
+    } catch (e){
+      results.push({ name, pass: false, error: e.message });
+    }
+  }
+
+  function makeClock(stepMs = 1000){
+    let t = Date.now();
+    return () => { const r = t; t += stepMs; return r; };
+  }
+
+  function makeEngine(clock, source){
+    const v = RuleSetSchema.validar(DEFAULT_RULESET);
+    return new Engine({ source, ruleSet: v.datos.ruleSet, clock });
+  }
+
+  async function run(){
+    results.length = 0;
+
+    // ── TEST 1: Normal ──
+    await runOne('T1 · Normal: 30 ciclos en verde', async () => {
+      const clock = makeClock(2000);
+      const src = new SimSource(clock);
+      src.setMode('normal');
+      const eng = makeEngine(clock, src);
+      let allGreen = true;
+      for (let i = 0; i < 30; i++){
+        await eng.step();
+        if (eng.currentState !== 'verde') allGreen = false;
+      }
+      assert(allGreen, `Estado final: ${eng.currentState}`);
+      assert(eng.alarms.length === 0, `Alarmas disparadas: ${eng.alarms.length}`);
+    });
+
+    // ── TEST 2: Stress ──
+    await runOne('T2 · Stress: CPU alta dispara regla sostenida', async () => {
+      const clock = makeClock(2000);
+      const src = new SimSource(clock);
+      src.setMode('stress');
+      const eng = makeEngine(clock, src);
+      for (let i = 0; i < 50; i++) await eng.step();
+      assert(eng.alarms.some(a => a.ruleId === 'cpu_sostenido'),
+        `No se disparó cpu_sostenido. Alarmas: ${eng.alarms.map(a => a.ruleId).join(',')}`);
+      assert(['ambar','naranja','rojo'].includes(eng.currentState),
+        `Estado: ${eng.currentState}`);
+    });
+
+    // ── TEST 3: Discrepancia ──
+    await runOne('T3 · Discrepancia: A y B divergen → naranja', async () => {
+      const clock = makeClock(2000);
+      const src = new SimSource(clock);
+      src.setMode('discrepancy');
+      const eng = makeEngine(clock, src);
+      await eng.step();
+      assert(eng.currentState === 'naranja',
+        `Estado esperado naranja, obtenido: ${eng.currentState}`);
+    });
+
+    // ── TEST 4: Sensor muerto ──
+    await runOne('T4 · Sensor muerto: ok=false → rojo', async () => {
+      const clock = makeClock(2000);
+      const src = new SimSource(clock);
+      const eng = makeEngine(clock, src);
+      await eng.step();
+      assert(eng.currentState === 'verde', 'Setup: primer ciclo verde');
+      src.setMode('dead');
+      for (let i = 0; i < 10; i++) await eng.step();
+      assert(eng.currentState === 'rojo', `Estado: ${eng.currentState}, esperado rojo`);
+    });
+
+    // ── TEST 5: Datos forjados ──
+    await runOne('T5 · Datos forjados: timestamp viejo → rojo', async () => {
+      const clock = makeClock(2000);
+      const src = new SimSource(clock);
+      src.setMode('forged');
+      const eng = makeEngine(clock, src);
+      await eng.step();
+      assert(eng.currentState === 'rojo',
+        `Estado esperado rojo, obtenido: ${eng.currentState}`);
+    });
+
+    // ── TESTS 6: Validación de schema ──
+    await runOne('T6a · Rule set sin hipótesis → inválido', () => {
+      const rs = JSON.parse(JSON.stringify(DEFAULT_RULESET));
+      delete rs.reglas[0].hipotesis;
+      const v = RuleSetSchema.validar(rs);
+      assert(!v.ok, 'Debería fallar sin hipótesis');
+      assert(v.detalles.some(d => d.includes('hipotesis')), 'Error debe mencionar hipotesis');
+    });
+
+    await runOne('T6b · Rule set con indicador inexistente → inválido', () => {
+      const rs = JSON.parse(JSON.stringify(DEFAULT_RULESET));
+      rs.reglas[0].condicion.indicador = 'indicador_fantasma';
+      const v = RuleSetSchema.validar(rs);
+      assert(!v.ok, 'Debería fallar con indicador inexistente');
+    });
+
+    await runOne('T6c · Rule set con rango inválido → inválido', () => {
+      const rs = JSON.parse(JSON.stringify(DEFAULT_RULESET));
+      rs.indicadores[0].rango = [100, 0];
+      const v = RuleSetSchema.validar(rs);
+      assert(!v.ok, 'Debería fallar con rango invertido');
+    });
+
+    await runOne('T6d · Rule set válido → OK', () => {
+      const v = RuleSetSchema.validar(DEFAULT_RULESET);
+      assert(v.ok, `Debería pasar. ${(v.detalles||[]).join('; ')}`);
+    });
+
+    // ── TEST 7: Regresión ──
+    await runOne('T7 · Regresión: normal→stress→normal transita correctamente', async () => {
+      const clock = makeClock(2000);
+      const src = new SimSource(clock);
+      const eng = makeEngine(clock, src);
+      src.setMode('normal');
+      for (let i = 0; i < 5; i++) await eng.step();
+      assert(eng.currentState === 'verde', `Fase 1 verde: ${eng.currentState}`);
+      src.setMode('stress');
+      for (let i = 0; i < 50; i++) await eng.step();
+      assert(['ambar','naranja','rojo'].includes(eng.currentState),
+        `Fase 2 estrés: ${eng.currentState}`);
+      src.setMode('normal');
+      for (let i = 0; i < 20; i++) await eng.step();
+      assert(eng.currentState !== 'rojo', `Fase 3 no debería ser rojo: ${eng.currentState}`);
+    });
+
+    return results;
+  }
+
+  function render(container){
+    const pass = results.filter(r => r.pass).length;
+    const fail = results.length - pass;
+    container.innerHTML = `
+      <div class="test-summary" style="color:${fail === 0 ? 'var(--ok)' : 'var(--bad)'}">
+        ${pass}/${results.length} tests pasan ${fail > 0 ? '· ' + fail + ' fallan' : '✓'}
+      </div>
+      ${results.map(r => `
+        <div class="test-case ${r.pass ? 'pass' : 'fail'}">
+          ${r.pass ? '✓' : '✗'} ${esc(r.name)}
+          ${r.error ? `<span class="err">— ${esc(r.error)}</span>` : ''}
+        </div>
+      `).join('')}
+    `;
+  }
+
+  return { run, render };
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   13. INIT
+   ═══════════════════════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  UI.init();
+  window.__monitor = {
+    get engine(){ return UI.getEngine(); },
+    get bus(){ return BUS; },
+    DEFAULT_RULESET, RuleSetSchema, SimSource, ValidadorA, ValidadorB, Engine
+  };
+
+  document.getElementById('btn-run-tests').onclick = async () => {
+    const out = document.getElementById('tests-output');
+    out.innerHTML = '<div style="padding:20px;color:var(--muted)">Ejecutando tests…</div>';
+    const results = await Tests.run();
+    Tests.render(out);
+    console.log('%cTests completados', 'color:#4fc3f7;font-weight:bold', results);
+  };
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CÓMO CONECTAR UNA FUENTE REAL · documentación
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Contrato de GroundSource:
+     async ping() -> { ok, timestamp, valores: { [id]: { A, B } }, motivo? }
+
+   Opción 1 · Servidor Node.js local (para monitorizar el PC real)
+
+   Servidor mínimo (server.js) que expone dos caminos de lectura (A y B):
+
+     const http = require('http');
+     const os = require('os');
+     const fs = require('fs');
+
+     http.createServer((req, res) => {
+       res.setHeader('Access-Control-Allow-Origin', '*');
+       if (req.url === '/metrics') {
+         // Camino A: os.* (alto nivel)
+         const loadA = os.loadavg()[0] * 10;
+         const ramA = ((os.totalmem() - os.freemem()) / os.totalmem()) * 100;
+
+         // Camino B: /proc (bajo nivel, independiente)
+         let cpuB = 0, ramB = 0;
+         try {
+           const stat = fs.readFileSync('/proc/stat', 'utf8');
+           const parts = stat.split('\n')[0].split(' ').slice(2).map(Number);
+           const idle = parts[3];
+           const total = parts.reduce((a,b) => a+b, 0);
+           cpuB = ((total - idle) / total) * 100;
+
+           const meminfo = fs.readFileSync('/proc/meminfo', 'utf8');
+           const memTotal = parseInt(meminfo.match(/MemTotal:\s+(\d+)/)[1]);
+           const memAvail = parseInt(meminfo.match(/MemAvailable:\s+(\d+)/)[1]);
+           ramB = ((memTotal - memAvail) / memTotal) * 100;
+         } catch (e) {
+           // windows fallback: A y B coinciden, el motor verá fuente_incompleta
+           cpuB = loadA; ramB = ramA;
+         }
+
+         res.end(JSON.stringify({
+           ok: true,
+           timestamp: Date.now(),
+           valores: {
+             cpu_pct:    { A: loadA, B: cpuB },
+             ram_pct:    { A: ramA,  B: ramB },
+             disco_pct:  { A: 52,    B: 52 },
+             proc_count: { A: 150,   B: 150 }
+           }
+         }));
+       } else {
+         res.statusCode = 404; res.end();
+       }
+     }).listen(8080);
+
+   Adapter en el cliente (sustituir SimSource por HTTPFetchSource):
+
+     class HTTPFetchSource extends GroundSource {
+       constructor(url) { super(); this.url = url; }
+       getName() { return 'HTTPFetch'; }
+       async ping() {
+         try {
+           const r = await fetch(this.url);
+           return await r.json();
+         } catch (e) {
+           return { ok: false, motivo: 'sin_conexion', timestamp: Date.now(), valores: {} };
+         }
+       }
+     }
+
+   El motor, los validadores, el rule set, los tests y la UI NO cambian.
+   Solo cambia el adapter. Ese es el punto del puerto abstracto.
+
+   Opción 2 · Extensión de navegador con permisos nativos.
+   Opción 3 · WebSocket a un daemon local.
+
+   ═══════════════════════════════════════════════════════════════════════════ */
+</script>
+</body>
+</html>
