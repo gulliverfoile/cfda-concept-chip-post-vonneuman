@@ -1,5 +1,5 @@
 ═══════════════════════════════════════════════════════════════════════════════
-  EDITOR DE PLANOS · ESTILOS VISUALES · COHERENCIA · PROMPTS
+  EDITOR DE PLANOS · ESCENAS · PATRONES · TEMPLATES · 6 VISTAS
   Documentación técnica completa
   Qué es · qué hace · cómo lo hace · cómo usarlo
 ═══════════════════════════════════════════════════════════════════════════════
@@ -8,15 +8,16 @@
   1. Qué es
   2. Qué NO es
   3. Cómo usarlo (guía paso a paso)
-  4. Qué hace (editor, 5 vistas, generador, import/export)
-  5. Cómo lo hace (arquitectura, event sourcing, schema)
-  6. Modelo de datos (eventos, planos, estilos)
-  7. Los 10 estilos visuales (por qué cada uno)
-  8. Cómo integrarlo en tu Core existente
-  9. Limitaciones honestas
-  10. Siguiente paso natural
-  Anexo A · Cómo se resuelve el valle inquietante
-  Anexo B · Sobre el negative prompt (malentendido frecuente)
+  4. Qué hace (editor, escenas, patrones, templates, 6 vistas)
+  5. Cómo lo hace (arquitectura, event sourcing, schema con niveles)
+  6. Modelo de datos (eventos de plano, escena, patrón)
+  7. Los 10 estilos visuales
+  8. Los 6 templates de escena
+  9. Cómo integrarlo en tu Core existente
+  10. Limitaciones honestas
+  11. Siguiente paso natural
+  Anexo A · La métrica de tensión
+  Anexo B · Cómo se resuelve el valle inquietante
 
 ───────────────────────────────────────────────────────────────────────────────
 1. QUÉ ES
@@ -25,35 +26,44 @@
 Es un plugin independiente en un único archivo HTML que permite:
 
   A) DEFINIR planos de cine (shot list) mediante un formulario real, con
-     14 campos editables: escena, orden, encuadre, ángulo, movimiento,
-     sujeto, intención, duración, focal, eje, eyeline, permiteCruce,
-     estilo visual y paleta.
+     14 campos editables. El formulario se adapta al modo activo:
+     - Modo NORMAL: 6 campos básicos (escena, encuadre, sujeto,
+       intención, duración, estilo). Los demás se colapsan en un
+       <details> opcional.
+     - Modo AVANZADO: los 14 campos visibles.
 
   B) EDITAR planos existentes: clic en un plano de la lista → se carga
      en el formulario → cambias lo que quieras → guardas → el cambio
      queda registrado como evento inmutable.
 
-  C) VALIDAR la coherencia del shot list con 5 vistas puras:
-     continuidad, ritmo, paleta, cobertura y estilo visual.
+  C) MODELAR ESCENAS como entidad propia (opcional) con metadata:
+     nombre, acto (acto1/acto2/acto3), función dramática
+     (planteamiento/incidente/desarrollo/crisis/climax/resolucion) y
+     descripción. Si no creas la escena explícitamente, se infiere de
+     los planos que la referencian.
 
-  D) GENERAR prompts reproducibles para IA de vídeo (Runway, Pika,
-     Kling, Sora, Genmo, Veo) a partir de cada plano: prompt positivo,
-     negative prompt, parámetros sugeridos y notas de continuidad. El
-     estilo visual se aplica como capa de primer orden: el bloque de
-     estilo va al inicio del prompt y el negative prompt incluye
-     específicos del estilo.
+  D) MODELAR PATRONES DE MONTAJE como entidad propia: contraplano,
+     campo/contracampo, montaje, plano secuencia, inserto. Un patrón
+     agrupa N planos que forman una unidad. Sirve para marcar que un
+     cruce de eje es deliberado, no un error.
 
-  E) IMPORTAR y EXPORTAR el shot list completo como JSON, para batch o
-     para integrarlo con otras herramientas.
+  E) APLICAR TEMPLATES de escena con un clic: 6 presets (diálogo
+     íntimo, persecución, encuentro con monstruo, batalla épica,
+     viaje/travesía, clímax). Cada uno genera 4-8 planos coherentes.
 
-  F) ELEGIR entre 10 estilos visuales que resuelven el valle inquietante
-     declarando artificialidad (teatro, títeres, sombras), aplanando la
-     imagen (cerámica, mosaico, fresco) o usando convenciones de género
-     (pulp, anime).
+  F) VALIDAR la coherencia del shot list con 6 vistas puras:
+     continuidad, ritmo, paleta, cobertura, estilo visual y curva
+     temporal (esta última opera sobre la película entera).
 
-En una frase: es un editor de shot lists con validación estructural,
-generación de prompts para IA de vídeo y 10 estilos visuales, todo en
-un archivo, todo modular.
+  G) GENERAR prompts reproducibles para IA de vídeo con estilo visual
+     aplicado como capa de primer orden.
+
+  H) IMPORTAR y EXPORTAR planos + escenas + patrones como JSON.
+
+En una frase: es un editor de shot lists con jerarquía escena→plano,
+patrones de montaje, templates, 6 vistas de coherencia, modo
+normal/avanzado y generación de prompts para IA de vídeo, todo en un
+archivo, todo modular.
 
 ───────────────────────────────────────────────────────────────────────────────
 2. QUÉ NO ES
@@ -62,9 +72,13 @@ un archivo, todo modular.
 NO es un generador de vídeo. No habla con ninguna API de IA.
 NO es un generador de imágenes ni de conditioning signals (depth, seg).
 NO es un editor de vídeo ni un montador.
-NO resuelve consistencia de personaje (el mayor problema de la IA de vídeo
-   actual: la cara del personaje cambia entre planos).
+NO resuelve consistencia de personaje (el mayor problema de la IA de
+   vídeo actual: la cara del personaje cambia entre planos).
 NO es un guionista. Presupone que ya sabes qué historia contar.
+NO es un sistema de versionado. El event sourcing lo permite, pero no
+   hay UI de snapshots ni ramas.
+NO es una herramienta colaborativa. El campo `actor` existe pero no hay
+   sincronización multiusuario.
 NO es "la herramienta que hace películas fáciles". Es una pieza de
    fontanería muy buena dentro de un pipeline más grande.
 
@@ -76,95 +90,146 @@ Es un editor. Un validador. Un generador de prompts. Nada más, nada menos.
 
 3.1 · PRIMER ARRANQUE
    Abres el archivo en el navegador. Al cargar:
-     · Se renderiza el formulario del editor.
-     · Se carga una escena demo con 5 planos (Odiseo y Polifemo).
-     · Se ejecutan 21 tests automáticos (panel inferior).
-     · El formulario queda limpio, listo para crear un plano nuevo.
+     · Se renderizan los 3 formularios (plano, escena, patrón).
+     · Se renderiza la grid de templates.
+     · Se carga una escena demo:
+         - Escena S1 "Encuentro con Polifemo", acto 2, función crisis.
+         - 5 planos (P1–P5) con Odiseo, Polifemo y un cruce de eje
+           deliberado en P4 (permiteCruce: true).
+         - 1 patrón de contraplano P3-P4.
+     · Se ejecutan 28 tests automáticos (panel inferior).
+     · Los formularios quedan limpios, listos para crear.
 
    La pantalla tiene:
-     · Arriba izquierda: editor de plano (formulario).
-     · Abajo izquierda: lista de planos de la escena.
-     · Arriba derecha: 5 paneles de coherencia.
-     · Abajo a todo el ancho: prompts generados.
+     · Arriba: toggle Normal / Avanzado.
+     · Columna izquierda:
+         - Editor de plano (formulario + botones).
+         - Lista de planos agrupada por escena.
+         - Editor de escena (metadata).
+     · Columna derecha:
+         - Editor de patrón (agrupa planos).
+         - Grid de templates.
+     · Centro: 6 paneles de coherencia.
+     · Abajo: curva temporal detallada (canvas).
+     · Abajo: prompts generados.
      · Al final: panel de tests.
 
-3.2 · CREAR UN PLANO NUEVO
+3.2 · CAMBIAR ENTRE MODO NORMAL Y AVANZADO
+   Arriba de todo hay un toggle:
+     · NORMAL: el formulario de plano muestra 6 campos
+       (escena, encuadre, sujeto, intención, duración, estilo).
+       Los 8 restantes están en un <details> "⚙️ Parámetros
+       avanzados" que puedes abrir si quieres, pero no molesta.
+     · AVANZADO: los 14 campos visibles directamente.
+
+   El modo afecta a los 3 formularios (plano, escena, patrón):
+   cada campo tiene un `nivel` declarado en el schema.
+
+   Recomendación: empieza en NORMAL. Cuando domines el plano,
+   pasa a AVANZADO para control fino de eje, eyeline, focal, paleta.
+
+3.3 · CREAR UN PLANO NUEVO
    1. El formulario empieza limpio (modo "Nuevo").
-   2. Rellenas los campos:
-        - Escena: por defecto "S1". Si tienes varias escenas, cámbialo.
-        - Orden: se auto-rellena con max+1.
+   2. Rellenas los campos. En NORMAL:
+        - Escena: por defecto "S1". Cámbialo si tienes varias.
         - Encuadre: dropdown (general | entero | medio | primer | primerisimo).
-        - Ángulo: dropdown (normal | picado | contrapicado | holandes).
-        - Movimiento: dropdown (estatico | pan | tilt | travelling | handheld | grua).
         - Sujeto: texto libre (odiseo, polifemo, atenea, etc.).
         - Intención: dropdown con 10 opciones (establecer, intimidad,
           tension, epica, misterio, comedia, duelo, amenaza,
           trickster_hubris, mythic_sorrow).
         - Duración: segundos (0.5 a 30).
-        - Focal: mm (14 a 200).
-        - Eje: grados (0 a 360).
-        - Eyeline: dropdown (-1 | 0 | 1).
-        - Permite cruce: checkbox (si lo marcas, se anulan las
-          validaciones de eje y eyeline para ese plano).
-        - Estilo visual: dropdown con 10 opciones (teatro_griego,
-          titeres_bunraku, sombras_wayang, ceramica_griega,
-          mosaico_bizantino, fresco_pompeyano, grabado_dore,
-          manuscrito_iluminado, pulp_flash_gordon, cel_shading_anime).
-        - Paleta: color pickers con botón + para añadir y × para eliminar.
+        - Estilo visual: dropdown con 10 opciones.
+      En AVANZADO, además: orden, ángulo, movimiento, focal, eje,
+      eyeline, permiteCruce, paleta.
    3. Pulsas "💾 Guardar".
-   4. El plano aparece en la lista de la izquierda.
-   5. Las 5 vistas de coherencia se recalculan automáticamente.
+   4. El plano aparece en la lista (agrupado por escena).
+   5. Las 6 vistas de coherencia se recalculan automáticamente.
    6. El prompt se genera en el panel inferior.
 
-   Si algún campo required falta o duración es <= 0, no se guarda y
-   el formulario muestra el error en rojo.
+   Si falta un campo required o duración <= 0, no se guarda y el
+   formulario muestra el error en rojo.
 
-3.3 · EDITAR UN PLANO EXISTENTE
-   1. Clic en el plano de la lista de la izquierda.
+3.4 · EDITAR UN PLANO
+   1. Clic en el plano de la lista.
    2. El formulario se rellena con sus valores.
-   3. El chip de arriba dice "Editando: P3".
-   4. Cambias los campos que quieras.
-   5. Pulsas "💾 Guardar".
-   6. Se emite un `campo_modificado` por cada campo que cambió.
+   3. El chip dice "Editando: P3".
+   4. Cambias los campos.
+   5. Guardas.
+   6. Se emite un `campo_modificado` por cada campo cambiado.
    7. Las vistas se recalculan, el prompt se regenera.
 
-   La edición mantiene la trazabilidad campo a campo: el log guarda
-   "el eje de P3 pasó de 0° a 180° el día X". Nada se sobreescribe.
+   La edición mantiene trazabilidad campo a campo. Nada se sobreescribe.
 
-3.4 · DUPLICAR UN PLANO
-   1. Seleccionas un plano.
-   2. Pulsas "📋 Duplicar".
-   3. Se crea un plano con el mismo contenido, nuevo id, orden = max+1.
-   4. El formulario carga el nuevo plano para editarlo.
+3.5 · DUPLICAR / ELIMINAR UN PLANO
+   · Duplicar: seleccionas un plano → "📋 Duplicar" → se crea una
+     copia con nuevo id, orden = max+1. Útil para variantes.
+   · Eliminar: seleccionas → "🗑 Eliminar" (con confirmación) →
+     se emite `plano_eliminado`. El log lo conserva.
 
-   Útil para hacer variantes de un plano (mismo encuadre, distinto
-   ángulo; misma intención, distinta paleta).
+3.6 · CREAR UNA ESCENA CON METADATA
+   1. En el panel "🎭 Editor de escena", rellenas:
+        - ID: identificador único (ej. "S1", "S2").
+        - Nombre: nombre legible ("Encuentro con Polifemo").
+        - Acto: dropdown (acto1 | acto2 | acto3).
+        - Función dramática (avanzado): planteamiento, incidente,
+          desarrollo, crisis, clímax, resolución.
+        - Descripción (avanzado): texto libre.
+   2. Pulsas "💾 Guardar escena".
+   3. Aparece en "Escenas existentes" abajo.
 
-3.5 · ELIMINAR UN PLANO
-   1. Seleccionas un plano.
-   2. Pulsas "🗑 Eliminar" (con confirmación).
-   3. Se emite `plano_eliminado`. El log lo conserva (event sourcing:
-      nada se borra de verdad, se emite un evento de borrado).
+   IMPORTANTE: la escena es OPCIONAL. Si no la creas, se infiere de
+   los planos (cualquier plano con `escenaId: 'S1'` hace que exista
+   la escena "S1" en la lista, aunque sin metadata).
 
-3.6 · VALIDAR LA COHERENCIA
-   No hay botón "validar". La validación es continua: cada vez que
-   creas, editas o eliminas un plano, las 5 vistas se recalculan.
+   Las escenas existentes se pueden clicar para editar. Si una escena
+   fue inferida (no tiene metadata), al clicarla se precarga el id y
+   el nombre, lista para crear la metadata.
 
-   Panel de continuidad: violaciones de eje y eyeline en rojo.
-   Panel de ritmo: total, media, min, max, alertas si lento/rápido.
-   Panel de paleta: transiciones entre planos con % de distancia,
-     alertas si salto sin cambio de intención o al revés.
-   Panel de cobertura: encuadre, ángulo y movimiento; alertas si
-     falta establecimiento o hay exceso de primeros.
-   Panel de estilo: cuenta de estilos por escena; alerta si hay mixtos.
+3.7 · CREAR UN PATRÓN DE MONTAJE
+   1. En el panel "🎞 Editor de patrón", rellenas:
+        - Escena: a qué escena pertenece.
+        - Tipo: contraplano | campo_contracampo | montaje |
+          plano_secuencia | inserto.
+        - Planos: checkboxes con todos los planos existentes.
+          Seleccionas los que forman el patrón.
+        - Nota (avanzado): texto libre.
+   2. Pulsas "💾 Guardar patrón".
+   3. Aparece en "Patrones existentes".
 
-3.7 · GENERAR PROMPTS
-   Cada plano produce automáticamente su prompt, visible en el panel
-   inferior. La tarjeta muestra:
-     · Prompt positivo (inglés, listo para pegar en Runway/Kling/etc.)
+   Para qué sirve: marcar que un cruce de eje es deliberado. Si tienes
+   P3 (Odiseo, eje 0) y P4 (Polifemo, eje 180), la vista de
+   continuidad marcará error. Pero si creas un patrón "contraplano"
+   con P3-P4, el error sigue apareciendo (la vista es estructural), y
+   el patrón documenta la decisión. El humano decide si es error o
+   convención.
+
+3.8 · APLICAR UN TEMPLATE
+   1. En el panel "📋 Templates de escena", ves 6 tarjetas.
+   2. Clic en una → confirmación → se crean N planos de golpe.
+   3. Los planos se asignan a la escena actualmente en edición
+      (o "S1" si no hay ninguna).
+   4. Puedes editarlos uno a uno después.
+
+   Útil si no sabes qué planos poner. Los templates son puntos de
+   partida, no dogmas. Edita lo que quieras.
+
+3.9 · VALIDAR LA COHERENCIA
+   No hay botón "validar". Cada cambio recalcula las 6 vistas:
+     · Continuidad: violaciones de eje y eyeline en rojo.
+     · Ritmo: total, media, min, max por escena; alertas si lento/rápido.
+     · Paleta: transiciones entre planos con % de distancia; alertas
+       si salto sin cambio de intención o al revés.
+     · Cobertura: encuadre, ángulo, movimiento; alertas si falta
+       establecimiento o hay exceso de primeros.
+     · Estilo: cuenta de estilos por escena; alerta si hay mixtos.
+     · Curva temporal: duración acumulada, tensión por plano, mesetas,
+       aceleraciones, 3 actos con tensión media.
+
+3.10 · GENERAR PROMPTS
+   Cada plano produce automáticamente su prompt. La tarjeta muestra:
+     · Prompt positivo (inglés, listo para Runway/Kling/etc.)
      · Negative prompt (separado, en rojo)
-     · Parámetros sugeridos: duración, aspect ratio, fps, focal,
-       camera motion, motion intensity, seed determinista.
+     · Parámetros: duración, aspect, fps, focal, motion, seed.
      · Notas de continuidad: avisos si el plano cruza eje, invierte
        eyeline, salta de paleta o cambia de estilo respecto al anterior.
 
@@ -173,50 +238,64 @@ Es un editor. Un validador. Un generador de prompts. Nada más, nada menos.
      · "📋 Copiar todos" → copia todos los prompts como bloque.
      · "⬇️ Descargar JSON" → exporta todos los prompts en JSON.
 
-3.8 · IMPORTAR / EXPORTAR
-   Panel de planos, botones inferiores:
-     · "⬇️ Export JSON" → descarga shot list completo con metadatos.
-     · "⬆️ Import JSON" → carga un array de planos (crea eventos nuevos).
+3.11 · IMPORTAR / EXPORTAR
+   Panel de prompts:
+     · "⬇️ Export shot list" → descarga planos + escenas + patrones.
+     · "⬆️ Import shot list" → carga un JSON con las 3 entidades.
      · "🗑 Reset todo" → vacía el core y recarga la demo.
 
-3.9 · TESTS
-   Al cargar el archivo se ejecutan 21 tests automáticos. Cada uno
-   verifica una pieza del sistema (vistas, generador, schema, estilos,
-   integración). Si algo falla, aparece en rojo. Si todo pasa, verde.
+   El JSON exportado tiene:
+     { scene, generated, globalContext, planos[], escenas[], patrones[] }
+
+3.12 · TESTS
+   Al cargar se ejecutan 28 tests automáticos. Si algo falla, aparece
+   en rojo. Cubren schemas, 6 vistas, generador, templates e
+   integración multi-entidad.
 
 ───────────────────────────────────────────────────────────────────────────────
 4. QUÉ HACE
 ───────────────────────────────────────────────────────────────────────────────
 
-4.1 · EDITOR DE PLANOS
-   Formulario generado automáticamente desde el schema declarativo.
-   Para cada campo del schema, un control:
-     · enum     → dropdown con opciones
-     · number   → input numérico con min/max/step
-     · text     → input de texto
-     · bool     → checkbox
-     · paleta   → lista dinámica de color pickers
+4.1 · EDITOR DE PLANO (14 campos con nivel)
+   Formulario generado desde PLANO_SCHEMA. Cada campo tiene un nivel
+   (basico | avanzado) que controla si se muestra en modo normal o
+   solo en avanzado.
 
-   Añadir un campo al schema → aparece en el formulario automáticamente.
+   Básicos (6): escenaId, encuadre, sujeto, intencion, duracion, estilo.
+   Avanzados (8): orden, angulo, movimiento, focal, eje, eyeline,
+                  permiteCruce, paleta.
 
-4.2 · LISTA DE PLANOS
-   Panel con planos ordenados por `orden`. Cada uno muestra id, encuadre,
-   ángulo, duración, sujeto, intención, eje, eyeline y swatches de
-   paleta. Clic para cargar en el editor.
+   En modo normal, los avanzados se colapsan en un <details> opcional.
 
-4.3 · CINCO VISTAS DE COHERENCIA
+4.2 · EDITOR DE ESCENA (5 campos)
+   ESCENA_SCHEMA declara: id, nombre, acto, funcionDramatica,
+   descripcion. La escena es opcional: si no se crea, se infiere de
+   los planos.
+
+4.3 · EDITOR DE PATRÓN (4 campos)
+   PATRON_SCHEMA declara: escenaId, tipo, planos (multi-selección),
+   nota. Los patrones agrupan planos que forman una unidad de montaje.
+
+4.4 · LISTA DE PLANOS AGRUPADA POR ESCENA
+   Los planos se muestran agrupados por `escenaId`. Cada grupo tiene
+   una cabecera con el nombre de la escena y el número de planos.
+   Dentro, cada plano muestra: id, encuadre, ángulo, duración, sujeto,
+   intención, eje, eyeline, estilo y swatches de paleta. Clic para
+   cargar en el editor.
+
+4.5 · LAS 6 VISTAS DE COHERENCIA
 
    ┌─ VistaContinuidad
-   │  · Cruces de eje (180°): dos planos consecutivos con diferencia
-   │    angular > 90° sin permiteCruce → error.
-   │  · Inversiones de eyeline: dos planos consecutivos con el mismo
-   │    sujeto y eyelines opuestos sin permiteCruce → error.
+   │  · Cruces de eje (180°): diferencia angular > 90° sin
+   │    permiteCruce → error.
+   │  · Inversiones de eyeline: mismo sujeto, eyelines opuestos,
+   │    sin permiteCruce → error.
    │  Campos: eje, eyeline, sujeto, permiteCruce.
    │
    ├─ VistaRitmo
    │  · Ritmo lento (media > 8s).
    │  · Ritmo muy rápido (media < 1.2s con > 3 planos).
-   │  · Saltos bruscos de duración entre consecutivos (> 4x o < 0.25x).
+   │  · Saltos de duración > 4x o < 0.25x entre consecutivos.
    │  Campos: duracion, orden.
    │
    ├─ VistaPaleta
@@ -230,21 +309,30 @@ Es un editor. Un validador. Un generador de prompts. Nada más, nada menos.
    │  · Un solo ángulo en toda la escena.
    │  Campos: encuadre, angulo, movimiento.
    │
-   └─ VistaEstilo
-      · Escena con más de un estilo visual (puede ser error o
-        deliberado, pero el sistema avisa).
-      · Calcula el estilo dominante y lista los minoritarios.
-      Campos: estilo.
+   ├─ VistaEstilo
+   │  · Escena con más de un estilo visual (avisa, no bloquea).
+   │  · Calcula el estilo dominante y lista los minoritarios.
+   │  Campos: estilo.
+   │
+   └─ VistaCurvaTemporal
+      · Opera sobre la PELÍCULA ENTERA, no por escena.
+      · Duración acumulada y tensión por plano (0-4).
+      · División en 3 actos (25% / 50% / 25%).
+      · Tensión media por acto.
+      · Detección de mesetas (4+ planos largos seguidos).
+      · Detección de aceleraciones (4+ planos cortos seguidos).
+      · Canvas con dos líneas: duración (azul) y tensión (naranja),
+        con bandas de color por acto.
 
-4.4 · GENERADOR DE PROMPTS
-   Para cada plano produce un objeto con:
+4.6 · GENERADOR DE PROMPTS
+   Para cada plano produce:
      · prompt (inglés, formato Runway/Pika/Kling/Sora)
      · negativePrompt (base + específicos por intención + específicos
        por estilo)
      · suggestedParams (duración, aspect, fps, focal, motion, seed)
-     · notas de continuidad (avisos para el humano)
+     · notas de continuidad
 
-   El prompt se compone así:
+   Composición del prompt:
      1. Bloque de estilo (primero, para forzar la estética)
      2. Encuadre + sujeto traducido ("close-up shot of Odysseus")
      3. Ángulo ("low-angle shot looking up")
@@ -252,339 +340,257 @@ Es un editor. Un validador. Un generador de prompts. Nada más, nada menos.
      5. Paleta ("color palette anchored on #c97a3a and #e0a060")
      6. Movimiento ("static locked-off camera")
      7. Focal ("shot on 85mm lens")
-     8. Estilo cinematográfico global ("cinematic film still...")
+     8. Estilo cinematográfico global
 
-   El negative prompt combina:
-     · Base común: low quality, blurry, distorted, watermark, etc.
-     · Específicos por intención: tension → +cheerful colors, +soft focus
-     · Específicos por estilo: teatro_griego → +subtle facial expression,
-       +realistic skin, +naturalistic acting
+   El seed es determinista por id: mismo id → mismo seed.
 
-   El seed es determinista por id de plano: mismo id → mismo seed.
+4.7 · TEMPLATES
+   6 presets que generan planos de golpe:
+     · Diálogo íntimo (4 planos)
+     · Persecución (6 planos)
+     · Encuentro con monstruo (5 planos)
+     · Batalla épica (8 planos)
+     · Viaje / travesía (5 planos)
+     · Clímax (6 planos)
 
-4.5 · IMPORT / EXPORT JSON
-   · Export shot list: { scene, generated, globalContext, planos[] }
-   · Export prompts: { scene, generated, globalContext, prompts[] }
-   · Import planos: array de planos → se añaden como eventos nuevos
+   Cada uno usa el estilo teatro_griego por defecto y paletas
+   coherentes con la intención dramática.
 
 ───────────────────────────────────────────────────────────────────────────────
 5. CÓMO LO HACE (arquitectura)
 ───────────────────────────────────────────────────────────────────────────────
 
-5.1 · SCHEMA DECLARATIVO
-   La pieza clave del editor. PLANO_SCHEMA es un objeto que declara cada
-   campo con su tipo, label, default, required, enum y rangos.
+5.1 · SCHEMA CON NIVELES
+   Cada campo del schema declara `nivel: 'basico' | 'avanzado'`.
+   La función renderSchemaForm() separa los campos en dos grupos:
+   los básicos se renderizan siempre; los avanzados se renderizan
+   dentro de un <details> en modo normal, o directamente en avanzado.
 
-   La función renderForm() recorre el schema y genera el formulario:
-   un control por campo, con el tipo adecuado. Si añades un campo al
-   schema, aparece en el formulario automáticamente.
+   Añadir un campo al schema → aparece en el editor correspondiente,
+   con su nivel.
 
-   Ventaja: el schema es la única fuente de verdad sobre qué campos
-   existen. No hay que tocar código del editor al añadir campos nuevos.
+5.2 · EVENT SOURCING MULTI-ENTIDAD
+   El sistema guarda la secuencia de decisiones como eventos inmutables.
+   Ahora hay 3 tipos de entidad:
+     · plano    → plano_creado | plano_eliminado | campo_modificado
+     · escena   → escena_creada | escena_eliminada | escena_modificada
+     · patron   → patron_creado | patron_eliminado | patron_modificado
 
-5.2 · EVENT SOURCING
-   El sistema no guarda "el estado actual del shot list". Guarda la
-   secuencia de decisiones que llevaron al estado actual.
+   Cada vista recibe TODOS los eventos, pero filtra por entidad:
+   las vistas de plano (continuidad, ritmo, paleta, cobertura, estilo)
+   solo responden a eventos con `entidad === 'plano'`. La vista de
+   curva temporal usa los planos pero también lee las escenas.
 
-   Cada decisión es un evento inmutable:
-     · plano_creado     — contiene el plano completo en `a`
-     · plano_eliminado  — solo el id
-     · campo_modificado — { entidadId, campo, de, a }
-
-   Las vistas son proyecciones puras:
-     init()   → estado vacío
-     apply()  → aplica un evento, devuelve estado nuevo
-     result() → deriva el resultado legible
-
-   Ventajas:
-     · Toda decisión es reversible.
-     · Se puede reconstruir el estado en cualquier momento pasado.
-     · Añadir una vista no cambia las demás.
-     · El log es la fuente de verdad; las vistas son cachés derivadas.
-
-   Cuando editas un plano con el formulario, NO se sustituye el objeto.
-   Se emite un evento por cada campo que cambió. Trazabilidad campo a
-   campo.
+   Las escenas y patrones se almacenan en el estado de continuidad
+   (campo `escenas` y `patrones`) porque es el estado "base" que
+   comparten todas las vistas.
 
 5.3 · RECALCULADO INCREMENTAL
    Cuando llega un evento de plano:
-     1. Se aplica al estado base (crear / eliminar / modificar campo).
+     1. Se aplica al estado base.
      2. Se reconstruye el array de planos de las escenas afectadas.
-     3. Las 5 vistas recalculan solo esas escenas, no todas.
+     3. Las vistas recalculan solo esas escenas.
+   Cuando llega un evento de escena o patrón, las vistas se actualizan
+   sin necesidad de reconstruir los planos.
 
-   Mantiene la herramienta ágil con cientos de planos.
-
-5.4 · GENERACIÓN DE PROMPTS DETERMINISTA
-   generarPrompt(plano, contexto) es una función pura:
-     · No toca el DOM.
-     · No usa Math.random().
-     · El seed se deriva con un hash determinista del id del plano.
-
-   Mismo input → mismo output. Eso permite reproducir clips si la
-   herramienta lo soporta (Runway, Kling, etc. aceptan seed).
+5.4 · GENERACIÓN DETERMINISTA
+   generarPrompt() es pura. No usa Math.random(). El seed se deriva
+   con un hash del id. Mismo plano → mismo prompt.
 
 5.5 · ESTILO COMO CAPA DE PRIMER ORDEN
-   El bloque de estilo va PRIMERO en el prompt. Si no se repite en cada
-   generación, el modelo deriva hacia fotorrealismo por defecto.
-
-   Además, el negative prompt incluye específicos del estilo:
-     · teatro_griego → excluye "subtle facial expression, realistic skin,
-       naturalistic acting, photorealistic"
-     · ceramica_griega → excluye "3D rendering, photorealism, depth of
-       field, realistic lighting"
-     · pulp_flash_gordon → excluye "photorealism, muted tones,
-       naturalistic lighting, modern CGI"
-
-   Eso fuerza al modelo a respetar la estética declarada.
+   El bloque de estilo va PRIMERO en el prompt. El negativo incluye
+   específicos del estilo. Eso fuerza la estética declarada.
 
 5.6 · TESTS
-   21 tests verifican:
-     · VistaContinuidad detecta cruces de eje y eyeline.
-     · VistaRitmo calcula media, min, max y alertas.
-     · VistaPaleta detecta saltos cromáticos sin cambio de intención.
-     · VistaCobertura detecta falta de establecimiento.
-     · VistaEstilo detecta escenas con estilos mixtos.
-     · generarPrompt produce prompt con close-up, sujeto traducido,
-       focal, paleta y estilo.
-     · generarPrompt es determinista.
-     · generarPrompt incluye negativos base y del estilo.
-     · El schema tiene 14 campos con label y tipo.
-     · Los 10 estilos del enum tienen entrada en ESTILO_PROMPT.
-     · Integración: prompt generado desde eventos del core.
-     · Edición emite campo_modificado y actualiza vistas.
-     · Eliminar plano limpia estado correctamente.
+   28 tests verifican:
+     · Los 3 schemas (campos, niveles, tipos).
+     · Las 6 vistas (continuidad, ritmo, paleta, cobertura, estilo,
+       curva temporal).
+     · El generador de prompts (determinismo, negativos, notas).
+     · Los 6 templates (estructura, planos válidos).
+     · La integración multi-entidad (escenas, patrones, edición).
 
 ───────────────────────────────────────────────────────────────────────────────
 6. MODELO DE DATOS
 ───────────────────────────────────────────────────────────────────────────────
 
-6.1 · EVENTO
+6.1 · EVENTO (estructura común)
    {
-     id: "ev_P3_eje_1700000000000_abc1",   // id único del evento
-     ts: "2025-01-15T10:30:00.000Z",        // timestamp
-     entidad: "plano",                      // tipo de entidad
-     entidadId: "P3",                       // id del plano
-     tipo: "campo_modificado",              // plano_creado | plano_eliminado |
-                                            //   campo_modificado
-     campo: "eje",                          // solo si tipo=campo_modificado
-     de: 0,                                 // valor anterior
-     a: 180,                                // valor nuevo
-     actor: "usuario",                      // quién hizo el cambio
+     id: "ev_P3_eje_1700000000000_abc1",
+     ts: "2025-01-15T10:30:00.000Z",
+     entidad: "plano" | "escena" | "patron",
+     entidadId: "P3" | "S1" | "PAT1",
+     tipo: "...",                   // depende de la entidad
+     campo: "eje" | null,
+     de: 0, a: 180,
+     actor: "usuario" | "demo" | "template:dialogo_intimo" | "import",
      version: 1
    }
 
 6.2 · PLANO (14 campos)
    {
-     id: "P3",
-     escenaId: "S1",
-     orden: 3,
-     encuadre: "primer",
-     angulo: "contrapicado",
-     movimiento: "estatico",
-     sujeto: "odiseo",
-     intencion: "trickster_hubris",
-     duracion: 2.5,
-     focal: 50,
-     eje: 0,
-     eyeline: 1,
-     permiteCruce: false,
-     estilo: "teatro_griego",
-     paleta: ["#c97a3a", "#e0a060"]
+     id, escenaId, orden,
+     encuadre, angulo, movimiento,
+     sujeto, intencion,
+     duracion, focal, eje, eyeline, permiteCruce,
+     estilo, paleta[]
    }
 
-   Todos los campos tienen default en el schema. La validación antes de
-   guardar exige los required: escenaId, orden, encuadre, angulo, sujeto,
-   intencion, duracion y estilo.
+   Niveles:
+     · basicos: escenaId, encuadre, sujeto, intencion, duracion, estilo.
+     · avanzados: orden, angulo, movimiento, focal, eje, eyeline,
+                  permiteCruce, paleta.
+
+6.3 · ESCENA (5 campos)
+   {
+     id, nombre, acto, funcionDramatica, descripcion
+   }
+
+   Niveles:
+     · basicos: id, nombre, acto.
+     · avanzados: funcionDramatica, descripcion.
+
+6.4 · PATRÓN (4 campos)
+   {
+     id, escenaId, tipo, planos[], nota
+   }
+
+   Tipos: contraplano, campo_contracampo, montaje, plano_secuencia,
+          inserto.
 
 ───────────────────────────────────────────────────────────────────────────────
-7. LOS 10 ESTILOS VISUALES
+7. LOS 10 ESTILOS VISUALES (resumen)
 ───────────────────────────────────────────────────────────────────────────────
 
-Cada estilo resuelve el valle inquietante de una forma distinta.
-Agrupados por estrategia:
+Cada estilo resuelve el valle inquietante de una forma distinta:
 
-GRUPO A · Artificialidad declarada (máscaras, títeres, sombras)
+GRUPO A · Artificialidad declarada
+  1 · teatro_griego     — máscaras, coros, declamación. El artificio original.
+  2 · titeres_bunraku   — títeres con cuerdas visibles. Imperfección intencionada.
+  3 · sombras_wayang    — silueta contra pantalla. Sin rostro, sin valle facial.
 
-  1 · teatro_griego
-      Por qué funciona: la máscara es el artificio original. El público
-      acepta la convención. El cerebro deja de buscar realismo.
-      Para La Odisea: es su medio nativo. Coros, dioses en mechane,
-      declamación.
-      Negative extra: subtle facial expression, realistic skin,
-      micro-expressions, naturalistic acting, photorealistic.
-      fps: 24, motion: low.
+GRUPO B · Planitud decorativa
+  4 · ceramica_griega   — figuras rojas/negras sobre terracota. Sin profundidad.
+  5 · mosaico_bizantino — tesserae, frontalidad, dorados. La épica como icono.
+  6 · fresco_pompeyano  — colores planos, perspectiva limitada.
 
-  2 · titeres_bunraku
-      Por qué funciona: la imperfección del títere es intencionada.
-      El cerebro acepta las articulaciones visibles.
-      Para La Odisea: Polifemo como títere gigante, los dioses como
-      marionetas, el viaje como teatro de marionetas.
-      Negative extra: photorealistic face, smooth skin, naturalistic
-      movement, subtle expressions, 3D rendering.
-      fps: 24, motion: medium.
+GRUPO C · Línea y grabado
+  7 · grabado_dore      — alto contraste, línea, sin gradientes.
+  8 · manuscrito_iluminado — perspectiva plana, escala simbólica.
 
-  3 · sombras_wayang
-      Por qué funciona: sin rostro, sin valle inquietante facial.
-      Solo silueta y color.
-      Para La Odisea: los monstruos, el Hades, los dioses. El mundo
-      de las sombras es el mundo del mito.
-      Negative extra: faces visible, realistic humans, 3D shading,
-      depth of field.
-      fps: 24, motion: low.
+GRUPO D · Convención de género
+  9 · pulp_flash_gordon — colores saturados, decorados teatrales. Heredero del Dune de Jodorowsky.
+  10 · cel_shading_anime — 2D plano, contornos. El cerebro lee animación.
 
-GRUPO B · Planitud decorativa (sin profundidad que falle)
-
-  4 · ceramica_griega (figuras rojas / negras)
-      Por qué funciona: no hay profundidad, no hay piel, no hay rostro
-      realista. Solo línea y color plano.
-      Para La Odisea: literalmente el medio en que se conservó la
-      iconografía homérica.
-      Negative extra: 3D rendering, photorealism, depth of field,
-      realistic lighting, gradients, smooth shading.
-      fps: 12, motion: low.
-
-  5 · mosaico_bizantino
-      Por qué funciona: tesserae, color plano, frontalidad. Sin
-      profundidad.
-      Para La Odisea: la épica como icono. Dioses de frente, dorados,
-      simbólicos.
-      Negative extra: realistic perspective, 3D depth, naturalistic
-      faces, photorealism, cinematic lighting.
-      fps: 12, motion: low.
-
-  6 · fresco_pompeyano
-      Por qué funciona: colores planos, perspectiva limitada, figuras
-      estilizadas.
-      Para La Odisea: las escenas de la Odisea en frescos romanos son
-      el referente directo.
-      Negative extra: photorealism, cinematic depth, realistic skin,
-      3D rendering.
-      fps: 12, motion: low.
-
-GRUPO C · Línea y grabado (sin fotorealismo que falle)
-
-  7 · grabado_dore
-      Por qué funciona: alto contraste, línea, sin gradientes. El
-      cerebro lee "ilustración".
-      Para La Odisea: las ediciones clásicas de Homero con grabados de
-      Flaxman o Doré.
-      Negative extra: color, gradients, photorealism, smooth shading,
-      3D rendering.
-      fps: 12, motion: low.
-
-  8 · manuscrito_iluminado
-      Por qué funciona: perspectiva plana, escala simbólica, dorados.
-      Sin profundidad realista.
-      Para La Odisea: la transmisión medieval de Homero.
-      Negative extra: realistic perspective, 3D depth, cinematic
-      lighting, photorealism, naturalistic faces.
-      fps: 12, motion: low.
-
-GRUPO D · Convención de género (pulp y animación)
-
-  9 · pulp_flash_gordon
-      Por qué funciona: la convención de género hace que el espectador
-      espere artificio. Colores saturados, decorados teatrales.
-      Para La Odisea: los dioses como space opera, los monstruos como
-      pulp horror, el viaje como aventura serial. Heredero directo
-      del Dune de Jodorowsky.
-      Negative extra: photorealism, muted tones, naturalistic lighting,
-      modern CGI, desaturated colors.
-      fps: 24, motion: medium.
-
-  10 · cel_shading_anime
-      Por qué funciona: convención 2D. El cerebro lee "animación",
-      no "humano falso".
-      Para La Odisea: la épica como anime, con dioses estilizados y
-      monstruos expresivos.
-      Negative extra: photorealism, 3D rendering, realistic skin
-      texture, smooth gradients, naturalistic lighting.
-      fps: 24, motion: medium.
+Para cada estilo: positivo, negativo, motionIntensity, fps y nota
+interna que explica por qué funciona.
 
 ───────────────────────────────────────────────────────────────────────────────
-8. CÓMO INTEGRARLO EN TU CORE EXISTENTE
+8. LOS 6 TEMPLATES DE ESCENA
+───────────────────────────────────────────────────────────────────────────────
+
+Cada template es una función que devuelve un array de planos con
+estructura coherente. Se aplican con un clic.
+
+  dialogo_intimo      · 4 planos · general + medio + primer A + primer B
+  persecucion         · 6 planos · general + planos cortos en aceleración
+  encuentro_monstruo  · 5 planos · establecimiento + revelación + reacción
+  batalla_epica       · 8 planos · variedad de encuadres y movimiento
+  viaje_travesia      · 5 planos · movimiento constante, planos largos
+  climax              · 6 planos · aceleración progresiva, primeros
+
+Los templates son puntos de partida, no dogmas. Edita lo que quieras.
+
+───────────────────────────────────────────────────────────────────────────────
+9. CÓMO INTEGRARLO EN TU CORE EXISTENTE
 ───────────────────────────────────────────────────────────────────────────────
 
 Si ya tienes el Core de base_datos2.html funcionando:
 
-  1. Copia las 5 vistas al archivo:
+  1. Copia las 6 vistas al archivo:
        VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura,
-       VistaEstilo
+       VistaEstilo, VistaCurvaTemporal
      Con sus helpers:
        reconstruirEscena, aplicarEventoPlanoBase,
-       hexToRgb, promedioPaleta, distanciaPaleta
+       aplicarEventoEscenaBase, aplicarEventoPatronBase,
+       hexToRgb, promedioPaleta, distanciaPaleta, tensionDePlano
 
-  2. Añádelas al array VISTAS:
-       const VISTAS = [
-         VistaRegistro, VistaContadores, VistaHistorico,
-         VistaIndiceEtiquetas,
-         VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura,
-         VistaEstilo
-       ];
+  2. Añádelas al array VISTAS.
 
-  3. Añade la entidad "plano" al ESQUEMA con los 14 campos y sus tipos.
-     El EsquemaEngine de base_datos2 lo validará automáticamente.
+  3. Añade las 3 entidades al ESQUEMA con sus niveles y tipos.
+     El EsquemaEngine de base_datos2 las validará automáticamente.
 
   4. Copia la función generarPrompt y sus mapas:
        ESTILO_PROMPT, CONTEXTO_GLOBAL, ENCUADRE_PROMPT, ANGULO_PROMPT,
        MOVIMIENTO_PROMPT, INTENCION_PROMPT, SUJETO_MAP,
        traducirSujeto, hashString
 
-  5. En la UI, añade el panel del editor de planos que llama a
-     crear/editar/eliminar del PlanoService equivalente.
+  5. Copia los TEMPLATES.
 
-Nada de esto rompe lo existente. Las vistas nuevas ignoran eventos de
-otras entidades y solo responden a entidad === 'plano'.
+  6. En la UI, añade los 3 editores (plano, escena, patrón) que
+     llamen a los servicios correspondientes.
+
+Nada de esto rompe lo existente. Las vistas nuevas ignoran eventos
+de otras entidades.
+
+COMPATIBILIDAD: los planos existentes con `escenaId: 'S1'` siguen
+funcionando. La entidad escena es opcional: si no existe, se infiere
+de los planos. Los patrones también son opcionales.
 
 ───────────────────────────────────────────────────────────────────────────────
-9. LIMITACIONES HONESTAS
+10. LIMITACIONES HONESTAS
 ───────────────────────────────────────────────────────────────────────────────
 
-· NO resuelve consistencia de personaje entre planos. Ese es el cuello
-  de botella real de la IA de vídeo hoy y requiere references, LoRA,
-  IP-Adapter o generación condicionada por imagen.
+· NO resuelve consistencia de personaje entre planos. Sigue siendo el
+  cuello de botella real de la IA de vídeo.
 
-· NO genera conditioning signals (depth maps, segmentation masks).
-  Eso lo pueden hacer edificio2.html y relaciones3.html; falta el puente.
+· NO genera conditioning signals (depth, seg). Falta el puente a
+  edificio2 y relaciones3.
 
-· NO tiene bucle automático de corrección. Si un clip sale mal, lo
-  regeneras a mano. Automatizarlo requiere conectar imagenes_ia3 +
-  filtro_ia2 + generador.
+· NO tiene bucle automático de corrección. Regeneras a mano.
 
 · NO es un guionista. Presupone que ya sabes qué historia contar.
 
 · NO toca sonido, montaje, distribución.
 
-· El seed determinista SÍ funciona si la herramienta lo soporta.
-  Si no, el seed no hace nada.
+· La VistaEstilo avisa de escenas con estilos mixtos, pero no tiene
+  una matriz de compatibilidad (qué estilos combinan bien entre sí).
+  Teatro griego + pulp Flash Gordon podría ser coherente; teatro
+  griego + cel-shading probablemente no. La vista no lo distingue.
 
-· Los prompts están en inglés. Si tu herramienta los acepta en español,
-  puedes cambiar los mapas, pero el resultado puede ser peor: los
-  modelos están entrenados mayoritariamente en inglés.
+· La VistaCurvaTemporal usa una métrica de tensión heurística (ver
+  Anexo A). No es psicoanálisis; es una aproximación útil.
+
+· El seed determinista funciona si la herramienta de vídeo lo acepta.
+
+· Los prompts están en inglés (idioma recomendado por las herramientas).
 
 · La validación es ESTRUCTURAL, no estética. Detecta que un cruce de
-  eje es un cruce de eje. No detecta que la actuación está mal, que la
-  luz no dice lo que quieres, o que el plano no conmueve. Eso es
-  criterio humano.
+  eje es un cruce de eje. No detecta que la actuación está mal, que
+  la luz no dice lo que quieres, o que el plano no conmueve.
 
-· El formulario tiene 14 campos. No es infinitamente configurable: si
-  necesitas más (hora del día, clima, vestuario), añádelos al
-  PLANO_SCHEMA. La UI los recoge automáticamente y las vistas los
-  ignoran hasta que escribas una vista que los use.
+· Los patrones documentan decisiones, pero no bloquean las vistas.
+  La vista de continuidad sigue marcando error en un contraplano
+  aunque esté documentado como patrón. El humano decide.
 
-· Los 10 estilos son puntos de partida. La consistencia visual entre
-  generaciones sigue siendo un problema abierto. El bloque de estilo
-  repetido en cada prompt ayuda, pero no garantiza.
+· La UI no escala bien a 50+ planos. Falta paginación, filtros,
+  búsqueda. El editor está pensado para demos, no para proyectos
+  grandes.
+
+· El importador no valida contra el schema. Importa lo que le des.
+
+· La reproducibilidad del seed es parcial: si dos planos se crean en
+  el mismo milisegundo, sus ids pueden colisionar.
 
 ───────────────────────────────────────────────────────────────────────────────
-10. SIGUIENTE PASO NATURAL
+11. SIGUIENTE PASO NATURAL
 ───────────────────────────────────────────────────────────────────────────────
 
 Antes de añadir más features, probar el bucle completo con 3 planos
 reales:
 
-  1. Crear 3 planos en el editor.
-  2. Verificar coherencia en las 5 vistas.
+  1. Crear 3 planos en el editor (o aplicar un template y editar).
+  2. Verificar coherencia en las 6 vistas.
   3. Copiar sus prompts.
   4. Generar los 3 clips en Runway / Kling / la herramienta que uses.
   5. Analizar los frames con imagenes_ia3.html.
@@ -595,54 +601,51 @@ Eso te dará en 2 horas la respuesta de "¿esto realmente sirve?".
 Construir más capas antes de ese test es construir a ciegas.
 
 ───────────────────────────────────────────────────────────────────────────────
-ANEXO A · CÓMO SE RESUELVE EL VALLE INQUIETANTE
+ANEXO A · LA MÉTRICA DE TENSIÓN
+───────────────────────────────────────────────────────────────────────────────
+
+La vista de curva temporal calcula una "tensión" por plano (0-4) como
+suma de:
+  · +1 si el movimiento NO es estático.
+  · +1 si la duración es < 2s.
+  · +1 si el encuadre es primer o primerisimo.
+  · +1 si la intención es tension o amenaza.
+
+Rango: 0 (plano tranquilo, general, estático, largo, intención neutra)
+       a 4 (plano tenso, primer plano, movimiento, corto, amenaza).
+
+Es una heurística, no una verdad. Sirve para detectar patrones:
+  · Clímax: tensión media alta en acto 3.
+  · Establecimiento: tensión baja en acto 1.
+  · Meseta: 4+ planos seguidos con tensión baja (posible aburrimiento).
+  · Aceleración: 4+ planos seguidos con tensión alta (posible fatiga).
+
+Si no estás de acuerdo con la métrica, se puede cambiar en una sola
+función: `tensionDePlano(p)`.
+
+───────────────────────────────────────────────────────────────────────────────
+ANEXO B · CÓMO SE RESUELVE EL VALLE INQUIETANTE
 ───────────────────────────────────────────────────────────────────────────────
 
 El valle inquietante no es "cuando algo parece falso". Es cuando algo
-casi parece real pero falla en los detalles. El cerebro busca el patrón
-"humano real" y encuentra un casi-humano con micro-fallos. Eso genera
-rechazo.
+casi parece real pero falla en los detalles. El cerebro busca el
+patrón "humano real" y encuentra un casi-humano con micro-fallos. Eso
+genera rechazo.
 
 Los 10 estilos rompen ese patrón declarando artificialidad desde el
 primer segundo. Si el espectador ve una máscara, un títere, un gesto
-formalizado, un decorado pintado, deja de buscar el realismo y empieza
-a leer convención. Los mismos micro-fallos que en fotorrealismo serían
-creepy, en teatro se leen como estilo, oficio, artificio intencionado.
+formalizado, un decorado pintado, deja de buscar el realismo y
+empieza a leer convención. Los mismos micro-fallos que en
+fotorrealismo serían creepy, en teatro se leen como estilo, oficio,
+artificio intencionado.
 
-Esto no es teoría: es por qué funciona el teatro Noh, el Bunraku, la
+No es teoría: es por qué funciona el teatro Noh, el Bunraku, la
 Commedia dell'arte, el teatro de máscaras griego, el expresionismo
-alemán, el cine de marionetas de Švankmajer. La artificialidad
-declarada es una forma de honestidad que el cerebro acepta.
+alemán, el cine de marionetas de Švankmajer.
 
-Y para La Odisea concretamente: no es solo una solución técnica, es un
-regreso a la fuente. La Odisea nació como performance oral y se
-representó en teatro con convenciones muy específicas (máscaras,
-coros, mechane, declamación, unidades de tiempo y lugar). Adaptarla
-con estética de teatro griego no es un truco; es volver al medio
-original. Y de paso, resuelve el problema técnico.
-
-───────────────────────────────────────────────────────────────────────────────
-ANEXO B · SOBRE EL NEGATIVE PROMPT (malentendido frecuente)
-───────────────────────────────────────────────────────────────────────────────
-
-En versiones anteriores del plugin, palabras como "low quality, blurry,
-distorted, watermark, cheerful colors, soft focus..." aparecían en la
-tarjeta del plano sin contexto. Parecía que eran características del
-plano, pero eran el NEGATIVE PROMPT: lo que se le dice al modelo de
-vídeo que NO genere.
-
-En esta versión están claramente separadas bajo la etiqueta
-"Negative prompt" y no se confunden con los campos del plano.
-
-Los campos del plano (encuadre, ángulo, sujeto, intención, estilo,
-paleta...) son lo que TÚ defines.
-El negative prompt son cosas que el generador añade automáticamente
-para evitar artefactos comunes (baja calidad, marcas de agua, texto no
-deseado, colores incoherentes con la intención, rasgos realistas que
-rompen el estilo declarado).
-
-El negative prompt es parte del paquete que pegas en Runway/Kling/etc.,
-no es una propiedad del plano.
+Y para La Odisea concretamente: adaptarla con estética de teatro
+griego no es un truco; es volver al medio original. Y de paso, resuelve
+el problema técnico.
 
 ═══════════════════════════════════════════════════════════════════════════════
 Fin de la documentación.
