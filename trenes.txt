@@ -1,58 +1,103 @@
 ========================================================================
-SIMULADOR DE RED FERROVIARIA · "JUGUETE"
+SIMULADOR DE RED FERROVIARIA · v2 · "JUGUETE"
 Qué es, qué hace y cómo lo hace
 ========================================================================
 
 -----------------------------------------------------------------------
+0. AVISO
+-----------------------------------------------------------------------
+Esto NO es la realidad. Es un simulador exploratorio. Los datos base
+son aproximados y están puestos a mano. Las configuraciones (tags,
+inversiones) son potenciales, no predicciones. Las conclusiones son
+del usuario, no del modelo. El objetivo es razonar visualmente sobre
+diseño de red, no recomendar qué construir.
+
+-----------------------------------------------------------------------
 1. QUÉ ES
 -----------------------------------------------------------------------
-Es un simulador exploratorio de diseño de red ferroviaria para España.
-No es una predicción ni un modelo de ingeniería: es una herramienta para
-razonar visualmente sobre qué líneas tienen sentido, cuáles no, y cómo
-cambia la respuesta según qué se optimice.
+Un simulador de red ferroviaria para España. Representa 52 nodos
+(provincias / capitales) con población, sectores productivos y tags
+contextuales. Calcula demanda de pasajeros y mercancías entre cada par
+de nodos, y permite construir una red "óptima" según un objetivo y un
+presupuesto.
 
-La idea de fondo: el debate sobre el tren en España suele mezclar tres
-cosas distintas (demanda, coste y equidad territorial). Este juguete las
+La idea de fondo: el debate sobre el tren en España mezcla tres cosas
+distintas (demanda, coste y equidad territorial). Este juguete las
 separa y permite ver el conflicto entre ellas con números y colores.
+Cambiar el objetivo cambia la red. Ese es el corazón del simulador.
 
-Está construido como un archivo HTML único, sin dependencias externas.
-Se abre en cualquier navegador y funciona en local.
+Es un archivo HTML único, sin dependencias externas. Se abre en
+cualquier navegador y funciona en local.
 
 -----------------------------------------------------------------------
 2. QUÉ HACE
 -----------------------------------------------------------------------
-- Representa 52 nodos (las provincias / capitales) en dos vistas:
-  · Hex: retícula esquemática, cómoda para ver el grafo.
-  · Geográfico: posiciones reales (lat/lon) proyectadas.
 
-- Dibuja la red existente en dos estados:
-  · Negra continua: línea de alta calidad (alta velocidad o equivalente).
-  · Gris discontinua: línea existente pero deficiente.
+2.1 Vista
+---------
+- Dos layouts: Hex (retícula esquemática) y Geográfico (lat/lon reales
+  proyectadas). Mismo estado, distinta representación.
+- Pan: arrastrar con el botón izquierdo.
+- Zoom: rueda del ratón centrada en el cursor, o botones +/−/⟲.
+- Los límites de zoom son relativos al "fit" inicial (30%–800% del
+  fit), así que no se rompen al cambiar de layout o de tamaño.
+- Indicador de zoom en la esquina superior izquierda.
 
-- Dibuja candidatas (top 15 según el objetivo activo) en amarillo
-  punteado, y propuestas construidas en rojo.
+2.2 Red
+-------
+- Existente buena: negra continua.
+- Existente deficiente: gris discontinua.
+- Candidatas (top 15 según objetivo): amarillo punteado.
+- Propuestas construidas: rojo.
+- Si hay perturbación activa: candidatas robustas en amarillo grueso,
+  candidatas frágiles en rojo fino discontinuo.
 
-- Permite construir una red "óptima" dado un presupuesto, seleccionando
-  aristas por ratio score/coste hasta agotar el presupuesto.
+2.3 Panel lateral
+-----------------
+- Objetivo (5 opciones): pasajeros, mercancías, mixta, eficiencia,
+  equidad.
+- α de distancia (0.8–2.5): controla cuánto penaliza la distancia en
+  el modelo gravitatorio.
+- Sinuosidad (1.0–1.8): aproxima el rodeo por relieve y trazado.
+- Presupuesto total (0–100.000 M€).
+- Botones: Construir óptimo, Limpiar, Perturbar ±20%, Reset
+  perturbación.
+- Panel de costes: km existentes, km propuestos, CAPEX líneas,
+  inversiones en nodos, disponible para líneas, OPEX anual, OPEX 10
+  años.
+- Panel de demanda: índice de pasajeros, índice de mercancías, nodos
+  conectados, nodos sin alta calidad.
 
-- Calcula y muestra en tiempo real:
-  · km existentes, km propuestos, km totales.
-  · CAPEX de lo propuesto (millones de euros).
-  · OPEX anual y OPEX a 10 años.
-  · Índice de demanda de pasajeros y de mercancías.
-  · Nodos conectados y nodos sin alta calidad.
+2.4 Drawer de provincia
+-----------------------
+- Click en un nodo abre un panel deslizante con:
+  · Población, coordenadas, si es isla.
+  · Sectores base (máx 2 de 6).
+  · Tags productivos (4: naval, automoción, química, aeroespacial).
+  · Tags contextuales (3 + isla fijo: puerto, vaciada, metrópoli).
+  · Coste acumulado de las inversiones en ese nodo.
+  · Conexiones existentes (alta / deficiente).
+  · Botón de reset a datos base.
+- Añadir un tag productivo cuesta 2.000 M€. Añadir un tag contextual
+  cuesta 1.500 M€. El coste se descuenta del presupuesto total antes
+  de calcular el disponible para líneas.
 
-- Permite hacer click en un nodo para ver población, sectores
-  productivos, coordenadas y conexiones existentes.
+2.5 Perturbación
+----------------
+- Botón "Perturbar ±20%": aplica ruido aleatorio (±20%) a la matriz
+  de sinergia entre sectores y entre tags, con semilla fija (para
+  reproducibilidad). Recalcula top-15 candidatas y compara con las
+  originales.
+- Robustas: aparecen en ambas listas. Frágiles: aparecen solo en una.
+- El panel muestra el porcentaje de solapamiento ("Robustez: X%").
+- Las matrices se restauran inmediatamente después (la perturbación
+  es solo para medir, no para cambiar el modelo).
 
-- Permite hacer click en una arista candidata para convertirla en
-  propuesta (y viceversa).
-
-- Permite zoom con la rueda del ratón y hover sobre nodos y aristas
-  con tooltip de distancia, CAPEX y demanda.
-
-- Al cargar, ejecuta una batería de tests en consola para verificar
-  que las fórmulas y los datos son coherentes.
+2.6 Tests
+---------
+- Al cargar, se ejecutan en consola tests que verifican:
+  distancias razonables, demanda coherente, sinergia, tags, costes,
+  optimización, perturbación, y matemáticas de pan/zoom.
 
 -----------------------------------------------------------------------
 3. CÓMO LO HACE
@@ -60,106 +105,99 @@ Se abre en cualquier navegador y funciona en local.
 
 3.1 Datos
 ---------
-Todo el estado "real" está en tres estructuras separadas de la
+Todo el estado "real" está en estructuras separadas de la
 representación:
 
-- NODOS: por cada provincia, latitud, longitud, población (millones)
-  y lista de sectores productivos. Canarias, Ceuta, Melilla y Baleares
-  están marcadas como islas.
+- SECTORES (6): servicios, industria, agro, turismo, logística,
+  energía. Excluyentes: 1–2 por nodo.
+- TAGS_PRODUCTIVOS (4): naval, automoción, química, aeroespacial.
+  Acumulativos. Modifican la sinergia entre pares de nodos.
+- TAGS_CONTEXTUALES (4): puerto, vaciada, metrópoli, isla (fijo).
+  Acumulativos. Modifican el nodo, no el par.
+- SECT_MAT (6×6): complementariedad entre sectores base.
+- TAG_MAT (4×4): complementariedad entre tags productivos. Se combina
+  con la matriz base con peso 0.7 (un tag es un bonus, no sustituye
+  al tejido sectorial).
+- NODOS_RAW: por cada provincia, lat, lon, población, sectores, tags.
+- EXISTENTES_RAW: pares de provincias conectadas por ferrocarril, con
+  calidad ("alta" o "def").
 
-- EXISTENTES_RAW: lista de pares de provincias conectadas por
-  ferrocarril, con una etiqueta de calidad ("alta" o "def").
-
-- SINERGIA_MAT: matriz de complementariedad entre 10 sectores
-  productivos (servicios, industrial, naval, automoción, agro,
-  turismo, logística, energía, química, aeroespacial). Valores 0-1.
-  Ejemplos: industrial↔naval = 0.9; agro↔logística = 0.85;
-  turismo↔turismo = 0.1.
-
-Estos datos son aproximados y están puestos a mano. No están
-contrastados con fuentes oficiales. Es un juguete.
+Los datos son aproximados y están puestos a mano. No están
+contrastados con fuentes oficiales.
 
 3.2 Distancias
 --------------
-La distancia entre dos nodos se calcula con Haversine (distancia real
-en línea recta sobre la esfera) y se multiplica por un factor de
-sinuosidad ajustable (1.0–1.8). La sinuosidad aproxima el rodeo que
-imponen el relieve, los valles y el trazado real de la vía.
-
-Esto evita el error clásico de la retícula hexagonal: dos hexágonos
-"vecinos" no implican geografía vecina. Con coordenadas reales, la
-distancia es honesta aunque el dibujo sea esquemático.
+Haversine (distancia real en línea recta sobre la esfera) multiplicada
+por un factor de sinuosidad ajustable (1.0–1.8). La sinuosidad
+aproxima el rodeo que imponen el relieve, los valles y el trazado real
+de la vía. Evita el error clásico del hexágono: dos hexágonos
+"vecinos" no implican geografía vecina.
 
 3.3 Costes
 ----------
-- CAPEX: 8 M€/km de vía nueva. Si un extremo es isla, se multiplica
-  por 8 (aproximación muy burda a ferry/submarino; no es un coste real).
-- OPEX: 0,1 M€/km/año (100.000 €/km/año), coherente con el coste
-  real de mantenimiento de alta velocidad en España. Si es isla, se
-  multiplica por 3.
-
-El OPEX se calcula sobre km totales (existentes + propuestos), no solo
-sobre lo nuevo. Eso refleja el problema real: el mantenimiento de la
-red existente compite con la construcción de la nueva.
+- CAPEX líneas: 8 M€/km. Isla: ×8 (aproximación a ferry/submarino).
+- OPEX: 0,1 M€/km/año (100.000 €/km/año). Isla: ×3.
+- Inversiones en nodos: 2.000 M€ por tag productivo, 1.500 M€ por tag
+  contextual. Isla no se puede quitar ni añadir (fijo).
+- El OPEX se calcula sobre km totales (existentes + propuestos), no
+  solo sobre lo nuevo. Eso refleja el problema real: el mantenimiento
+  de la red existente compite con la construcción de la nueva.
 
 3.4 Demanda
 -----------
-Dos funciones separadas, una por tipo de tráfico:
-
-- Pasajeros (modelo gravitatorio):
-    D_ij ∝ (P_i · P_j) / d_ij^α
-  donde P es población y α es el exponente de distancia (ajustable
-  0.8–2.5). Es el estándar en estudios de transporte antes de pasar a
-  modelos de cuatro etapas.
-
-- Mercancías (sinergia productiva):
-    D_ij ∝ sinergia(i,j) · √(P_i · P_j) / √d_ij
-  donde sinergia(i,j) es el máximo de la matriz entre los sectores de
-  i y los de j. La idea: dos nodos con tejidos productivos
-  complementarios generan flujo de mercancías aunque su población sea
-  pequeña. Es lo que permite que Bilbao-Ferrol salga en el mapa.
+- Pasajeros (gravitatorio): D_ij ∝ (P_i · P_j) / d_ij^α, con
+  modificadores por tags contextuales (metrópoli ×1.3, vaciada ×0.8).
+- Mercancías (sinergia): D_ij ∝ sinergia(i,j) · √(P_i · P_j) /
+  √d_ij, con modificadores por puerto (×1.5).
+- sinergia(i,j) = max entre sectores base + bonus por tags productivos
+  (peso 0.7).
 
 3.5 Objetivos
 -------------
-El usuario elige qué se optimiza. Cinco opciones:
-
-- Pasajeros: solo demanda gravitatoria de pasajeros.
+- Pasajeros: solo demanda gravitatoria.
 - Mercancías: solo sinergia productiva.
 - Mixta: 50% pasajeros + 50% mercancías.
 - Eficiencia: (pasajeros + 0.5·mercancías) / CAPEX.
-- Equidad: (1/P_i + 1/P_j) / (d + 100). Favorece nodos pequeños.
-
-El cambio de objetivo cambia la red propuesta. Ese es el corazón del
-juguete: no hay un "óptimo" único, hay un óptimo por criterio.
+- Equidad: (1/P_i + 1/P_j) / (d + 100), con bonus ×2 para nodos
+  marcados como "vaciada".
 
 3.6 Construcción de la red óptima
 ---------------------------------
-El botón "Construir óptimo" hace lo siguiente:
-
 1. Toma todas las aristas no existentes.
-2. Calcula score y coste de cada una según el objetivo activo.
+2. Calcula score y coste según el objetivo activo.
 3. Ordena por ratio score/coste (de mayor a menor).
-4. Añade aristas mientras el CAPEX acumulado no supere el presupuesto.
+4. Añade aristas mientras el CAPEX acumulado no supere el presupuesto
+   disponible para líneas (total − inversiones en nodos).
 
-No es un optimizador global (no resuelve un problema de programación
-entera). Es un greedy. Eso significa que puede no encontrar la mejor
+Es un greedy, no un optimizador global. Puede no encontrar la mejor
 red posible, pero encuentra una red razonable y explicable en un
-instante. Para un juguete, es suficiente.
+instante.
 
-3.7 Representación
+3.7 Pan/zoom
+------------
+La vista se define por {centerX, centerY, zoom, panX, panY}. Las
+posiciones base (world coords) se calculan una vez por layout. La
+transformación a pantalla se aplica en cada draw. Eso permite pan y
+zoom fluidos sin recalcular posiciones, y mantiene hover/click/tooltip
+funcionando en cualquier nivel de zoom.
+
+Los límites de zoom son relativos al fit inicial (base · 0.3 a
+base · 8). Al cambiar de layout, fitToData recalcula la base y los
+límites se adaptan solos.
+
+3.8 Representación
 ------------------
-El estado (nodos, aristas, propuestas, objetivo) vive separado del
-dibujo. Hay dos layouts (hex y geográfico) que leen el mismo estado.
-Cambiar de layout no cambia los datos, solo la proyección a pantalla.
-Eso permite añadir un tercer layout en el futuro sin tocar el modelo.
+El estado (nodos, aristas, propuestas, objetivo, perturbación) vive
+separado del dibujo. Dos layouts leen el mismo estado. Cambiar de
+layout no cambia los datos, solo la proyección a pantalla.
 
 -----------------------------------------------------------------------
 4. QUÉ NO HACE (limitaciones conscientes)
 -----------------------------------------------------------------------
 - No modela horarios, frecuencias ni capacidad de vía. Una línea
   "propuesta" no dice cuántos trenes caben ni a qué velocidad.
-- No modela elección modal. Un pasajero no elige tren vs coche vs avión
-  según tiempo y precio; solo se atraen masas por gravedad.
+- No modela elección modal. Un pasajero no elige tren vs coche vs
+  avión según tiempo y precio; solo se atraen masas por gravedad.
 - No modela el relieve real. La sinuosidad es un multiplicador plano,
   no un modelo digital de elevación.
 - No modela la red de mercancías existente ni los puertos. La sinergia
@@ -170,6 +208,11 @@ Eso permite añadir un tercer layout en el futuro sin tocar el modelo.
   real, Madrid gana siempre en "pasajeros". Por eso existen los
   objetivos "equidad" y "mercancías", que corrigen ese sesgo.
 - El greedy de construcción no garantiza el óptimo global.
+- Las inversiones en nodos no modelan si la inversión es rentable, ni
+  si hay mercado, ni si hay mano de obra. Solo modelan "si este nodo
+  tuviera este perfil, ¿cambiaría la red?".
+- La perturbación mide robustez frente a cambios en la matriz de
+  sinergia, no frente a cambios en población, costes o red existente.
 
 -----------------------------------------------------------------------
 5. CÓMO USARLO (sugerencia de exploración)
@@ -180,28 +223,40 @@ Eso permite añadir un tercer layout en el futuro sin tocar el modelo.
 3. Cambia a "mercancías" y vuelve a construir. Observa que aparecen
    ejes Bilbao-Ferrol, Zaragoza-Tarragona, Vigo-Bilbao.
 4. Cambia a "equidad" y construye. Observa que se conectan Soria,
-   Teruel, Zamora... y mira el OPEX anual: el coste por pasajero
-   se dispara.
-5. Sube el presupuesto a 100.000 M€ y mira el OPEX a 10 años.
-   Ese es el "asesino silencioso": la construcción es un pago único,
-   el mantenimiento es para siempre.
-6. Cambia entre vista Hex y Geográfico. Mismo estado, distinta
-   representación. El grafo no cambia.
-7. Haz click en un nodo pequeño y en uno grande. Compara población,
-   sectores y conexiones.
+   Teruel, Zamora... y mira el OPEX anual: el coste por pasajero se
+   dispara.
+5. Haz click en Coruña (Ferrol), añade el tag "naval" (cuesta 2.000
+   M€). Mira cómo cambia la red de mercancías. Ese es el what-if:
+   "¿y si reforzamos el tejido productivo de un nodo?".
+6. Pulsa "Perturbar ±20%". Mira qué candidatas sobreviven (robustas,
+   amarillo grueso) y cuáles desaparecen (frágiles, rojo fino). Las
+   robustas no dependen de un supuesto concreto; las frágiles sí.
+7. Sube el presupuesto a 100.000 M€. Mira el OPEX a 10 años. Ese es
+   el "asesino silencioso": la construcción es un pago único, el
+   mantenimiento es para siempre.
+8. Cambia entre vista Hex y Geográfico. Mismo estado, distinta
+   representación. El grafo no cambia; lo que cambia es lo que ves.
+9. Haz click en un nodo pequeño y en uno grande. Compara población,
+   sectores, tags y conexiones.
 
 -----------------------------------------------------------------------
 6. FILOSOFÍA
 -----------------------------------------------------------------------
 Este simulador no pretende decir "esta es la red que España necesita".
-Pretende lo contrario: mostrar que "la red que España necesita" depende
-de qué se optimice, y que cualquier afirmación del tipo "el AVE a
-Madrid es lo más eficiente" o "hay que conectar la España vaciada" es
-una elección de objetivo, no un hecho técnico.
+Pretende lo contrario: mostrar que "la red que España necesita"
+depende de qué se optimice, y que cualquier afirmación del tipo "el
+AVE a Madrid es lo más eficiente" o "hay que conectar la España
+vaciada" es una elección de objetivo, no un hecho técnico.
 
 El valor del juguete no está en sus números, sino en el contraste:
-pasajeros vs mercancías, eficiencia vs equidad, CAPEX vs OPEX. Ese
-contraste es el debate real, y aquí se ve en colores.
+pasajeros vs mercancías, eficiencia vs equidad, CAPEX vs OPEX,
+inversión en nodos vs inversión en líneas. Ese contraste es el debate
+real, y aquí se ve en colores.
+
+La perturbación añade una capa de honestidad: no solo dice "sale
+esto", dice "esto es sólido y esto es frágil". Un resultado robusto
+es más defendible que uno que depende de un valor concreto de la
+matriz.
 
 Es un juguete. Los datos son aproximados. Las fórmulas son simples.
 Las conclusiones son del usuario, no del modelo.
