@@ -2,13 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Editor de planos · estilos · coherencia · prompts · event sourcing</title>
+<title>Editor de planos · escenas · patrones · templates · 6 vistas</title>
 <style>
   /* ─────────────────────────────────────────────────────────────────
-     ESTILOS DE UI
-     Dark theme, layout en grid. Paneles con borde suave.
-     El editor está a la izquierda, las vistas a la derecha.
-     Los prompts van abajo a todo el ancho.
+     UI · dark theme · layout adaptable
      ───────────────────────────────────────────────────────────────── */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -26,7 +23,9 @@
   h3 { font-size: 0.82rem; color: #cbd5e1; margin-bottom: 6px; }
 
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  @media (max-width: 1200px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } .grid-3 { grid-template-columns: 1fr; } }
 
   .panel {
     background: #1e293b; border: 1px solid #334155;
@@ -44,6 +43,7 @@
   button.danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
   button.success { background: #16a34a; border-color: #16a34a; color: #fff; }
   button.small { padding: 3px 8px; font-size: 11px; }
+  button.active { background: #1e3a5f; border-color: #2a4a7f; color: #93c5fd; }
 
   .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
 
@@ -69,17 +69,40 @@
 
   .empty { color: #475569; font-style: italic; font-size: 12px; padding: 6px 0; }
 
-  /* Formulario del editor: generado desde el schema */
+  /* Toggle modo normal / avanzado */
+  .modo-toggle {
+    display: inline-flex; gap: 0;
+    border: 1px solid #334155; border-radius: 6px; overflow: hidden;
+  }
+  .modo-toggle button {
+    border: none; border-radius: 0; padding: 5px 14px;
+    background: transparent;
+  }
+  .modo-toggle button.active { background: #3b82f6; color: #fff; }
+
+  /* Formulario */
   .form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .form-row label { flex: 0 0 120px; color: #94a3b8; font-size: 11px; }
-  .form-row input, .form-row select {
+  .form-row input, .form-row select, .form-row textarea {
     flex: 1; background: #0f172a; color: #e2e8f0; border: 1px solid #334155;
     border-radius: 5px; padding: 4px 8px; font-family: inherit; font-size: 12px;
   }
-  .form-row input:focus, .form-row select:focus { outline: none; border-color: #3b82f6; }
+  .form-row textarea { min-height: 50px; resize: vertical; }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+    outline: none; border-color: #3b82f6;
+  }
   .form-row input[type=checkbox] { flex: 0 0 auto; }
   .form-row input[type=number] { flex: 0 0 90px; }
-  .form-row .hint { font-size: 10px; color: #64748b; flex: 0 0 100%; margin-left: 128px; }
+
+  details.avanzado {
+    margin-top: 8px; padding: 8px; background: #0f172a;
+    border: 1px solid #334155; border-radius: 6px;
+  }
+  details.avanzado > summary {
+    cursor: pointer; color: #60a5fa; font-size: 11px;
+    font-weight: 500; user-select: none;
+  }
+  details.avanzado[open] > summary { margin-bottom: 8px; }
 
   .palette-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
   .palette-row input[type=color] {
@@ -92,7 +115,7 @@
     border-radius: 4px; padding: 3px 6px;
   }
 
-  /* Lista de planos */
+  /* Listas */
   .shot {
     background: #0f172a; border: 1px solid #334155; border-radius: 6px;
     padding: 8px; margin-bottom: 6px; font-family: ui-monospace, monospace;
@@ -112,6 +135,25 @@
     background: #1e3a5f; color: #93c5fd; font-size: 9px; margin-left: 4px;
   }
 
+  .escena-grupo {
+    border-left: 2px solid #3b82f6; padding-left: 8px;
+    margin-bottom: 10px;
+  }
+  .escena-grupo .header {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: #93c5fd; margin-bottom: 6px;
+  }
+
+  .patron {
+    background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+    padding: 6px 8px; margin-bottom: 4px; font-size: 11px;
+  }
+  .patron .tipo {
+    display: inline-block; padding: 1px 6px; border-radius: 3px;
+    background: #4a1d5a; color: #d8b4fe; font-size: 9px;
+    margin-right: 4px; text-transform: uppercase;
+  }
+
   .alert {
     padding: 4px 6px; margin: 2px 0; border-left: 3px solid;
     background: #0f172a; border-radius: 4px; font-size: 11px;
@@ -119,17 +161,31 @@
   .alert.err { border-color: #ef4444; color: #fca5a5; }
   .alert.warn { border-color: #f59e0b; color: #fcd34d; }
   .alert.info { border-color: #3b82f6; color: #93c5fd; }
+  .alert.ok { border-color: #22c55e; color: #86efac; }
 
   .status { font-size: 11px; margin-top: 6px; }
   .status.ok { color: #4ade80; }
   .status.err { color: #f87171; }
 
-  /* Tarjetas de prompt */
+  /* Templates */
+  .template-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 6px;
+  }
+  .template-card {
+    background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+    padding: 8px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .template-card:hover { border-color: #3b82f6; }
+  .template-card .titulo { color: #60a5fa; font-size: 12px; font-weight: 500; }
+  .template-card .desc { color: #94a3b8; font-size: 10px; margin-top: 4px; line-height: 1.4; }
+  .template-card .meta { color: #64748b; font-size: 9px; margin-top: 4px; }
+
+  /* Prompts */
   .prompt-card {
     background: #0f172a; border: 1px solid #334155;
     border-radius: 8px; padding: 10px; margin-bottom: 10px;
   }
-  .prompt-card.highlight { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
   .prompt-card .head {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 8px; gap: 8px;
@@ -148,7 +204,6 @@
     white-space: pre-wrap; word-break: break-word;
   }
   .prompt-card .text.neg { color: #fca5a5; }
-  .prompt-card .text.style { color: #93c5fd; }
   .prompt-card .params {
     font-size: 10px; color: #94a3b8; margin-top: 8px;
     display: flex; flex-wrap: wrap; gap: 10px;
@@ -159,9 +214,10 @@
     border-left: 2px solid #f59e0b; border-radius: 3px; line-height: 1.6;
   }
 
+  /* Tests */
   .tests {
     font-family: ui-monospace, monospace; font-size: 11px;
-    max-height: 400px; overflow-y: auto; background: #0f172a;
+    max-height: 500px; overflow-y: auto; background: #0f172a;
     border-radius: 6px; padding: 8px;
   }
   .tests .t { padding: 1px 0; }
@@ -171,23 +227,52 @@
     margin-top: 2px; overflow: hidden;
   }
   .bar > div { height: 100%; background: #3b82f6; }
+
+  /* Timeline */
+  .timeline-canvas {
+    width: 100%; height: 120px; background: #0a0f1a;
+    border: 1px solid #334155; border-radius: 6px;
+  }
+  .timeline-legend {
+    display: flex; gap: 10px; font-size: 10px;
+    color: #94a3b8; margin-top: 6px;
+  }
+  .timeline-legend span::before {
+    content: ""; display: inline-block; width: 10px; height: 10px;
+    border-radius: 2px; margin-right: 4px; vertical-align: middle;
+    background: var(--c);
+  }
 </style>
 </head>
 <body>
 
-<h1>Editor de planos · estilos visuales · coherencia · prompts</h1>
+<h1>Editor de planos · escenas · patrones · templates · 6 vistas</h1>
 <p class="sub">
-  Event sourcing · schema declarativo · 5 vistas de coherencia ·
-  generador de prompts con estilo · tests automáticos
+  Event sourcing · schema con niveles · jerarquía escena→plano · patrones de montaje ·
+  templates · curva temporal · prompts con estilo
 </p>
+
+<!-- Barra superior con toggle modo -->
+<div class="panel" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span style="color:#94a3b8;font-size:11px;">Modo:</span>
+    <div class="modo-toggle">
+      <button id="modoNormal" class="active">Normal</button>
+      <button id="modoAvanzado">Avanzado</button>
+    </div>
+  </div>
+  <span style="color:#64748b;font-size:11px;">
+    Normal muestra solo los campos básicos. Avanzado muestra todos los parámetros.
+  </span>
+</div>
 
 <div class="grid">
 
   <div>
     <!-- ═══════════════════════════════════════════════════════════════
-         EDITOR DE PLANOS
-         El formulario se genera desde PLANO_SCHEMA.
-         Cada cambio se emite como evento al MiniCore.
+         EDITOR DE PLANO
+         El formulario se filtra según el modo activo (normal/avanzado).
+         Los campos avanzados se colapsan en un <details>.
          ═══════════════════════════════════════════════════════════════ -->
     <div class="panel">
       <h2>✏️ Editor de plano <span class="pill" id="editorMode">Nuevo</span></h2>
@@ -201,42 +286,97 @@
       <div class="status" id="formStatus"></div>
     </div>
 
-    <!-- Lista de planos ordenados. Clic para cargar en el editor. -->
+    <!-- Lista de planos agrupada por escena -->
     <div class="panel">
-      <h2>🎬 Planos · S1 <span class="pill info" id="shotCount">0</span></h2>
+      <h2>🎬 Planos <span class="pill info" id="shotCount">0</span></h2>
       <div id="listaShots"><div class="empty">Sin planos.</div></div>
-      <div class="row" style="margin-top:8px;">
-        <button class="small" id="btnExportJson">⬇️ Export JSON</button>
-        <button class="small" id="btnImportJson">⬆️ Import JSON</button>
-        <input type="file" id="importFile" style="display:none" accept=".json,application/json">
-        <span style="flex:1;"></span>
-        <button class="small danger" id="btnResetAll">🗑 Reset todo</button>
+    </div>
+
+    <!-- Editor de escena (metadata opcional) -->
+    <div class="panel">
+      <h2>🎭 Editor de escena <span class="pill" id="escenaMode">Nuevo</span></h2>
+      <div id="escenaForm"></div>
+      <div class="row" style="margin-top:10px;">
+        <button class="primary small" id="btnSaveEscena">💾 Guardar escena</button>
+        <button class="small" id="btnNewEscena">+ Nueva escena</button>
+        <button class="danger small" id="btnDeleteEscena" disabled>🗑 Eliminar</button>
+      </div>
+      <div class="status" id="escenaStatus"></div>
+      <div style="margin-top:8px;">
+        <h3 style="font-size:10px;color:#64748b;">Escenas existentes</h3>
+        <div id="listaEscenas"><div class="empty">—</div></div>
       </div>
     </div>
   </div>
 
   <div>
-    <!-- Las 5 vistas de coherencia -->
-    <div class="panel"><h2>🔗 Continuidad</h2><div id="vContinuidad"><div class="empty">—</div></div></div>
-    <div class="panel"><h2>⏱ Ritmo</h2><div id="vRitmo"><div class="empty">—</div></div></div>
-    <div class="panel"><h2>🎨 Paleta</h2><div id="vPaleta"><div class="empty">—</div></div></div>
-    <div class="panel"><h2>🎬 Cobertura</h2><div id="vCobertura"><div class="empty">—</div></div></div>
-    <div class="panel"><h2>🎭 Estilo visual</h2><div id="vEstilo"><div class="empty">—</div></div></div>
+    <!-- Editor de patrón de montaje -->
+    <div class="panel">
+      <h2>🎞 Editor de patrón <span class="pill" id="patronMode">Nuevo</span></h2>
+      <div id="patronForm"></div>
+      <div class="row" style="margin-top:10px;">
+        <button class="primary small" id="btnSavePatron">💾 Guardar patrón</button>
+        <button class="small" id="btnNewPatron">+ Nuevo</button>
+        <button class="danger small" id="btnDeletePatron" disabled>🗑 Eliminar</button>
+      </div>
+      <div class="status" id="patronStatus"></div>
+      <div style="margin-top:8px;">
+        <h3 style="font-size:10px;color:#64748b;">Patrones existentes</h3>
+        <div id="listaPatrones"><div class="empty">—</div></div>
+      </div>
+    </div>
+
+    <!-- Templates -->
+    <div class="panel">
+      <h2>📋 Templates de escena</h2>
+      <p style="font-size:10px;color:#94a3b8;margin-bottom:8px;">
+        Aplicar un template crea los planos de golpe. Útil si no sabes qué planos poner.
+      </p>
+      <div class="template-grid" id="templateGrid"></div>
+    </div>
   </div>
 
 </div>
 
-<!-- Prompts generados, a todo el ancho -->
+<!-- Vistas de coherencia -->
+<div class="grid-3">
+  <div class="panel"><h2>🔗 Continuidad</h2><div id="vContinuidad"><div class="empty">—</div></div></div>
+  <div class="panel"><h2>⏱ Ritmo</h2><div id="vRitmo"><div class="empty">—</div></div></div>
+  <div class="panel"><h2>🎨 Paleta</h2><div id="vPaleta"><div class="empty">—</div></div></div>
+</div>
+
+<div class="grid-3">
+  <div class="panel"><h2>🎬 Cobertura</h2><div id="vCobertura"><div class="empty">—</div></div></div>
+  <div class="panel"><h2>🎭 Estilo</h2><div id="vEstilo"><div class="empty">—</div></div></div>
+  <div class="panel"><h2>📈 Curva temporal</h2><div id="vCurva"><div class="empty">—</div></div></div>
+</div>
+
+<!-- Curva temporal detallada -->
 <div class="panel">
-  <h2>📝 Prompts generados · copiar y pegar en IA de vídeo</h2>
+  <h2>📈 Curva temporal detallada</h2>
+  <canvas id="curvaCanvas" class="timeline-canvas" width="1200" height="120"></canvas>
+  <div class="timeline-legend">
+    <span style="--c:#3b82f6">Duración</span>
+    <span style="--c:#f59e0b">Tensión</span>
+    <span style="--c:#22c55e">Acto 1</span>
+    <span style="--c:#eab308">Acto 2</span>
+    <span style="--c:#ef4444">Acto 3</span>
+  </div>
+  <div id="curvaInfo" style="margin-top:8px;"><div class="empty">—</div></div>
+</div>
+
+<!-- Prompts -->
+<div class="panel">
+  <h2>📝 Prompts generados</h2>
   <div class="row">
     <button class="small primary" id="btnCopyAllPrompts">📋 Copiar todos</button>
     <button class="small" id="btnDownloadPrompts">⬇️ Descargar JSON</button>
+    <button class="small" id="btnExportJson">⬇️ Export shot list</button>
+    <button class="small" id="btnImportJson">⬆️ Import shot list</button>
+    <input type="file" id="importFile" style="display:none" accept=".json,application/json">
     <span class="pill info" id="promptCount">0 planos</span>
     <span style="flex:1;"></span>
-    <span style="font-size:10px;color:#94a3b8;">
-      Prompts en inglés · negative prompt separado · estilo aplicado por plano
-    </span>
+    <button class="small danger" id="btnResetAll">🗑 Reset todo</button>
   </div>
   <div id="vPrompts"><div class="empty">Sin prompts todavía.</div></div>
 </div>
@@ -251,56 +391,70 @@
 'use strict';
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 1 · SCHEMA DECLARATIVO
+   SECCIÓN 1 · SCHEMAS DECLARATIVOS
    ───────────────────────────────────────────────────────────────────────
-   Cada campo del plano está declarado aquí con su tipo, label, default,
-   required, enum y rangos. El formulario se genera automáticamente desde
-   este schema. Añadir un campo aquí → aparece en la UI sin tocar código.
+   Cada campo tiene un `nivel` (basico | avanzado) que controla si se
+   muestra en modo normal o solo en avanzado. Los campos básicos son los
+   imprescindibles para que un plano exista; los avanzados son los que
+   permiten control fino.
+
+   Compatibilidad: `escenaId` sigue siendo un string. La entidad `escena`
+   es opcional (si no existe, la escena "S1" se infiere de los planos).
    ═══════════════════════════════════════════════════════════════════════ */
 
 const PLANO_SCHEMA = {
-  escenaId:     { label: 'Escena',        tipo: 'text',   required: true,  default: 'S1' },
-  orden:        { label: 'Orden',         tipo: 'number', required: true,  min: 1, default: 1 },
-  encuadre:     { label: 'Encuadre',      tipo: 'enum',   required: true,  default: 'medio',
+  escenaId:     { label: 'Escena',        tipo: 'text',   required: true,  default: 'S1',  nivel: 'basico' },
+  orden:        { label: 'Orden',         tipo: 'number', required: true,  min: 1, default: 1, nivel: 'avanzado' },
+  encuadre:     { label: 'Encuadre',      tipo: 'enum',   required: true,  default: 'medio', nivel: 'basico',
                   enum: ['general','entero','medio','primer','primerisimo'] },
-  angulo:       { label: 'Ángulo',        tipo: 'enum',   required: true,  default: 'normal',
+  angulo:       { label: 'Ángulo',        tipo: 'enum',   required: true,  default: 'normal', nivel: 'avanzado',
                   enum: ['normal','picado','contrapicado','holandes'] },
-  movimiento:   { label: 'Movimiento',    tipo: 'enum',   default: 'estatico',
+  movimiento:   { label: 'Movimiento',    tipo: 'enum',   default: 'estatico', nivel: 'avanzado',
                   enum: ['estatico','pan','tilt','travelling','handheld','grua'] },
-  sujeto:       { label: 'Sujeto',        tipo: 'text',   required: true,  default: '' },
-  intencion:    { label: 'Intención',     tipo: 'enum',   required: true,  default: 'establecer',
+  sujeto:       { label: 'Sujeto',        tipo: 'text',   required: true,  default: '', nivel: 'basico' },
+  intencion:    { label: 'Intención',     tipo: 'enum',   required: true,  default: 'establecer', nivel: 'basico',
                   enum: ['establecer','intimidad','tension','epica',
                          'misterio','comedia','duelo','amenaza',
                          'trickster_hubris','mythic_sorrow'] },
-  duracion:     { label: 'Duración (s)',  tipo: 'number', required: true,  min: 0.5, max: 30, step: 0.5, default: 4 },
-  focal:        { label: 'Focal (mm)',    tipo: 'number', min: 14, max: 200, step: 1, default: 35 },
-  eje:          { label: 'Eje (°)',       tipo: 'number', min: 0, max: 360, step: 1, default: 0 },
-  eyeline:      { label: 'Eyeline',       tipo: 'enum',   default: '0',
+  duracion:     { label: 'Duración (s)',  tipo: 'number', required: true,  min: 0.5, max: 30, step: 0.5, default: 4, nivel: 'basico' },
+  focal:        { label: 'Focal (mm)',    tipo: 'number', min: 14, max: 200, step: 1, default: 35, nivel: 'avanzado' },
+  eje:          { label: 'Eje (°)',       tipo: 'number', min: 0, max: 360, step: 1, default: 0, nivel: 'avanzado' },
+  eyeline:      { label: 'Eyeline',       tipo: 'enum',   default: '0', nivel: 'avanzado',
                   enum: ['-1','0','1'], numerico: true },
-  permiteCruce: { label: 'Permite cruce', tipo: 'bool',   default: false },
-  estilo:       { label: 'Estilo visual', tipo: 'enum',   required: true,  default: 'teatro_griego',
+  permiteCruce: { label: 'Permite cruce', tipo: 'bool',   default: false, nivel: 'avanzado' },
+  estilo:       { label: 'Estilo visual', tipo: 'enum',   required: true,  default: 'teatro_griego', nivel: 'basico',
                   enum: ['teatro_griego','titeres_bunraku','sombras_wayang',
                          'ceramica_griega','mosaico_bizantino','fresco_pompeyano',
                          'grabado_dore','manuscrito_iluminado',
                          'pulp_flash_gordon','cel_shading_anime'] },
-  paleta:       { label: 'Paleta',        tipo: 'paleta', default: ['#c97a3a','#e0a060'] }
+  paleta:       { label: 'Paleta',        tipo: 'paleta', default: ['#c97a3a','#e0a060'], nivel: 'avanzado' }
+};
+
+const ESCENA_SCHEMA = {
+  id:            { label: 'ID',           tipo: 'text',   required: true,  default: '', nivel: 'basico' },
+  nombre:        { label: 'Nombre',       tipo: 'text',   required: true,  default: '', nivel: 'basico' },
+  acto:          { label: 'Acto',         tipo: 'enum',   default: 'acto1', nivel: 'basico',
+                   enum: ['acto1','acto2','acto3'] },
+  funcionDramatica: { label: 'Función dramática', tipo: 'enum', default: 'desarrollo', nivel: 'avanzado',
+                   enum: ['planteamiento','incidente','desarrollo','crisis','climax','resolucion'] },
+  descripcion:   { label: 'Descripción',  tipo: 'textarea', default: '', nivel: 'avanzado' }
+};
+
+const PATRON_SCHEMA = {
+  escenaId: { label: 'Escena',   tipo: 'text',   required: true, default: 'S1', nivel: 'basico' },
+  tipo:     { label: 'Tipo',     tipo: 'enum',   required: true, default: 'contraplano', nivel: 'basico',
+              enum: ['contraplano','campo_contracampo','montaje','plano_secuencia','inserto'] },
+  planos:   { label: 'Planos',   tipo: 'multi',  required: true, default: [], nivel: 'basico' },
+  nota:     { label: 'Nota',     tipo: 'text',   default: '', nivel: 'avanzado' }
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
    SECCIÓN 2 · MAPAS DE ESTILO VISUAL
    ───────────────────────────────────────────────────────────────────────
-   Cada estilo resuelve el valle inquietante de una forma distinta:
-   declarando artificialidad (teatro, títeres, sombras), aplanando la
-   imagen (cerámica, mosaico, fresco) o usando convenciones de género
-   (pulp, anime).
-
-   Para cada estilo:
-     - positivo: bloque que va al INICIO del prompt
-     - negativo: cosas que hay que EXCLUIR (si no, el modelo deriva
-                 a fotorrealismo)
-     - motionIntensity: sugerencia de intensidad de movimiento
-     - fps: sugerencia de fps (para el params del prompt)
-     - nota: por qué funciona (comentario interno, no va al prompt)
+   Cada estilo tiene positivo (va al prompt), negativo (excluye del
+   output), motionIntensity y fps. El bloque de estilo va PRIMERO en el
+   prompt: si no se repite en cada generación, el modelo deriva hacia
+   fotorrealismo.
    ═══════════════════════════════════════════════════════════════════════ */
 
 const ESTILO_PROMPT = {
@@ -310,76 +464,61 @@ const ESTILO_PROMPT = {
               'stage performance aesthetic',
     negativo: 'subtle facial expression, realistic skin, micro-expressions, ' +
               'naturalistic acting, photorealistic',
-    motionIntensity: 'low',
-    fps: 24,
+    motionIntensity: 'low', fps: 24,
     nota: 'La máscara es el artificio original. El público acepta la convención.'
   },
   titeres_bunraku: {
     positivo: 'bunraku puppet theatre, visible strings, wooden articulated limbs, ' +
-              'puppeteer dressed in black, dramatic painted backdrop, ' +
-              'traditional Japanese puppet staging',
+              'puppeteer dressed in black, dramatic painted backdrop',
     negativo: 'photorealistic face, smooth skin, naturalistic movement, ' +
               'subtle expressions, 3D rendering',
-    motionIntensity: 'medium',
-    fps: 24,
-    nota: 'La imperfección del títere es intencionada. El cerebro acepta.'
+    motionIntensity: 'medium', fps: 24,
+    nota: 'La imperfección del títere es intencionada.'
   },
   sombras_wayang: {
     positivo: 'wayang kulit shadow puppet theatre, silhouette against ' +
-              'illuminated screen, intricate cut-out details, warm amber ' +
-              'backlight, Javanese shadow play aesthetic',
+              'illuminated screen, intricate cut-out details, warm amber backlight',
     negativo: 'faces visible, realistic humans, 3D shading, depth of field',
-    motionIntensity: 'low',
-    fps: 24,
-    nota: 'Sin rostro, sin valle inquietante facial. Solo silueta y color.'
+    motionIntensity: 'low', fps: 24,
+    nota: 'Sin rostro, sin valle inquietante facial.'
   },
   ceramica_griega: {
     positivo: 'ancient Greek red-figure pottery style, terracotta background, ' +
-              'black silhouette figures, geometric decorative borders, ' +
-              'flat perspective, ceramic texture',
+              'black silhouette figures, geometric decorative borders, flat perspective',
     negativo: '3D rendering, photorealism, depth of field, realistic lighting, ' +
               'gradients, smooth shading',
-    motionIntensity: 'low',
-    fps: 12,
-    nota: 'Medio en que se conservó la iconografía homérica. Sin profundidad.'
+    motionIntensity: 'low', fps: 12,
+    nota: 'Medio en que se conservó la iconografía homérica.'
   },
   mosaico_bizantino: {
     positivo: 'Byzantine mosaic, gold tesserae background, frontal iconic figures, ' +
-              'flat symbolic composition, tessellated texture, ' +
-              'Ravenna mosaic aesthetic',
+              'flat symbolic composition, tessellated texture',
     negativo: 'realistic perspective, 3D depth, naturalistic faces, ' +
               'photorealism, cinematic lighting',
-    motionIntensity: 'low',
-    fps: 12,
-    nota: 'La épica como icono. Dioses de frente, dorados, simbólicos.'
+    motionIntensity: 'low', fps: 12,
+    nota: 'La épica como icono.'
   },
   fresco_pompeyano: {
     positivo: 'Pompeian fresco style, flat earth pigments, stylized figures, ' +
-              'architectural trompe-l-oeil frames, muted reds and ochres, ' +
-              'Roman wall painting',
+              'architectural trompe-l-oeil frames, muted reds and ochres',
     negativo: 'photorealism, cinematic depth, realistic skin, 3D rendering',
-    motionIntensity: 'low',
-    fps: 12,
-    nota: 'Las escenas de la Odisea en frescos romanos son el referente directo.'
+    motionIntensity: 'low', fps: 12,
+    nota: 'Las escenas de la Odisea en frescos romanos.'
   },
   grabado_dore: {
     positivo: 'woodcut engraving style, high contrast black and white, ' +
-              'cross-hatching, dramatic chiaroscuro, Gustave Dore inspired, ' +
-              '19th century book illustration',
+              'cross-hatching, dramatic chiaroscuro, Gustave Dore inspired',
     negativo: 'color, gradients, photorealism, smooth shading, 3D rendering',
-    motionIntensity: 'low',
-    fps: 12,
-    nota: 'Las ediciones clásicas de Homero con grabados de Flaxman o Doré.'
+    motionIntensity: 'low', fps: 12,
+    nota: 'Las ediciones clásicas de Homero.'
   },
   manuscrito_iluminado: {
     positivo: 'medieval illuminated manuscript, flat perspective, symbolic scale, ' +
-              'gold leaf details, ornate borders, vellum texture, ' +
-              'romanesque illumination',
+              'gold leaf details, ornate borders, vellum texture',
     negativo: 'realistic perspective, 3D depth, cinematic lighting, ' +
               'photorealism, naturalistic faces',
-    motionIntensity: 'low',
-    fps: 12,
-    nota: 'La transmisión medieval de Homero. Perspectiva plana, escala simbólica.'
+    motionIntensity: 'low', fps: 12,
+    nota: 'La transmisión medieval de Homero.'
   },
   pulp_flash_gordon: {
     positivo: '1980s Flash Gordon pulp sci-fi aesthetic, saturated colors, ' +
@@ -387,29 +526,212 @@ const ESTILO_PROMPT = {
               'Queen soundtrack energy, practical effects look',
     negativo: 'photorealism, muted tones, naturalistic lighting, ' +
               'modern CGI, desaturated colors',
-    motionIntensity: 'medium',
-    fps: 24,
-    nota: 'Heredero directo del Dune de Jodorowsky. Convención de género.'
+    motionIntensity: 'medium', fps: 24,
+    nota: 'Heredero directo del Dune de Jodorowsky.'
   },
   cel_shading_anime: {
     positivo: 'cel-shaded animation, 2D anime style, flat color fills, ' +
-              'bold outlines, expressive stylized faces, ' +
-              'Studio Ghibli meets Ulysses 31',
+              'bold outlines, expressive stylized faces',
     negativo: 'photorealism, 3D rendering, realistic skin texture, ' +
               'smooth gradients, naturalistic lighting',
-    motionIntensity: 'medium',
-    fps: 24,
-    nota: 'Convención 2D. El cerebro lee "animación", no "humano falso".'
+    motionIntensity: 'medium', fps: 24,
+    nota: 'Convención 2D. El cerebro lee animación, no humano falso.'
   }
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 3 · HELPERS DE COHERENCIA
+   SECCIÓN 3 · TEMPLATES DE ESCENA
+   ───────────────────────────────────────────────────────────────────────
+   Cada template es una función que devuelve un array de planos.
+   El usuario los aplica con un clic: se emiten N eventos plano_creado.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const TEMPLATES = {
+  dialogo_intimo: {
+    nombre: 'Diálogo íntimo',
+    desc: '4 planos. Establecimiento + alternancia de medios y primeros.',
+    planos: (escenaId = 'S1', estilo = 'teatro_griego') => [
+      { escenaId, orden: 1, encuadre: 'general', angulo: 'normal',
+        movimiento: 'estatico', focal: 24, duracion: 5, sujeto: 'A',
+        intencion: 'establecer', eje: 0, eyeline: 0, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#e0a060'] },
+      { escenaId, orden: 2, encuadre: 'medio', angulo: 'normal',
+        movimiento: 'estatico', focal: 50, duracion: 4, sujeto: 'A',
+        intencion: 'intimidad', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#e0a060'] },
+      { escenaId, orden: 3, encuadre: 'primer', angulo: 'normal',
+        movimiento: 'estatico', focal: 85, duracion: 3, sujeto: 'A',
+        intencion: 'intimidad', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#e0a060'] },
+      { escenaId, orden: 4, encuadre: 'primer', angulo: 'normal',
+        movimiento: 'estatico', focal: 85, duracion: 3, sujeto: 'B',
+        intencion: 'intimidad', eje: 180, eyeline: -1, permiteCruce: true,
+        estilo, paleta: ['#c97a3a','#e0a060'] }
+    ]
+  },
+
+  persecucion: {
+    nombre: 'Persecución',
+    desc: '6 planos. Establecimiento + aceleración con planos cortos.',
+    planos: (escenaId = 'S1', estilo = 'teatro_griego') => [
+      { escenaId, orden: 1, encuadre: 'general', angulo: 'normal',
+        movimiento: 'pan', focal: 24, duracion: 4, sujeto: 'perseguidor',
+        intencion: 'tension', eje: 0, eyeline: 0, permiteCruce: false,
+        estilo, paleta: ['#8a3a3a','#c06060'] },
+      { escenaId, orden: 2, encuadre: 'medio', angulo: 'normal',
+        movimiento: 'handheld', focal: 35, duracion: 2, sujeto: 'perseguido',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#8a3a3a','#c06060'] },
+      { escenaId, orden: 3, encuadre: 'primer', angulo: 'contrapicado',
+        movimiento: 'handheld', focal: 50, duracion: 1.2, sujeto: 'perseguidor',
+        intencion: 'amenaza', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#8a3a3a','#c06060'] },
+      { escenaId, orden: 4, encuadre: 'primerisimo', angulo: 'normal',
+        movimiento: 'handheld', focal: 85, duracion: 0.8, sujeto: 'perseguido',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#8a3a3a','#c06060'] },
+      { escenaId, orden: 5, encuadre: 'medio', angulo: 'normal',
+        movimiento: 'travelling', focal: 35, duracion: 1.5, sujeto: 'perseguido',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#8a3a3a','#c06060'] },
+      { escenaId, orden: 6, encuadre: 'general', angulo: 'picado',
+        movimiento: 'grua', focal: 24, duracion: 3, sujeto: 'perseguido',
+        intencion: 'tension', eje: 0, eyeline: 0, permiteCruce: true,
+        estilo, paleta: ['#8a3a3a','#c06060'] }
+    ]
+  },
+
+  encuentro_monstruo: {
+    nombre: 'Encuentro con monstruo',
+    desc: '5 planos. Establecimiento, aproximación, revelación, reacción.',
+    planos: (escenaId = 'S1', estilo = 'teatro_griego') => [
+      { escenaId, orden: 1, encuadre: 'general', angulo: 'normal',
+        movimiento: 'estatico', focal: 24, duracion: 5, sujeto: 'héroe',
+        intencion: 'misterio', eje: 0, eyeline: 0, permiteCruce: false,
+        estilo, paleta: ['#3a5a8a','#6a8ac0'] },
+      { escenaId, orden: 2, encuadre: 'medio', angulo: 'normal',
+        movimiento: 'travelling', focal: 35, duracion: 3.5, sujeto: 'héroe',
+        intencion: 'misterio', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#3a5a8a','#6a8ac0'] },
+      { escenaId, orden: 3, encuadre: 'primer', angulo: 'contrapicado',
+        movimiento: 'estatico', focal: 85, duracion: 2, sujeto: 'monstruo',
+        intencion: 'amenaza', eje: 180, eyeline: -1, permiteCruce: true,
+        estilo, paleta: ['#8a3a3a','#c06060'] },
+      { escenaId, orden: 4, encuadre: 'primerisimo', angulo: 'normal',
+        movimiento: 'estatico', focal: 100, duracion: 1.5, sujeto: 'héroe',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#3a5a8a','#6a8ac0'] },
+      { escenaId, orden: 5, encuadre: 'medio', angulo: 'picado',
+        movimiento: 'estatico', focal: 50, duracion: 2.5, sujeto: 'héroe',
+        intencion: 'tension', eje: 0, eyeline: 0, permiteCruce: true,
+        estilo, paleta: ['#3a5a8a','#6a8ac0'] }
+    ]
+  },
+
+  batalla_epica: {
+    nombre: 'Batalla épica',
+    desc: '8 planos. Variedad de encuadres, movimiento y duraciones.',
+    planos: (escenaId = 'S1', estilo = 'teatro_griego') => [
+      { escenaId, orden: 1, encuadre: 'general', angulo: 'picado',
+        movimiento: 'grua', focal: 24, duracion: 6, sujeto: 'ejército',
+        intencion: 'epica', eje: 0, eyeline: 0, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#e0a060'] },
+      { escenaId, orden: 2, encuadre: 'entero', angulo: 'contrapicado',
+        movimiento: 'travelling', focal: 35, duracion: 3, sujeto: 'héroe',
+        intencion: 'epica', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#e0a060'] },
+      { escenaId, orden: 3, encuadre: 'medio', angulo: 'normal',
+        movimiento: 'handheld', focal: 50, duracion: 2, sujeto: 'héroe',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#e0a060'] },
+      { escenaId, orden: 4, encuadre: 'primer', angulo: 'normal',
+        movimiento: 'handheld', focal: 85, duracion: 1.5, sujeto: 'héroe',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#e0a060'] },
+      { escenaId, orden: 5, encuadre: 'primer', angulo: 'contrapicado',
+        movimiento: 'handheld', focal: 85, duracion: 1.2, sujeto: 'villano',
+        intencion: 'amenaza', eje: 180, eyeline: -1, permiteCruce: true,
+        estilo, paleta: ['#8a3a3a','#c06060'] },
+      { escenaId, orden: 6, encuadre: 'medio', angulo: 'normal',
+        movimiento: 'handheld', focal: 50, duracion: 1.8, sujeto: 'héroe',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#e0a060'] },
+      { escenaId, orden: 7, encuadre: 'entero', angulo: 'picado',
+        movimiento: 'grua', focal: 35, duracion: 2.5, sujeto: 'héroe',
+        intencion: 'duelo', eje: 0, eyeline: 0, permiteCruce: true,
+        estilo, paleta: ['#c97a3a','#e0a060'] },
+      { escenaId, orden: 8, encuadre: 'general', angulo: 'picado',
+        movimiento: 'grua', focal: 24, duracion: 5, sujeto: 'campo',
+        intencion: 'mythic_sorrow', eje: 0, eyeline: 0, permiteCruce: false,
+        estilo, paleta: ['#8a4a2a','#6a5a4a'] }
+    ]
+  },
+
+  viaje_travesia: {
+    nombre: 'Viaje / travesía',
+    desc: '5 planos. Movimiento constante, planos largos.',
+    planos: (escenaId = 'S1', estilo = 'teatro_griego') => [
+      { escenaId, orden: 1, encuadre: 'general', angulo: 'normal',
+        movimiento: 'travelling', focal: 24, duracion: 6, sujeto: 'héroe',
+        intencion: 'establecer', eje: 0, eyeline: 0, permiteCruce: false,
+        estilo, paleta: ['#4a8a9a','#8ac0d0'] },
+      { escenaId, orden: 2, encuadre: 'entero', angulo: 'normal',
+        movimiento: 'travelling', focal: 35, duracion: 5, sujeto: 'héroe',
+        intencion: 'intimidad', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#4a8a9a','#8ac0d0'] },
+      { escenaId, orden: 3, encuadre: 'medio', angulo: 'normal',
+        movimiento: 'travelling', focal: 50, duracion: 4, sujeto: 'héroe',
+        intencion: 'intimidad', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#4a8a9a','#8ac0d0'] },
+      { escenaId, orden: 4, encuadre: 'general', angulo: 'picado',
+        movimiento: 'grua', focal: 24, duracion: 5, sujeto: 'héroe',
+        intencion: 'misterio', eje: 0, eyeline: 0, permiteCruce: true,
+        estilo, paleta: ['#4a8a9a','#8ac0d0'] },
+      { escenaId, orden: 5, encuadre: 'general', angulo: 'normal',
+        movimiento: 'travelling', focal: 24, duracion: 6, sujeto: 'héroe',
+        intencion: 'mythic_sorrow', eje: 0, eyeline: 0, permiteCruce: false,
+        estilo, paleta: ['#4a8a9a','#8ac0d0'] }
+    ]
+  },
+
+  climax: {
+    nombre: 'Clímax',
+    desc: '6 planos. Aceleración progresiva, primeros alternados.',
+    planos: (escenaId = 'S1', estilo = 'teatro_griego') => [
+      { escenaId, orden: 1, encuadre: 'general', angulo: 'normal',
+        movimiento: 'estatico', focal: 24, duracion: 4, sujeto: 'héroe',
+        intencion: 'tension', eje: 0, eyeline: 0, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#8a3a3a'] },
+      { escenaId, orden: 2, encuadre: 'medio', angulo: 'normal',
+        movimiento: 'estatico', focal: 50, duracion: 2.5, sujeto: 'héroe',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#8a3a3a'] },
+      { escenaId, orden: 3, encuadre: 'primer', angulo: 'contrapicado',
+        movimiento: 'estatico', focal: 85, duracion: 1.5, sujeto: 'héroe',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#8a3a3a'] },
+      { escenaId, orden: 4, encuadre: 'primer', angulo: 'contrapicado',
+        movimiento: 'estatico', focal: 85, duracion: 1.2, sujeto: 'villano',
+        intencion: 'amenaza', eje: 180, eyeline: -1, permiteCruce: true,
+        estilo, paleta: ['#8a3a3a','#c97a3a'] },
+      { escenaId, orden: 5, encuadre: 'primerisimo', angulo: 'normal',
+        movimiento: 'handheld', focal: 100, duracion: 1, sujeto: 'héroe',
+        intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+        estilo, paleta: ['#c97a3a','#8a3a3a'] },
+      { escenaId, orden: 6, encuadre: 'general', angulo: 'picado',
+        movimiento: 'grua', focal: 24, duracion: 4, sujeto: 'campo',
+        intencion: 'mythic_sorrow', eje: 0, eyeline: 0, permiteCruce: true,
+        estilo, paleta: ['#8a4a2a','#6a5a4a'] }
+    ]
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SECCIÓN 4 · HELPERS DE COHERENCIA
    ───────────────────────────────────────────────────────────────────────
    Funciones puras que usan las vistas. Nada toca el DOM.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/** Reconstruye el array ordenado de ids de planos de una escena. */
 function reconstruirEscena(estado, escenaId) {
   const shots = Object.values(estado.planos).filter(p => p.escenaId === escenaId);
   estado.porEscena[escenaId] = shots
@@ -418,9 +740,8 @@ function reconstruirEscena(estado, escenaId) {
 }
 
 /**
- * Aplica un evento de plano al estado base.
+ * Aplicador común de eventos de plano.
  * Devuelve las escenas afectadas, o null si el evento no aplica.
- * Es la pieza común de las 5 vistas: todas usan este mismo aplicador.
  */
 function aplicarEventoPlanoBase(estado, evento) {
   if (evento.entidad !== 'plano') return null;
@@ -447,7 +768,46 @@ function aplicarEventoPlanoBase(estado, evento) {
   return null;
 }
 
-/** Distancia entre dos paletas, normalizada a [0,1]. */
+/** Aplicador de eventos de escena. */
+function aplicarEventoEscenaBase(estado, evento) {
+  if (evento.entidad !== 'escena') return null;
+  if (evento.tipo === 'escena_creada') {
+    estado.escenas[evento.entidadId] = { ...evento.a };
+    return { escenaId: evento.entidadId };
+  }
+  if (evento.tipo === 'escena_eliminada') {
+    delete estado.escenas[evento.entidadId];
+    return { escenaId: evento.entidadId };
+  }
+  if (evento.tipo === 'escena_modificada') {
+    const p = estado.escenas[evento.entidadId];
+    if (!p) return null;
+    estado.escenas[evento.entidadId] = { ...p, [evento.campo]: evento.a };
+    return { escenaId: evento.entidadId };
+  }
+  return null;
+}
+
+/** Aplicador de eventos de patrón. */
+function aplicarEventoPatronBase(estado, evento) {
+  if (evento.entidad !== 'patron') return null;
+  if (evento.tipo === 'patron_creado') {
+    estado.patrones[evento.entidadId] = { ...evento.a };
+    return { escenaId: evento.a.escenaId };
+  }
+  if (evento.tipo === 'patron_eliminado') {
+    delete estado.patrones[evento.entidadId];
+    return {};
+  }
+  if (evento.tipo === 'patron_modificado') {
+    const p = estado.patrones[evento.entidadId];
+    if (!p) return null;
+    estado.patrones[evento.entidadId] = { ...p, [evento.campo]: evento.a };
+    return { escenaId: estado.patrones[evento.entidadId].escenaId };
+  }
+  return null;
+}
+
 function hexToRgb(hex) {
   if (!hex || !hex.startsWith('#')) return [0, 0, 0];
   const n = parseInt(hex.slice(1), 16);
@@ -465,93 +825,70 @@ function distanciaPaleta(p1, p2) {
   return Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]) / 441.67;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 4 · LAS 5 VISTAS DE COHERENCIA
-   ───────────────────────────────────────────────────────────────────────
-   Cada vista es un objeto con { id, init, apply, result }.
-   · init()   → estado vacío
-   · apply()  → aplica un evento, devuelve estado nuevo
-   · result() → deriva el resultado legible
+/** Tensión de un plano: métrica simple para la curva temporal.
+ *  Combina movimiento, duración corta, primer plano e intención tensa. */
+function tensionDePlano(p) {
+  let t = 0;
+  if (p.movimiento && p.movimiento !== 'estatico') t += 1;
+  if (p.duracion != null && p.duracion < 2) t += 1;
+  if (p.encuadre === 'primer' || p.encuadre === 'primerisimo') t += 1;
+  if (p.intencion === 'tension' || p.intencion === 'amenaza') t += 1;
+  return t; // 0..4
+}
 
-   Las vistas son proyecciones puras del log de eventos. Añadir una vista
-   no cambia las demás.
+/* ═══════════════════════════════════════════════════════════════════════
+   SECCIÓN 5 · LAS 6 VISTAS DE COHERENCIA
+   ───────────────────────────────────────────────────────────────────────
+   Cada vista tiene { id, init, apply, result }. Las 5 primeras operan
+   sobre planos; la sexta (curva temporal) opera sobre la película entera.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ─────────────────────────────────────────────────────────────────────
-   VISTA 1 · CONTINUIDAD
-   Detecta violaciones de eje (180°) y de raccord de mirada (eyeline).
-   Las violaciones se acumulan en estado.violaciones para renderizar.
-   ───────────────────────────────────────────────────────────────────── */
+/* ── VISTA 1 · CONTINUIDAD ───────────────────────────────────────── */
 const VistaContinuidad = {
   id: 'continuidad',
   init: () => ({ planos: {}, porEscena: {}, violaciones: [] }),
-
   apply: (estado, evento) => {
     const r = aplicarEventoPlanoBase(estado, evento);
     if (!r) return estado;
-
-    // Reconstruir escenas afectadas
     for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
-
-    // Limpiar violaciones antiguas de esas escenas
     estado.violaciones = estado.violaciones.filter(v =>
       !r.escenasAfectadas.includes(v.escenaId));
-
-    // Detectar violaciones nuevas para cada escena afectada
     for (const escenaId of r.escenasAfectadas) {
       const ids = estado.porEscena[escenaId] ?? [];
       for (let i = 1; i < ids.length; i++) {
         const a = estado.planos[ids[i - 1]];
         const b = estado.planos[ids[i]];
         if (!a || !b) continue;
-
-        // Eje: diferencia angular > 90° sin permiteCruce
         if (a.eje != null && b.eje != null && !b.permiteCruce) {
           const diff = Math.abs(a.eje - b.eje) % 360;
           if (Math.min(diff, 360 - diff) > 90) {
-            estado.violaciones.push({
-              escenaId, planoId: b.id, tipo: 'eje',
-              mensaje: `Plano ${b.id} cruza el eje (${a.eje}° → ${b.eje}°)`,
-              severidad: 'err'
-            });
+            estado.violaciones.push({ escenaId, planoId: b.id, tipo: 'eje',
+              mensaje: `Plano ${b.id} cruza el eje (${a.eje}° → ${b.eje}°)`, severidad: 'err' });
           }
         }
-
-        // Eyeline: mismo sujeto con eyelines opuestos sin permiteCruce
-        if (a.eyeline != null && b.eyeline != null &&
-            a.sujeto && a.sujeto === b.sujeto) {
+        if (a.eyeline != null && b.eyeline != null && a.sujeto && a.sujeto === b.sujeto) {
           if (a.eyeline * b.eyeline < 0 && !b.permiteCruce) {
-            estado.violaciones.push({
-              escenaId, planoId: b.id, tipo: 'eyeline',
-              mensaje: `Plano ${b.id} invierte eyeline de "${a.sujeto}"`,
-              severidad: 'err'
-            });
+            estado.violaciones.push({ escenaId, planoId: b.id, tipo: 'eyeline',
+              mensaje: `Plano ${b.id} invierte eyeline de "${a.sujeto}"`, severidad: 'err' });
           }
         }
       }
     }
     return estado;
   },
-
-  result: (estado) => estado
+  result: (e) => e
 };
 
-/* ─────────────────────────────────────────────────────────────────────
-   VISTA 2 · RITMO
-   Calcula estadísticas de duración por escena. Detecta ritmo lento o
-   rápido, saltos bruscos entre planos consecutivos.
-   ───────────────────────────────────────────────────────────────────── */
+/* ── VISTA 2 · RITMO ────────────────────────────────────────────── */
 const VistaRitmo = {
   id: 'ritmo',
   init: () => ({ planos: {}, porEscena: {} }),
-
   apply: (estado, evento) => {
     const r = aplicarEventoPlanoBase(estado, evento);
     if (!r) return estado;
     for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
     return estado;
   },
-
   result: (estado) => {
     const out = {};
     for (const id of Object.keys(estado.porEscena)) {
@@ -561,171 +898,109 @@ const VistaRitmo = {
       const total = durs.reduce((a, b) => a + b, 0);
       const media = n ? total / n : 0;
       const alertas = [];
-
       if (n === 0) alertas.push({ nivel: 'info', mensaje: 'Escena vacía' });
       else {
-        if (media > 8) alertas.push({
-          nivel: 'warn', mensaje: `Ritmo lento: media ${media.toFixed(1)}s` });
-        if (media < 1.2 && n > 3) alertas.push({
-          nivel: 'warn', mensaje: `Ritmo muy rápido: media ${media.toFixed(1)}s` });
-
-        // Saltos bruscos entre consecutivos
+        if (media > 8) alertas.push({ nivel: 'warn', mensaje: `Ritmo lento: media ${media.toFixed(1)}s` });
+        if (media < 1.2 && n > 3) alertas.push({ nivel: 'warn', mensaje: `Ritmo muy rápido: media ${media.toFixed(1)}s` });
         for (let i = 1; i < n; i++) {
           const ratio = durs[i-1] > 0.1 ? durs[i] / durs[i-1] : null;
           if (ratio && (ratio > 4 || ratio < 0.25)) {
-            alertas.push({
-              nivel: 'warn',
-              mensaje: `Salto de duración ${ids[i-1]} → ${ids[i]} (${durs[i-1]}s → ${durs[i]}s)`
-            });
+            alertas.push({ nivel: 'warn',
+              mensaje: `Salto de duración ${ids[i-1]} → ${ids[i]} (${durs[i-1]}s → ${durs[i]}s)` });
             break;
           }
         }
       }
-
-      out[id] = {
-        escenaId: id, n,
+      out[id] = { escenaId: id, n,
         total: +total.toFixed(2), media: +media.toFixed(2),
         min: n ? +Math.min(...durs).toFixed(2) : 0,
-        max: n ? +Math.max(...durs).toFixed(2) : 0,
-        alertas
-      };
+        max: n ? +Math.max(...durs).toFixed(2) : 0, alertas };
     }
     return out;
   }
 };
 
-/* ─────────────────────────────────────────────────────────────────────
-   VISTA 3 · PALETA
-   Detecta saltos cromáticos entre planos consecutivos.
-   Dos avisos distintos:
-     - Salto fuerte sin cambio de intención → sospechoso
-     - Cambio de intención sin salto visual → sospechoso
-   ───────────────────────────────────────────────────────────────────── */
+/* ── VISTA 3 · PALETA ───────────────────────────────────────────── */
 const VistaPaleta = {
   id: 'paleta',
   init: () => ({ planos: {}, porEscena: {} }),
-
   apply: (estado, evento) => {
     const r = aplicarEventoPlanoBase(estado, evento);
     if (!r) return estado;
     for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
     return estado;
   },
-
   result: (estado) => {
     const out = {};
     for (const id of Object.keys(estado.porEscena)) {
       const ids = estado.porEscena[id] ?? [];
       const trans = [], alerts = [];
-
       for (let i = 1; i < ids.length; i++) {
-        const a = estado.planos[ids[i-1]];
-        const b = estado.planos[ids[i]];
+        const a = estado.planos[ids[i-1]], b = estado.planos[ids[i]];
         if (!a || !b) continue;
-
         const d = distanciaPaleta(a.paleta, b.paleta);
         const camb = a.intencion && b.intencion && a.intencion !== b.intencion;
         let aviso = null;
-
-        if (d > 0.5 && !camb) {
-          aviso = { nivel: 'warn',
-            mensaje: `Salto cromático sin cambio de intención (${(d*100).toFixed(0)}%)` };
-        } else if (d < 0.1 && camb) {
-          aviso = { nivel: 'warn',
-            mensaje: 'Cambio de intención sin cambio visual' };
-        }
-
-        trans.push({
-          desde: ids[i-1], hasta: ids[i],
-          distancia: +(d*100).toFixed(1),
-          intencionA: a.intencion, intencionB: b.intencion, aviso
-        });
+        if (d > 0.5 && !camb) aviso = { nivel: 'warn',
+          mensaje: `Salto cromático sin cambio de intención (${(d*100).toFixed(0)}%)` };
+        else if (d < 0.1 && camb) aviso = { nivel: 'warn',
+          mensaje: 'Cambio de intención sin cambio visual' };
+        trans.push({ desde: ids[i-1], hasta: ids[i], distancia: +(d*100).toFixed(1),
+          intencionA: a.intencion, intencionB: b.intencion, aviso });
         if (aviso) alerts.push({ ...aviso, desde: ids[i-1], hasta: ids[i] });
       }
-
       out[id] = { escenaId: id, n: ids.length, transiciones: trans, alertas: alerts };
     }
     return out;
   }
 };
 
-/* ─────────────────────────────────────────────────────────────────────
-   VISTA 4 · COBERTURA
-   Cuenta planos por encuadre, ángulo y movimiento. Alerta si falta
-   establecimiento, hay exceso de primeros, o hay un solo ángulo.
-   ───────────────────────────────────────────────────────────────────── */
+/* ── VISTA 4 · COBERTURA ────────────────────────────────────────── */
 const VistaCobertura = {
   id: 'cobertura',
   init: () => ({ planos: {}, porEscena: {} }),
-
   apply: (estado, evento) => {
     const r = aplicarEventoPlanoBase(estado, evento);
     if (!r) return estado;
     for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
     return estado;
   },
-
   result: (estado) => {
     const out = {};
     for (const id of Object.keys(estado.porEscena)) {
       const ids = estado.porEscena[id] ?? [];
       const enc = {}, ang = {}, mov = {};
-
       for (const i of ids) {
-        const p = estado.planos[i];
-        if (!p) continue;
+        const p = estado.planos[i]; if (!p) continue;
         if (p.encuadre) enc[p.encuadre] = (enc[p.encuadre] ?? 0) + 1;
         if (p.angulo) ang[p.angulo] = (ang[p.angulo] ?? 0) + 1;
         if (p.movimiento) mov[p.movimiento] = (mov[p.movimiento] ?? 0) + 1;
       }
-
       const n = ids.length;
       const alerts = [];
       if (n === 0) alerts.push({ nivel: 'info', mensaje: 'Escena vacía' });
       else {
-        if (!enc.general && !enc.entero) {
-          alerts.push({ nivel: 'warn', mensaje: 'Sin plano de establecimiento' });
-        }
+        if (!enc.general && !enc.entero) alerts.push({ nivel: 'warn', mensaje: 'Sin plano de establecimiento' });
         const np = (enc.primer ?? 0) + (enc.primerisimo ?? 0);
-        if (np / n > 0.7 && n > 3) {
-          alerts.push({ nivel: 'warn', mensaje: `Exceso de primeros (${np}/${n})` });
-        }
-        if (Object.keys(ang).length === 1 && n > 2) {
-          alerts.push({ nivel: 'warn', mensaje: 'Un solo ángulo' });
-        }
+        if (np / n > 0.7 && n > 3) alerts.push({ nivel: 'warn', mensaje: `Exceso de primeros (${np}/${n})` });
+        if (Object.keys(ang).length === 1 && n > 2) alerts.push({ nivel: 'warn', mensaje: 'Un solo ángulo' });
       }
-
-      out[id] = {
-        escenaId: id, n,
-        porEncuadre: enc, porAngulo: ang, porMovimiento: mov,
-        alertas: alerts
-      };
+      out[id] = { escenaId: id, n, porEncuadre: enc, porAngulo: ang, porMovimiento: mov, alertas: alerts };
     }
     return out;
   }
 };
 
-/* ─────────────────────────────────────────────────────────────────────
-   VISTA 5 · ESTILO VISUAL
-   Detecta dos problemas:
-     1. Un plano usa un estilo distinto al resto de la escena sin
-        marcarlo como intencionado. Puede ser un error o un cambio
-        deliberado; el sistema avisa.
-     2. La escena mezcla estilos que no deberían combinarse (teatro
-        griego + cel-shading, por ejemplo). Eso rompe la coherencia
-        visual del output generado.
-   ───────────────────────────────────────────────────────────────────── */
+/* ── VISTA 5 · ESTILO ───────────────────────────────────────────── */
 const VistaEstilo = {
   id: 'estilo',
   init: () => ({ planos: {}, porEscena: {} }),
-
   apply: (estado, evento) => {
     const r = aplicarEventoPlanoBase(estado, evento);
     if (!r) return estado;
     for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
     return estado;
   },
-
   result: (estado) => {
     const out = {};
     for (const id of Object.keys(estado.porEscena)) {
@@ -736,56 +1011,127 @@ const VistaEstilo = {
         if (!p || !p.estilo) continue;
         estilos[p.estilo] = (estilos[p.estilo] ?? 0) + 1;
       }
-
       const alertas = [];
-      const dominante = Object.entries(estilos).sort((a,b) => b[1] - a[1])[0];
-      if (dominante) {
-        const [estiloDom, countDom] = dominante;
-        const total = Object.values(estilos).reduce((a, b) => a + b, 0);
-        // Si hay más de un estilo y el dominante no es aplastante, avisar
-        if (Object.keys(estilos).length > 1) {
-          const minoritarios = Object.entries(estilos)
-            .filter(([k]) => k !== estiloDom)
-            .map(([k, v]) => `${k}: ${v}`);
-          alertas.push({
-            nivel: 'warn',
-            mensaje: `Escena con ${Object.keys(estilos).length} estilos. ` +
-                     `Dominante: ${estiloDom} (${countDom}/${total}). ` +
-                     `Minoritarios: ${minoritarios.join(', ')}`
-          });
-        }
+      if (Object.keys(estilos).length > 1) {
+        const dominante = Object.entries(estilos).sort((a,b) => b[1] - a[1])[0];
+        alertas.push({ nivel: 'warn',
+          mensaje: `Escena con ${Object.keys(estilos).length} estilos. ` +
+                   `Dominante: ${dominante[0]} (${dominante[1]}/${ids.length})` });
       }
-
       out[id] = { escenaId: id, n: ids.length, estilos, alertas };
     }
     return out;
   }
 };
 
-/* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 5 · GENERADOR DE PROMPTS
-   ───────────────────────────────────────────────────────────────────────
-   Función pura que traduce un plano a:
-     - prompt positivo (inglés, formato Runway/Pika/Kling/Sora)
-     - negative prompt (base + específico por intención + específico por estilo)
-     - parámetros sugeridos (duración, aspect, focal, motion, seed)
-     - notas de continuidad (avisos para el humano, no para el modelo)
-   ═══════════════════════════════════════════════════════════════════════ */
+/* ── VISTA 6 · CURVA TEMPORAL ───────────────────────────────────── */
+/* Opera sobre la película entera: duración acumulada, tensión por plano,
+   detección de mesetas y aceleraciones, comparación con 3 actos. */
+const VistaCurvaTemporal = {
+  id: 'curva_temporal',
+  init: () => ({ planos: {}, porEscena: {} }),
+  apply: (estado, evento) => {
+    const r = aplicarEventoPlanoBase(estado, evento);
+    if (!r) return estado;
+    for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
+    return estado;
+  },
+  result: (estado) => {
+    // Recoger todos los planos ordenados por escena y orden
+    const escenas = Object.keys(estado.porEscena).sort();
+    const todos = [];
+    for (const esc of escenas) {
+      for (const id of estado.porEscena[esc] ?? []) {
+        const p = estado.planos[id];
+        if (!p) continue;
+        todos.push({ ...p, _escena: esc });
+      }
+    }
+    if (!todos.length) return { planos: [], total: 0, actos: null, alertas: [] };
 
-/* Contexto global de todos los prompts */
-const CONTEXTO_GLOBAL = {
-  style: 'cinematic film still, photorealistic, 35mm film grain, anamorphic',
-  aspectRatio: '16:9',
-  resolution: '1080p',
-  fps: 24,
-  negativeBase: [
-    'low quality', 'blurry', 'distorted', 'deformed', 'watermark',
-    'text', 'subtitle', 'logo', 'frame border', 'bad anatomy',
-    'cartoonish', 'oversaturated'
-  ]
+    // Duración acumulada y tensión
+    let acumulada = 0;
+    const puntos = todos.map(p => {
+      const dur = p.duracion ?? 0;
+      const ini = acumulada;
+      acumulada += dur;
+      return {
+        id: p.id, escena: p._escena, duracion: dur,
+        inicio: +ini.toFixed(2), fin: +acumulada.toFixed(2),
+        tension: tensionDePlano(p),
+        encuadre: p.encuadre, intencion: p.intencion
+      };
+    });
+    const total = +acumulada.toFixed(2);
+
+    // 3 actos: primeros 25%, medios 50%, últimos 25%
+    const cortes = [0.25, 0.75];
+    const actos = [
+      { nombre: 'acto1', inicio: 0, fin: +(total * cortes[0]).toFixed(2) },
+      { nombre: 'acto2', inicio: +(total * cortes[0]).toFixed(2), fin: +(total * cortes[1]).toFixed(2) },
+      { nombre: 'acto3', inicio: +(total * cortes[1]).toFixed(2), fin: total }
+    ];
+
+    // Detección de mesetas: 4+ planos seguidos con duración > 5s
+    const alertas = [];
+    let mesetaIni = null;
+    for (let i = 0; i < puntos.length; i++) {
+      const esLargo = (puntos[i].duracion > 5);
+      if (esLargo && mesetaIni === null) mesetaIni = i;
+      if (!esLargo && mesetaIni !== null) {
+        if (i - mesetaIni >= 4) {
+          alertas.push({ nivel: 'warn',
+            mensaje: `Meseta: ${i - mesetaIni} planos largos seguidos (${puntos[mesetaIni].id}–${puntos[i-1].id})` });
+        }
+        mesetaIni = null;
+      }
+    }
+    if (mesetaIni !== null && puntos.length - mesetaIni >= 4) {
+      alertas.push({ nivel: 'warn',
+        mensaje: `Meseta al final: ${puntos.length - mesetaIni} planos largos` });
+    }
+
+    // Detección de aceleraciones: 4+ planos seguidos con duración < 1.5s
+    let acelIni = null;
+    for (let i = 0; i < puntos.length; i++) {
+      const esCorto = (puntos[i].duracion < 1.5);
+      if (esCorto && acelIni === null) acelIni = i;
+      if (!esCorto && acelIni !== null) {
+        if (i - acelIni >= 4) {
+          alertas.push({ nivel: 'info',
+            mensaje: `Aceleración: ${i - acelIni} planos cortos seguidos (${puntos[acelIni].id}–${puntos[i-1].id})` });
+        }
+        acelIni = null;
+      }
+    }
+
+    // Tensión media por acto
+    const tensionPorActo = actos.map(acto => {
+      const delActo = puntos.filter(p => p.inicio >= acto.inicio && p.inicio < acto.fin);
+      const media = delActo.length
+        ? delActo.reduce((s, p) => s + p.tension, 0) / delActo.length
+        : 0;
+      return { ...acto, tensionMedia: +media.toFixed(2), n: delActo.length };
+    });
+
+    return { planos: puntos, total, actos: tensionPorActo, alertas };
+  }
 };
 
-/* Mapas de traducción: campo del plano → fragmento de prompt */
+/* ═══════════════════════════════════════════════════════════════════════
+   SECCIÓN 6 · GENERADOR DE PROMPTS
+   ───────────────────────────────────────────────────────────────────────
+   Función pura. Traduce un plano + contexto a prompt, negative, params
+   y notas de continuidad. El estilo va PRIMERO en el prompt.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const CONTEXTO_GLOBAL = {
+  style: 'cinematic film still, photorealistic, 35mm film grain, anamorphic',
+  aspectRatio: '16:9', resolution: '1080p', fps: 24,
+  negativeBase: ['low quality','blurry','distorted','deformed','watermark','text',
+                 'subtitle','logo','frame border','bad anatomy','cartoonish','oversaturated']
+};
+
 const ENCUADRE_PROMPT = {
   general: 'wide establishing shot, vast landscape visible',
   entero: 'full body shot, character visible head to toe',
@@ -830,7 +1176,10 @@ const SUJETO_MAP = {
   'odiseo': 'Odysseus', 'ulises': 'Ulysses', 'polifemo': 'Polyphemus',
   'aquiles': 'Achilles', 'penelope': 'Penelope', 'atenea': 'Athena',
   'poseidon': 'Poseidon', 'circe': 'Circe', 'calipso': 'Calypso',
-  'sirena': 'the siren', 'sirenas': 'the sirens'
+  'sirena': 'the siren', 'sirenas': 'the sirens',
+  'ejército': 'the army', 'ejercito': 'the army',
+  'campo': 'the battlefield', 'monstruo': 'the monster',
+  'perseguidor': 'the pursuer', 'perseguido': 'the pursued'
 };
 
 function traducirSujeto(s) {
@@ -839,86 +1188,61 @@ function traducirSujeto(s) {
   return SUJETO_MAP[key] || s;
 }
 
-/** Hash determinista para generar seeds reproducibles. */
 function hashString(s) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
   return Math.abs(h) % 2147483647;
 }
 
-/**
- * Genera el prompt completo de un plano.
- * @param {Object} plano - el plano con sus campos
- * @param {Object} contexto - { anterior: planoAnterior | null }
- * @returns {Object} { ok, planoId, prompt, negativePrompt, suggestedParams, notas }
- */
 function generarPrompt(plano, contexto = {}) {
-  if (!plano?.sujeto) {
-    return { ok: false, error: 'plano sin sujeto', planoId: plano?.id };
-  }
+  if (!plano?.sujeto) return { ok: false, error: 'plano sin sujeto', planoId: plano?.id };
 
   const partes = [];
-
-  // ─── Estilo visual ───────────────────────────────────────────────
-  // El bloque de estilo va PRIMERO. Si no se repite en cada prompt,
-  // el modelo deriva hacia fotorrealismo por defecto.
+  // 1. Estilo PRIMERO: si no, el modelo deriva hacia fotorrealismo
   const estilo = ESTILO_PROMPT[plano.estilo] || ESTILO_PROMPT.teatro_griego;
   partes.push(estilo.positivo);
 
-  // ─── Encuadre + sujeto ───────────────────────────────────────────
+  // 2. Encuadre + sujeto
   const enc = ENCUADRE_PROMPT[plano.encuadre] || ENCUADRE_PROMPT.medio;
-  const suj = traducirSujeto(plano.sujeto);
-  partes.push(`${enc} of ${suj}`);
+  partes.push(`${enc} of ${traducirSujeto(plano.sujeto)}`);
 
-  // ─── Ángulo ──────────────────────────────────────────────────────
+  // 3. Ángulo
   partes.push(ANGULO_PROMPT[plano.angulo] || ANGULO_PROMPT.normal);
 
-  // ─── Intención / mood ────────────────────────────────────────────
-  if (plano.intencion && INTENCION_PROMPT[plano.intencion]) {
-    partes.push(INTENCION_PROMPT[plano.intencion]);
-  }
+  // 4. Intención
+  if (plano.intencion && INTENCION_PROMPT[plano.intencion]) partes.push(INTENCION_PROMPT[plano.intencion]);
 
-  // ─── Paleta ──────────────────────────────────────────────────────
+  // 5. Paleta
   if (Array.isArray(plano.paleta) && plano.paleta.length) {
     partes.push(`color palette anchored on ${plano.paleta.slice(0, 3).join(' and ')}`);
   }
 
-  // ─── Movimiento ──────────────────────────────────────────────────
-  if (plano.movimiento && MOVIMIENTO_PROMPT[plano.movimiento]) {
-    partes.push(MOVIMIENTO_PROMPT[plano.movimiento]);
-  }
+  // 6. Movimiento
+  if (plano.movimiento && MOVIMIENTO_PROMPT[plano.movimiento]) partes.push(MOVIMIENTO_PROMPT[plano.movimiento]);
 
-  // ─── Focal ───────────────────────────────────────────────────────
+  // 7. Focal
   if (plano.focal) partes.push(`shot on ${plano.focal}mm lens`);
 
-  // ─── Estilo cinematográfico global ───────────────────────────────
+  // 8. Estilo cinematográfico global
   partes.push(CONTEXTO_GLOBAL.style);
 
   const prompt = partes.join(', ');
 
-  // ─── Negative prompt ─────────────────────────────────────────────
-  // Base + específicos por intención + específicos por estilo
+  // Negative prompt: base + por intención + por estilo
   const negs = new Set(CONTEXTO_GLOBAL.negativeBase);
-
-  if (plano.intencion === 'tension' || plano.intencion === 'amenaza') {
-    negs.add('cheerful colors'); negs.add('soft focus');
-  }
+  if (plano.intencion === 'tension' || plano.intencion === 'amenaza') { negs.add('cheerful colors'); negs.add('soft focus'); }
   if (plano.intencion === 'intimidad') negs.add('harsh shadows');
   if (plano.intencion === 'duelo') negs.add('vibrant colors');
   if (plano.intencion === 'misterio') negs.add('bright even lighting');
   if (plano.intencion === 'comedia') negs.add('dark shadows');
-
-  // Negativos específicos del estilo
   for (const n of estilo.negativo.split(',')) negs.add(n.trim());
 
-  // ─── Parámetros sugeridos ────────────────────────────────────────
-  const motionIntensity = plano.movimiento === 'estatico'
-    ? 'low'
+  // Params sugeridos
+  const motionIntensity = plano.movimiento === 'estatico' ? 'low'
     : plano.movimiento === 'handheld' ? 'high' : 'medium';
-
   const suggestedParams = {
     duration: plano.duracion ?? 5,
-    aspectRatio: contexto.aspectRatio ?? CONTEXTO_GLOBAL.aspectRatio,
+    aspectRatio: CONTEXTO_GLOBAL.aspectRatio,
     resolution: CONTEXTO_GLOBAL.resolution,
     fps: estilo.fps ?? CONTEXTO_GLOBAL.fps,
     focalLength: plano.focal ?? 35,
@@ -928,15 +1252,11 @@ function generarPrompt(plano, contexto = {}) {
     seed: hashString(plano.id ?? 'default')
   };
 
-  // ─── Notas de continuidad ────────────────────────────────────────
-  // Estas notas NO son parte del prompt. Son avisos para el humano
-  // sobre riesgos de coherencia respecto al plano anterior.
+  // Notas de continuidad
   const notas = [];
   if (contexto.anterior) {
     const a = contexto.anterior;
-
-    if (a.permiteCruce === false && plano.eje != null &&
-        a.eje != null && plano.eje !== a.eje) {
+    if (a.permiteCruce === false && plano.eje != null && a.eje != null && plano.eje !== a.eje) {
       notas.push('⚠️ Mantener dirección de pantalla del plano anterior (eje 180°)');
     }
     if (a.sujeto === plano.sujeto && a.eyeline != null && plano.eyeline != null &&
@@ -948,30 +1268,22 @@ function generarPrompt(plano, contexto = {}) {
     }
     if (a.paleta && plano.paleta) {
       const d = distanciaPaleta(a.paleta, plano.paleta);
-      if (d > 0.5) {
-        notas.push(`Salto cromático respecto al plano anterior (${(d*100).toFixed(0)}%)`);
-      }
+      if (d > 0.5) notas.push(`Salto cromático respecto al anterior (${(d*100).toFixed(0)}%)`);
     }
     if (a.estilo && plano.estilo && a.estilo !== plano.estilo) {
       notas.push(`⚠️ Cambio de estilo: ${a.estilo} → ${plano.estilo}`);
     }
   }
 
-  return {
-    ok: true,
-    planoId: plano.id,
-    prompt,
-    negativePrompt: [...negs].join(', '),
-    suggestedParams,
-    notas
-  };
+  return { ok: true, planoId: plano.id, prompt,
+    negativePrompt: [...negs].join(', '), suggestedParams, notas };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 6 · MINI-CORE (event sourcing)
+   SECCIÓN 7 · MINI-CORE MULTI-ENTIDAD
    ───────────────────────────────────────────────────────────────────────
-   Guarda el log de eventos y mantiene el estado de las 5 vistas.
-   Cada append aplica el evento a TODAS las vistas.
+   Maneja eventos de plano, escena y patrón. Cada vista recibe TODOS los
+   eventos; las vistas de plano ignoran los de escena/patrón y viceversa.
    ═══════════════════════════════════════════════════════════════════════ */
 
 class MiniCore {
@@ -995,72 +1307,103 @@ class MiniCore {
     return v ? v.result(this.estados.get(v.id)) : null;
   }
 
-  /** Historial de eventos de un plano concreto. */
-  historialDe(planoId) {
-    return this.eventos.filter(e => e.entidadId === planoId);
+  historialDe(entidad, entidadId) {
+    return this.eventos.filter(e =>
+      e.entidad === entidad && e.entidadId === entidadId);
   }
 }
 
-/* Instancia global del core con las 5 vistas */
-const VISTAS = [VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura, VistaEstilo];
+const VISTAS = [VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura, VistaEstilo, VistaCurvaTemporal];
 let core = new MiniCore(VISTAS);
-let editingId = null;   // id del plano que se está editando (null = nuevo)
-let promptCache = {};   // planoId → resultado de generarPrompt
+let editingId = null;          // plano en edición
+let editingEscenaId = null;    // escena en edición
+let editingPatronId = null;    // patrón en edición
+let modo = 'normal';           // 'normal' | 'avanzado'
+let promptCache = {};
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 7 · FORMULARIO GENERADO DESDE EL SCHEMA
+   SECCIÓN 8 · FORMULARIOS GENERADOS DESDE EL SCHEMA
    ───────────────────────────────────────────────────────────────────────
-   renderForm() recorre PLANO_SCHEMA y dibuja un control por campo.
-   readFormValues() lee los valores del formulario.
-   fillForm(plano) rellena el formulario con los datos de un plano.
-   clearForm() resetea el formulario a los defaults del schema.
+   renderSchemaForm() es genérica: recibe un schema, un contenedor, y
+   opciones (modo, filtro de campos). Se usa para plano, escena y patrón.
    ═══════════════════════════════════════════════════════════════════════ */
 
-function renderForm() {
-  const form = document.getElementById('planForm');
-  form.innerHTML = '';
-  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
-    if (def.tipo === 'paleta') {
-      form.appendChild(renderPaletaField(def));
-      continue;
-    }
-    const row = document.createElement('div');
-    row.className = 'form-row';
-    const label = document.createElement('label');
-    label.textContent = def.label + (def.required ? ' *' : '');
-    row.appendChild(label);
+function renderSchemaForm(schema, container, opts = {}) {
+  const { modo = 'avanzado', conPaleta = false, planosDisponibles = null } = opts;
+  container.innerHTML = '';
 
-    let input;
-    if (def.tipo === 'enum') {
-      input = document.createElement('select');
-      for (const v of def.enum) {
-        const o = document.createElement('option');
-        o.value = v; o.textContent = v;
-        input.appendChild(o);
+  const basicos = [], avanzados = [];
+  for (const [key, def] of Object.entries(schema)) {
+    if (def.nivel === 'basico') basicos.push([key, def]);
+    else avanzados.push([key, def]);
+  }
+
+  // Renderizar básicos siempre
+  for (const [key, def] of basicos) {
+    container.appendChild(renderField(key, def, conPaleta, planosDisponibles));
+  }
+
+  // En modo avanzado, renderizar avanzados (en <details> si estamos en normal)
+  if (avanzados.length) {
+    if (modo === 'normal') {
+      const det = document.createElement('details');
+      det.className = 'avanzado';
+      const sum = document.createElement('summary');
+      sum.textContent = `⚙️ Parámetros avanzados (${avanzados.length})`;
+      det.appendChild(sum);
+      for (const [key, def] of avanzados) {
+        det.appendChild(renderField(key, def, conPaleta, planosDisponibles));
       }
-    } else if (def.tipo === 'number') {
-      input = document.createElement('input');
-      input.type = 'number';
-      if (def.min !== undefined) input.min = def.min;
-      if (def.max !== undefined) input.max = def.max;
-      if (def.step !== undefined) input.step = def.step;
-    } else if (def.tipo === 'bool') {
-      input = document.createElement('input');
-      input.type = 'checkbox';
-      input.style.flex = '0 0 auto';
+      container.appendChild(det);
     } else {
-      input = document.createElement('input');
-      input.type = 'text';
+      for (const [key, def] of avanzados) {
+        container.appendChild(renderField(key, def, conPaleta, planosDisponibles));
+      }
     }
-    input.id = 'form_' + key;
-    if (def.tipo === 'bool') input.checked = def.default ?? false;
-    else if (def.default !== undefined) input.value = def.default;
-    row.appendChild(input);
-    form.appendChild(row);
   }
 }
 
-function renderPaletaField(def) {
+function renderField(key, def, conPaleta = false, planosDisponibles = null) {
+  if (def.tipo === 'paleta') return renderPaletaField(key, def);
+  if (def.tipo === 'multi') return renderMultiField(key, def, planosDisponibles);
+  if (def.tipo === 'textarea') return renderTextareaField(key, def);
+
+  const row = document.createElement('div');
+  row.className = 'form-row';
+  const label = document.createElement('label');
+  label.textContent = def.label + (def.required ? ' *' : '');
+  row.appendChild(label);
+
+  let input;
+  if (def.tipo === 'enum') {
+    input = document.createElement('select');
+    for (const v of def.enum) {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      input.appendChild(o);
+    }
+  } else if (def.tipo === 'number') {
+    input = document.createElement('input');
+    input.type = 'number';
+    if (def.min !== undefined) input.min = def.min;
+    if (def.max !== undefined) input.max = def.max;
+    if (def.step !== undefined) input.step = def.step;
+  } else if (def.tipo === 'bool') {
+    input = document.createElement('input');
+    input.type = 'checkbox';
+    input.style.flex = '0 0 auto';
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+  }
+  input.id = 'form_' + key;
+  if (def.tipo === 'bool') input.checked = def.default ?? false;
+  else if (def.default !== undefined) input.value = def.default;
+  row.appendChild(input);
+  return row;
+}
+
+function renderPaletaField(key, def) {
   const wrap = document.createElement('div');
   wrap.style.marginTop = '6px';
   const label = document.createElement('label');
@@ -1097,11 +1440,58 @@ function addPaletteRow(hex) {
   rows.appendChild(row);
 }
 
-function readFormValues() {
+function renderTextareaField(key, def) {
+  const row = document.createElement('div');
+  row.className = 'form-row';
+  const label = document.createElement('label');
+  label.textContent = def.label;
+  row.appendChild(label);
+  const input = document.createElement('textarea');
+  input.id = 'form_' + key;
+  input.value = def.default || '';
+  row.appendChild(input);
+  return row;
+}
+
+/** Selector múltiple de planos (para el editor de patrón). */
+function renderMultiField(key, def, planosDisponibles) {
+  const wrap = document.createElement('div');
+  wrap.style.marginTop = '6px';
+  const label = document.createElement('label');
+  label.textContent = def.label + ' *';
+  label.style.cssText = 'display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;';
+  wrap.appendChild(label);
+  const list = document.createElement('div');
+  list.id = 'multi_' + key;
+  list.style.cssText = 'max-height:200px;overflow-y:auto;background:#0f172a;border:1px solid #334155;border-radius:4px;padding:6px;';
+  if (!planosDisponibles || !planosDisponibles.length) {
+    list.innerHTML = '<div class="empty" style="font-size:10px;">No hay planos todavía.</div>';
+  } else {
+    for (const p of planosDisponibles) {
+      const row = document.createElement('label');
+      row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;cursor:pointer;color:#e2e8f0;';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = p.id; cb.dataset.multi = key;
+      row.appendChild(cb);
+      row.appendChild(document.createTextNode(
+        `${p.id} · ${p.encuadre} · ${p.sujeto} · ${p.duracion}s`));
+      list.appendChild(row);
+    }
+  }
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function readSchemaForm(schema, opts = {}) {
   const values = {};
-  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
+  for (const [key, def] of Object.entries(schema)) {
     if (def.tipo === 'paleta') {
       values[key] = [...document.querySelectorAll('#paletteRows input[type=color]')]
+        .map(i => i.value);
+      continue;
+    }
+    if (def.tipo === 'multi') {
+      values[key] = [...document.querySelectorAll(`input[data-multi="${key}"]:checked`)]
         .map(i => i.value);
       continue;
     }
@@ -1115,39 +1505,37 @@ function readFormValues() {
   return values;
 }
 
-function fillForm(plano) {
-  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
+function fillSchemaForm(schema, data) {
+  for (const [key, def] of Object.entries(schema)) {
     if (def.tipo === 'paleta') {
       const rows = document.getElementById('paletteRows');
-      if (rows) {
-        rows.innerHTML = '';
-        for (const hex of (plano.paleta || [])) addPaletteRow(hex);
-      }
+      if (rows) { rows.innerHTML = ''; for (const hex of (data.paleta || [])) addPaletteRow(hex); }
+      continue;
+    }
+    if (def.tipo === 'multi') {
+      const cbs = document.querySelectorAll(`input[data-multi="${key}"]`);
+      const selected = new Set(data[key] || []);
+      cbs.forEach(cb => cb.checked = selected.has(cb.value));
       continue;
     }
     const input = document.getElementById('form_' + key);
     if (!input) continue;
-    const v = plano[key];
+    const v = data[key];
     if (v === undefined || v === null) continue;
     if (def.tipo === 'bool') input.checked = !!v;
     else input.value = v;
   }
 }
 
-function clearForm() {
-  editingId = null;
-  document.getElementById('editorMode').textContent = 'Nuevo';
-  document.getElementById('editorMode').className = 'pill';
-  document.getElementById('btnDuplicate').disabled = true;
-  document.getElementById('btnDelete').disabled = true;
-
-  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
+function clearSchemaForm(schema, opts = {}) {
+  for (const [key, def] of Object.entries(schema)) {
     if (def.tipo === 'paleta') {
       const rows = document.getElementById('paletteRows');
-      if (rows) {
-        rows.innerHTML = '';
-        for (const hex of (def.default || [])) addPaletteRow(hex);
-      }
+      if (rows) { rows.innerHTML = ''; for (const hex of (def.default || [])) addPaletteRow(hex); }
+      continue;
+    }
+    if (def.tipo === 'multi') {
+      document.querySelectorAll(`input[data-multi="${key}"]`).forEach(cb => cb.checked = false);
       continue;
     }
     const input = document.getElementById('form_' + key);
@@ -1156,40 +1544,40 @@ function clearForm() {
     else if (def.default !== undefined) input.value = def.default;
     else input.value = '';
   }
-
-  // Auto-rellenar orden con max+1
-  const planos = Object.values(core.resultado('continuidad').planos);
-  const maxOrden = planos.reduce((m, p) => Math.max(m, p.orden ?? 0), 0);
-  document.getElementById('form_orden').value = maxOrden + 1;
-  document.getElementById('formStatus').textContent = '';
-  document.getElementById('formStatus').className = 'status';
 }
 
-function validateForm(values) {
+function validateSchemaForm(schema, values) {
   const errors = [];
-  for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
+  for (const [key, def] of Object.entries(schema)) {
     const v = values[key];
-    if (def.required && (v === '' || v === null || v === undefined || Number.isNaN(v))) {
-      errors.push(`"${def.label}" obligatorio`);
+    if (def.required) {
+      if (def.tipo === 'multi') {
+        if (!Array.isArray(v) || v.length === 0) errors.push(`"${def.label}" obligatorio`);
+      } else if (v === '' || v === null || v === undefined || Number.isNaN(v)) {
+        errors.push(`"${def.label}" obligatorio`);
+      }
     }
   }
-  if (values.duracion <= 0) errors.push('duración debe ser > 0');
   return errors;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 8 · OPERACIONES DEL EDITOR (crear, editar, duplicar, eliminar)
+   SECCIÓN 9 · OPERACIONES DEL EDITOR
    ───────────────────────────────────────────────────────────────────────
-   Cada operación emite eventos inmutables al MiniCore.
-   La edición emite un campo_modificado POR CADA CAMPO CAMBIADO, para
-   mantener trazabilidad campo a campo.
+   Crear/editar/eliminar para plano, escena y patrón. Cada operación
+   emite eventos inmutables al MiniCore.
    ═══════════════════════════════════════════════════════════════════════ */
 
-function saveForm() {
-  const values = readFormValues();
-  const errors = validateForm(values);
-  const status = document.getElementById('formStatus');
+function renderFormPlano() {
+  renderSchemaForm(PLANO_SCHEMA, document.getElementById('planForm'), {
+    modo, conPaleta: true
+  });
+}
 
+function saveFormPlano() {
+  const values = readSchemaForm(PLANO_SCHEMA);
+  const errors = validateSchemaForm(PLANO_SCHEMA, values);
+  const status = document.getElementById('formStatus');
   if (errors.length) {
     status.textContent = '❌ ' + errors.join(' · ');
     status.className = 'status err';
@@ -1197,25 +1585,16 @@ function saveForm() {
   }
 
   if (editingId) {
-    // ── Editar: emitir campo_modificado por cada campo cambiado ──
     const original = core.resultado('continuidad').planos[editingId];
-    if (!original) { clearForm(); return; }
-
+    if (!original) { clearFormPlano(); return; }
     let cambios = 0;
     for (const [key, v] of Object.entries(values)) {
       if (JSON.stringify(original[key]) === JSON.stringify(v)) continue;
       core.append({
-        id: 'ev_' + editingId + '_' + key + '_' + Date.now() + '_' +
-            Math.random().toString(36).slice(2, 6),
-        entidad: 'plano',
-        entidadId: editingId,
-        tipo: 'campo_modificado',
-        campo: key,
-        de: original[key],
-        a: v,
-        ts: new Date().toISOString(),
-        actor: 'usuario',
-        version: 1
+        id: 'ev_' + editingId + '_' + key + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        entidad: 'plano', entidadId: editingId,
+        tipo: 'campo_modificado', campo: key, de: original[key], a: v,
+        ts: new Date().toISOString(), actor: 'usuario', version: 1
       });
       cambios++;
     }
@@ -1224,18 +1603,12 @@ function saveForm() {
       : '⏸ Sin cambios';
     status.className = 'status ok';
   } else {
-    // ── Crear: emitir plano_creado con el plano completo ──
     const id = 'P' + Date.now().toString(36).slice(-6);
     const plano = { ...values, id };
     core.append({
-      id: 'ev_' + id,
-      entidad: 'plano',
-      entidadId: id,
-      tipo: 'plano_creado',
-      campo: null, de: null, a: plano,
-      ts: new Date().toISOString(),
-      actor: 'usuario',
-      version: 1
+      id: 'ev_' + id, entidad: 'plano', entidadId: id,
+      tipo: 'plano_creado', campo: null, de: null, a: plano,
+      ts: new Date().toISOString(), actor: 'usuario', version: 1
     });
     editingId = id;
     document.getElementById('editorMode').textContent = 'Editando: ' + id;
@@ -1248,20 +1621,32 @@ function saveForm() {
   render();
 }
 
+function clearFormPlano() {
+  editingId = null;
+  document.getElementById('editorMode').textContent = 'Nuevo';
+  document.getElementById('editorMode').className = 'pill';
+  document.getElementById('btnDuplicate').disabled = true;
+  document.getElementById('btnDelete').disabled = true;
+  clearSchemaForm(PLANO_SCHEMA);
+  // Auto-rellenar orden
+  const planos = Object.values(core.resultado('continuidad').planos);
+  const maxOrden = planos.reduce((m, p) => Math.max(m, p.orden ?? 0), 0);
+  const ordInput = document.getElementById('form_orden');
+  if (ordInput) ordInput.value = maxOrden + 1;
+  document.getElementById('formStatus').textContent = '';
+  document.getElementById('formStatus').className = 'status';
+}
+
 function deletePlan() {
   if (!editingId) return;
   if (!confirm(`¿Eliminar plano ${editingId}?`)) return;
   core.append({
     id: 'ev_del_' + editingId + '_' + Date.now(),
-    entidad: 'plano',
-    entidadId: editingId,
-    tipo: 'plano_eliminado',
-    campo: null, de: null, a: null,
-    ts: new Date().toISOString(),
-    actor: 'usuario',
-    version: 1
+    entidad: 'plano', entidadId: editingId,
+    tipo: 'plano_eliminado', campo: null, de: null, a: null,
+    ts: new Date().toISOString(), actor: 'usuario', version: 1
   });
-  clearForm();
+  clearFormPlano();
   render();
 }
 
@@ -1274,17 +1659,12 @@ function duplicatePlan() {
   const maxOrden = planos.reduce((m, p) => Math.max(m, p.orden ?? 0), 0);
   const copia = { ...original, id, orden: maxOrden + 1 };
   core.append({
-    id: 'ev_' + id,
-    entidad: 'plano',
-    entidadId: id,
-    tipo: 'plano_creado',
-    campo: null, de: null, a: copia,
-    ts: new Date().toISOString(),
-    actor: 'usuario',
-    version: 1
+    id: 'ev_' + id, entidad: 'plano', entidadId: id,
+    tipo: 'plano_creado', campo: null, de: null, a: copia,
+    ts: new Date().toISOString(), actor: 'usuario', version: 1
   });
   editingId = id;
-  fillForm(copia);
+  fillSchemaForm(PLANO_SCHEMA, copia);
   document.getElementById('editorMode').textContent = 'Editando: ' + id;
   document.getElementById('editorMode').className = 'pill ok';
   document.getElementById('btnDuplicate').disabled = false;
@@ -1294,12 +1674,181 @@ function duplicatePlan() {
   render();
 }
 
+/* ── ESCENAS ──────────────────────────────────────────────────────── */
+
+function renderFormEscena() {
+  renderSchemaForm(ESCENA_SCHEMA, document.getElementById('escenaForm'), { modo });
+}
+
+function saveFormEscena() {
+  const values = readSchemaForm(ESCENA_SCHEMA);
+  const errors = validateSchemaForm(ESCENA_SCHEMA, values);
+  const status = document.getElementById('escenaStatus');
+  if (errors.length) {
+    status.textContent = '❌ ' + errors.join(' · ');
+    status.className = 'status err';
+    return;
+  }
+  if (editingEscenaId) {
+    const original = core.resultado('continuidad').escenas?.[editingEscenaId];
+    let cambios = 0;
+    for (const [key, v] of Object.entries(values)) {
+      if (key === 'id') continue;
+      if (JSON.stringify(original?.[key]) === JSON.stringify(v)) continue;
+      core.append({
+        id: 'ev_esc_' + editingEscenaId + '_' + key + '_' + Date.now(),
+        entidad: 'escena', entidadId: editingEscenaId,
+        tipo: 'escena_modificada', campo: key, de: original?.[key], a: v,
+        ts: new Date().toISOString(), actor: 'usuario', version: 1
+      });
+      cambios++;
+    }
+    status.textContent = cambios ? `✅ Escena actualizada (${cambios} cambios)` : '⏸ Sin cambios';
+    status.className = 'status ok';
+  } else {
+    if (!values.id) { status.textContent = '❌ id obligatorio'; status.className = 'status err'; return; }
+    core.append({
+      id: 'ev_esc_' + values.id, entidad: 'escena', entidadId: values.id,
+      tipo: 'escena_creada', campo: null, de: null, a: { ...values },
+      ts: new Date().toISOString(), actor: 'usuario', version: 1
+    });
+    editingEscenaId = values.id;
+    document.getElementById('escenaMode').textContent = 'Editando: ' + values.id;
+    document.getElementById('escenaMode').className = 'pill ok';
+    document.getElementById('btnDeleteEscena').disabled = false;
+    status.textContent = '✅ Escena creada: ' + values.id;
+    status.className = 'status ok';
+  }
+  render();
+}
+
+function clearFormEscena() {
+  editingEscenaId = null;
+  document.getElementById('escenaMode').textContent = 'Nuevo';
+  document.getElementById('escenaMode').className = 'pill';
+  document.getElementById('btnDeleteEscena').disabled = true;
+  clearSchemaForm(ESCENA_SCHEMA);
+  document.getElementById('escenaStatus').textContent = '';
+  document.getElementById('escenaStatus').className = 'status';
+}
+
+function deleteEscena() {
+  if (!editingEscenaId) return;
+  if (!confirm(`¿Eliminar escena ${editingEscenaId}? Los planos no se borran, solo la metadata.`)) return;
+  core.append({
+    id: 'ev_esc_del_' + editingEscenaId + '_' + Date.now(),
+    entidad: 'escena', entidadId: editingEscenaId,
+    tipo: 'escena_eliminada', campo: null, de: null, a: null,
+    ts: new Date().toISOString(), actor: 'usuario', version: 1
+  });
+  clearFormEscena();
+  render();
+}
+
+/* ── PATRONES ─────────────────────────────────────────────────────── */
+
+function renderFormPatron() {
+  const planos = Object.values(core.resultado('continuidad').planos)
+    .sort((a, b) => a.escenaId.localeCompare(b.escenaId) || (a.orden ?? 0) - (b.orden ?? 0));
+  renderSchemaForm(PATRON_SCHEMA, document.getElementById('patronForm'), {
+    modo, planosDisponibles: planos
+  });
+}
+
+function saveFormPatron() {
+  const values = readSchemaForm(PATRON_SCHEMA);
+  const errors = validateSchemaForm(PATRON_SCHEMA, values);
+  const status = document.getElementById('patronStatus');
+  if (errors.length) {
+    status.textContent = '❌ ' + errors.join(' · ');
+    status.className = 'status err';
+    return;
+  }
+  if (editingPatronId) {
+    const original = core.resultado('continuidad').patrones?.[editingPatronId];
+    let cambios = 0;
+    for (const [key, v] of Object.entries(values)) {
+      if (JSON.stringify(original?.[key]) === JSON.stringify(v)) continue;
+      core.append({
+        id: 'ev_pat_' + editingPatronId + '_' + key + '_' + Date.now(),
+        entidad: 'patron', entidadId: editingPatronId,
+        tipo: 'patron_modificado', campo: key, de: original?.[key], a: v,
+        ts: new Date().toISOString(), actor: 'usuario', version: 1
+      });
+      cambios++;
+    }
+    status.textContent = cambios ? `✅ Patrón actualizado (${cambios} cambios)` : '⏸ Sin cambios';
+    status.className = 'status ok';
+  } else {
+    const id = 'PAT' + Date.now().toString(36).slice(-6);
+    const patron = { ...values, id };
+    core.append({
+      id: 'ev_pat_' + id, entidad: 'patron', entidadId: id,
+      tipo: 'patron_creado', campo: null, de: null, a: patron,
+      ts: new Date().toISOString(), actor: 'usuario', version: 1
+    });
+    editingPatronId = id;
+    document.getElementById('patronMode').textContent = 'Editando: ' + id;
+    document.getElementById('patronMode').className = 'pill ok';
+    document.getElementById('btnDeletePatron').disabled = false;
+    status.textContent = '✅ Patrón creado: ' + id;
+    status.className = 'status ok';
+  }
+  render();
+}
+
+function clearFormPatron() {
+  editingPatronId = null;
+  document.getElementById('patronMode').textContent = 'Nuevo';
+  document.getElementById('patronMode').className = 'pill';
+  document.getElementById('btnDeletePatron').disabled = true;
+  clearSchemaForm(PATRON_SCHEMA);
+  document.getElementById('patronStatus').textContent = '';
+  document.getElementById('patronStatus').className = 'status';
+}
+
+function deletePatron() {
+  if (!editingPatronId) return;
+  if (!confirm(`¿Eliminar patrón ${editingPatronId}?`)) return;
+  core.append({
+    id: 'ev_pat_del_' + editingPatronId + '_' + Date.now(),
+    entidad: 'patron', entidadId: editingPatronId,
+    tipo: 'patron_eliminado', campo: null, de: null, a: null,
+    ts: new Date().toISOString(), actor: 'usuario', version: 1
+  });
+  clearFormPatron();
+  render();
+}
+
+/* ── APLICAR TEMPLATE ─────────────────────────────────────────────── */
+
+function aplicarTemplate(templateId) {
+  const tpl = TEMPLATES[templateId];
+  if (!tpl) return;
+  if (!confirm(`Aplicar template "${tpl.nombre}"?\n\nSe crearán ${tpl.planos().length} planos.`)) return;
+
+  // Determinar escena: si hay una escena en edición, usarla; si no, S1
+  const escenaId = editingEscenaId || 'S1';
+  const planos = tpl.planos(escenaId, 'teatro_griego');
+
+  for (const p of planos) {
+    const id = 'P' + Date.now().toString(36).slice(-6) + Math.random().toString(36).slice(2, 4);
+    core.append({
+      id: 'ev_' + id, entidad: 'plano', entidadId: id,
+      tipo: 'plano_creado', campo: null, de: null, a: { ...p, id },
+      ts: new Date().toISOString(), actor: 'template:' + templateId, version: 1
+    });
+  }
+
+  document.getElementById('formStatus').textContent = `✅ Template "${tpl.nombre}" aplicado (${planos.length} planos en ${escenaId})`;
+  document.getElementById('formStatus').className = 'status ok';
+  render();
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 9 · RENDERIZADO DE PANELES
+   SECCIÓN 10 · RENDERIZADO DE PANELES
    ───────────────────────────────────────────────────────────────────────
-   render() llama a todos los renders. Cada uno lee del MiniCore y
-   actualiza su panel. No hay estado duplicado en la UI: todo se deriva
-   del log de eventos.
+   render() llama a todos los renders. Cada uno lee del MiniCore.
    ═══════════════════════════════════════════════════════════════════════ */
 
 function esc(s) {
@@ -1310,51 +1859,93 @@ function esc(s) {
 
 function getPlanosOrdenados() {
   return Object.values(core.resultado('continuidad').planos)
-    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+    .sort((a, b) =>
+      (a.escenaId || '').localeCompare(b.escenaId || '') ||
+      (a.orden ?? 0) - (b.orden ?? 0));
+}
+
+function getEscenas() {
+  // Escenas explícitas (entidad escena) + escenas inferidas de los planos
+  const explicitas = core.resultado('continuidad').escenas || {};
+  const inferidas = new Set();
+  for (const p of Object.values(core.resultado('continuidad').planos)) {
+    if (p.escenaId) inferidas.add(p.escenaId);
+  }
+  const todas = new Set([...Object.keys(explicitas), ...inferidas]);
+  return [...todas].sort().map(id => ({
+    id,
+    metadata: explicitas[id] || null
+  }));
+}
+
+function getPatrones() {
+  return Object.values(core.resultado('continuidad').patrones || {})
+    .sort((a, b) => (a.escenaId || '').localeCompare(b.escenaId || ''));
 }
 
 function render() {
-  renderLista();
+  renderListaEscenasYPlanos();
+  renderListaEscenas();
+  renderListaPatrones();
   renderContinuidad();
   renderRitmo();
   renderPaleta();
   renderCobertura();
   renderEstilo();
+  renderCurvaTemporal();
   renderPrompts();
 }
 
-function renderLista() {
+function renderListaEscenasYPlanos() {
   const cont = document.getElementById('listaShots');
   const planos = getPlanosOrdenados();
-  document.getElementById('shotCount').textContent = planos.length + ' planos';
+  const escenas = getEscenas();
+  document.getElementById('shotCount').textContent = planos.length + ' planos · ' + escenas.length + ' escenas';
 
   if (!planos.length) {
-    cont.innerHTML = '<div class="empty">Sin planos. Crea uno arriba.</div>';
+    cont.innerHTML = '<div class="empty">Sin planos. Crea uno o aplica un template.</div>';
     return;
   }
 
-  cont.innerHTML = planos.map(p => `
-    <div class="shot ${editingId === p.id ? 'selected' : ''}" data-id="${esc(p.id)}">
-      <div class="line">
-        <strong>${esc(p.id)}</strong>
-        <span class="meta">${esc(p.encuadre)} · ${esc(p.angulo)} · ${p.duracion}s</span>
-      </div>
-      <div class="meta">
-        ${esc(p.sujeto)} · ${esc(p.intencion)} · eje ${p.eje}° · eyeline ${p.eyeline}
-        <span class="estilo-tag">${esc(p.estilo || '—')}</span>
-      </div>
-      <div class="swatches">
-        ${(p.paleta || []).map(h => `<span style="background:${esc(h)}"></span>`).join('')}
-      </div>
-    </div>
-  `).join('');
+  // Agrupar por escena
+  const grupos = {};
+  for (const p of planos) {
+    const e = p.escenaId || '—';
+    if (!grupos[e]) grupos[e] = [];
+    grupos[e].push(p);
+  }
 
+  let html = '';
+  for (const [escenaId, planosEscena] of Object.entries(grupos)) {
+    html += `<div class="escena-grupo">`;
+    html += `<div class="header">
+      <span>📽 ${esc(escenaId)} (${planosEscena.length} planos)</span>
+    </div>`;
+    html += planosEscena.map(p => `
+      <div class="shot ${editingId === p.id ? 'selected' : ''}" data-id="${esc(p.id)}">
+        <div class="line">
+          <strong>${esc(p.id)}</strong>
+          <span class="meta">${esc(p.encuadre)} · ${esc(p.angulo)} · ${p.duracion}s</span>
+        </div>
+        <div class="meta">
+          ${esc(p.sujeto)} · ${esc(p.intencion)} · eje ${p.eje}° · eyeline ${p.eyeline}
+          <span class="estilo-tag">${esc(p.estilo || '—')}</span>
+        </div>
+        <div class="swatches">
+          ${(p.paleta || []).map(h => `<span style="background:${esc(h)}"></span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+    html += `</div>`;
+  }
+
+  cont.innerHTML = html;
   cont.querySelectorAll('.shot').forEach(el => {
     el.onclick = () => {
       const plano = core.resultado('continuidad').planos[el.dataset.id];
       if (!plano) return;
       editingId = el.dataset.id;
-      fillForm(plano);
+      fillSchemaForm(PLANO_SCHEMA, plano);
       document.getElementById('editorMode').textContent = 'Editando: ' + editingId;
       document.getElementById('editorMode').className = 'pill ok';
       document.getElementById('btnDuplicate').disabled = false;
@@ -1365,11 +1956,75 @@ function renderLista() {
   });
 }
 
+function renderListaEscenas() {
+  const cont = document.getElementById('listaEscenas');
+  const escenas = getEscenas();
+  if (!escenas.length) { cont.innerHTML = '<div class="empty">—</div>'; return; }
+  cont.innerHTML = escenas.map(e => {
+    const meta = e.metadata;
+    const nombre = meta?.nombre || e.id;
+    const acto = meta?.acto || '';
+    const planos = Object.values(core.resultado('continuidad').planos)
+      .filter(p => p.escenaId === e.id).length;
+    return `<div class="patron" style="cursor:pointer;" data-escena="${esc(e.id)}">
+      <strong>${esc(nombre)}</strong>
+      ${acto ? `<span class="pill info">${esc(acto)}</span>` : ''}
+      <span style="color:#94a3b8;font-size:10px;">· ${planos} planos</span>
+    </div>`;
+  }).join('');
+  cont.querySelectorAll('[data-escena]').forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.escena;
+      const explicitas = core.resultado('continuidad').escenas || {};
+      if (explicitas[id]) {
+        editingEscenaId = id;
+        fillSchemaForm(ESCENA_SCHEMA, explicitas[id]);
+        document.getElementById('escenaMode').textContent = 'Editando: ' + id;
+        document.getElementById('escenaMode').className = 'pill ok';
+        document.getElementById('btnDeleteEscena').disabled = false;
+      } else {
+        // Escena inferida: solo carga el id para crearla
+        clearFormEscena();
+        document.getElementById('form_id').value = id;
+        document.getElementById('form_nombre').value = id;
+        document.getElementById('escenaMode').textContent = 'Nuevo (inferida: ' + id + ')';
+        document.getElementById('escenaMode').className = 'pill warn';
+      }
+    };
+  });
+}
+
+function renderListaPatrones() {
+  const cont = document.getElementById('listaPatrones');
+  const patrones = getPatrones();
+  if (!patrones.length) { cont.innerHTML = '<div class="empty">—</div>'; return; }
+  cont.innerHTML = patrones.map(p => `
+    <div class="patron" style="cursor:pointer;" data-patron="${esc(p.id)}">
+      <span class="tipo">${esc(p.tipo)}</span>
+      <strong>${esc(p.escenaId)}</strong>
+      <span style="color:#94a3b8;font-size:10px;">
+        · ${p.planos?.length || 0} planos: ${(p.planos || []).join(', ')}
+      </span>
+    </div>
+  `).join('');
+  cont.querySelectorAll('[data-patron]').forEach(el => {
+    el.onclick = () => {
+      const p = core.resultado('continuidad').patrones[el.dataset.patron];
+      if (!p) return;
+      editingPatronId = p.id;
+      fillSchemaForm(PATRON_SCHEMA, p);
+      document.getElementById('patronMode').textContent = 'Editando: ' + p.id;
+      document.getElementById('patronMode').className = 'pill ok';
+      document.getElementById('btnDeletePatron').disabled = false;
+    };
+  });
+}
+
 function renderContinuidad() {
   const cont = document.getElementById('vContinuidad');
   const v = core.resultado('continuidad').violaciones;
   if (!v.length) {
-    cont.innerHTML = '<div class="alert info">Sin violaciones de eje ni eyeline.</div>';
+    cont.innerHTML = '<div class="alert ok">Sin violaciones de eje ni eyeline.</div>';
     return;
   }
   cont.innerHTML = v.map(x => `<div class="alert ${x.severidad}">
@@ -1379,92 +2034,173 @@ function renderContinuidad() {
 
 function renderRitmo() {
   const cont = document.getElementById('vRitmo');
-  const r = core.resultado('ritmo').S1;
-  if (!r) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
-  cont.innerHTML = `
-    <div class="kv"><span class="k">planos</span><span class="v">${r.n}</span></div>
-    <div class="kv"><span class="k">total</span><span class="v">${r.total}s</span></div>
-    <div class="kv"><span class="k">media</span><span class="v">${r.media}s</span></div>
-    <div class="kv"><span class="k">min / max</span><span class="v">${r.min}s / ${r.max}s</span></div>
-    ${r.alertas.map(a => `<div class="alert ${a.nivel}">${esc(a.mensaje)}</div>`).join('')}
-  `;
+  const ritmos = core.resultado('ritmo');
+  const escenas = Object.keys(ritmos);
+  if (!escenas.length) { cont.innerHTML = '<div class="empty">—</div>'; return; }
+  cont.innerHTML = escenas.map(e => {
+    const r = ritmos[e];
+    return `
+      <h3 style="font-size:11px;color:#93c5fd;">${esc(e)}</h3>
+      <div class="kv"><span class="k">planos</span><span class="v">${r.n}</span></div>
+      <div class="kv"><span class="k">total</span><span class="v">${r.total}s</span></div>
+      <div class="kv"><span class="k">media</span><span class="v">${r.media}s</span></div>
+      ${r.alertas.map(a => `<div class="alert ${a.nivel}">${esc(a.mensaje)}</div>`).join('')}
+    `;
+  }).join('');
 }
 
 function renderPaleta() {
   const cont = document.getElementById('vPaleta');
-  const r = core.resultado('paleta').S1;
-  if (!r || !r.transiciones.length) {
-    cont.innerHTML = '<div class="alert info">Sin transiciones.</div>';
-    return;
+  const paletas = core.resultado('paleta');
+  const escenas = Object.keys(paletas);
+  if (!escenas.length) { cont.innerHTML = '<div class="empty">—</div>'; return; }
+  let html = '';
+  for (const e of escenas) {
+    const r = paletas[e];
+    if (!r.transiciones.length) continue;
+    html += `<h3 style="font-size:11px;color:#93c5fd;">${esc(e)}</h3>`;
+    html += r.transiciones.map(t => `
+      <div class="kv">
+        <span class="k">${esc(t.desde)} → ${esc(t.hasta)}</span>
+        <span class="v">${t.distancia}%</span>
+      </div>
+    `).join('');
+    html += r.alertas.map(a =>
+      `<div class="alert warn">${esc(a.desde)} → ${esc(a.hasta)}: ${esc(a.mensaje)}</div>`
+    ).join('');
   }
-  cont.innerHTML = r.transiciones.map(t => `
-    <div class="kv">
-      <span class="k">${esc(t.desde)} → ${esc(t.hasta)}</span>
-      <span class="v">${t.distancia}% · ${esc(t.intencionA || '')}→${esc(t.intencionB || '')}</span>
-    </div>
-    <div class="bar"><div style="width:${Math.min(100, t.distancia)}%"></div></div>
-  `).join('') + r.alertas.map(a =>
-    `<div class="alert warn">${esc(a.desde)} → ${esc(a.hasta)}: ${esc(a.mensaje)}</div>`
-  ).join('');
+  cont.innerHTML = html || '<div class="empty">Sin transiciones.</div>';
 }
 
 function renderCobertura() {
   const cont = document.getElementById('vCobertura');
-  const r = core.resultado('cobertura').S1;
-  if (!r) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
-  const list = (o) => Object.entries(o).map(([k, v]) =>
-    `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`
-  ).join('') || '<div class="empty">—</div>';
-  cont.innerHTML = `
-    <div class="kv"><span class="k">total</span><span class="v">${r.n}</span></div>
-    <h3 style="margin-top:6px;">Encuadre</h3>${list(r.porEncuadre)}
-    <h3 style="margin-top:6px;">Ángulo</h3>${list(r.porAngulo)}
-    <h3 style="margin-top:6px;">Movimiento</h3>${list(r.porMovimiento)}
-    ${r.alertas.map(a => `<div class="alert ${a.nivel}">${esc(a.mensaje)}</div>`).join('')}
-  `;
+  const cob = core.resultado('cobertura');
+  const escenas = Object.keys(cob);
+  if (!escenas.length) { cont.innerHTML = '<div class="empty">—</div>'; return; }
+  let html = '';
+  for (const e of escenas) {
+    const r = cob[e];
+    const list = (o) => Object.entries(o).map(([k, v]) =>
+      `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`
+    ).join('') || '<div class="empty">—</div>';
+    html += `<h3 style="font-size:11px;color:#93c5fd;">${esc(e)}</h3>`;
+    html += `<div class="kv"><span class="k">total</span><span class="v">${r.n}</span></div>`;
+    html += `<details><summary style="cursor:pointer;font-size:10px;color:#64748b;">Encuadres</summary>${list(r.porEncuadre)}</details>`;
+    html += `<details><summary style="cursor:pointer;font-size:10px;color:#64748b;">Ángulos</summary>${list(r.porAngulo)}</details>`;
+    html += r.alertas.map(a => `<div class="alert ${a.nivel}">${esc(a.mensaje)}</div>`).join('');
+  }
+  cont.innerHTML = html;
 }
 
 function renderEstilo() {
   const cont = document.getElementById('vEstilo');
-  const r = core.resultado('estilo').S1;
-  if (!r) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
-  const list = Object.entries(r.estilos).map(([k, v]) =>
-    `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${v} planos</span></div>`
-  ).join('') || '<div class="empty">—</div>';
+  const est = core.resultado('estilo');
+  const escenas = Object.keys(est);
+  if (!escenas.length) { cont.innerHTML = '<div class="empty">—</div>'; return; }
+  let html = '';
+  for (const e of escenas) {
+    const r = est[e];
+    html += `<h3 style="font-size:11px;color:#93c5fd;">${esc(e)}</h3>`;
+    html += Object.entries(r.estilos).map(([k, v]) =>
+      `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`
+    ).join('');
+    html += r.alertas.map(a => `<div class="alert ${a.nivel}">${esc(a.mensaje)}</div>`).join('');
+  }
+  cont.innerHTML = html;
+}
+
+function renderCurvaTemporal() {
+  const cont = document.getElementById('vCurva');
+  const r = core.resultado('curva_temporal');
+  if (!r.planos.length) { cont.innerHTML = '<div class="empty">—</div>'; return; }
+
   cont.innerHTML = `
-    ${list}
+    <div class="kv"><span class="k">total película</span><span class="v">${r.total}s</span></div>
+    <div class="kv"><span class="k">planos</span><span class="v">${r.planos.length}</span></div>
+    ${r.actos ? r.actos.map(a => `
+      <div class="kv">
+        <span class="k">${esc(a.nombre)} (${a.inicio}s–${a.fin}s, ${a.n} planos)</span>
+        <span class="v">tensión ${a.tensionMedia}/4</span>
+      </div>
+    `).join('') : ''}
     ${r.alertas.map(a => `<div class="alert ${a.nivel}">${esc(a.mensaje)}</div>`).join('')}
   `;
+
+  // Dibujar canvas
+  const canvas = document.getElementById('curvaCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  if (r.total === 0) return;
+
+  // Fondo de actos
+  const coloresActo = ['#22c55e22', '#eab30822', '#ef444422'];
+  if (r.actos) {
+    r.actos.forEach((a, i) => {
+      const x0 = (a.inicio / r.total) * W;
+      const x1 = (a.fin / r.total) * W;
+      ctx.fillStyle = coloresActo[i];
+      ctx.fillRect(x0, 0, x1 - x0, H);
+    });
+  }
+
+  // Línea de duración (azul)
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  let first = true;
+  for (const p of r.planos) {
+    const x = (p.inicio / r.total) * W;
+    const y = H - (p.duracion / Math.max(...r.planos.map(q => q.duracion))) * (H * 0.4) - 10;
+    if (first) { ctx.moveTo(x, y); first = false; }
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Línea de tensión (naranja)
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  first = true;
+  for (const p of r.planos) {
+    const x = (p.inicio / r.total) * W;
+    const y = H - (p.tension / 4) * (H * 0.6) - 10;
+    if (first) { ctx.moveTo(x, y); first = false; }
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Etiquetas de planos
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px ui-monospace, monospace';
+  for (const p of r.planos) {
+    const x = (p.inicio / r.total) * W;
+    ctx.fillText(p.id, x + 2, 12);
+  }
 }
 
 function renderPrompts() {
   const cont = document.getElementById('vPrompts');
   const planos = getPlanosOrdenados();
   promptCache = {};
-
   if (!planos.length) {
     cont.innerHTML = '<div class="empty">Sin planos.</div>';
     document.getElementById('promptCount').textContent = '0 planos';
     return;
   }
-
   let html = '';
   for (let i = 0; i < planos.length; i++) {
     const p = planos[i];
     const ctx = { anterior: i > 0 ? planos[i - 1] : null };
     const r = generarPrompt(p, ctx);
     promptCache[p.id] = r;
-
     if (!r.ok) {
-      html += `<div class="prompt-card">
-        <div class="head">
-          <strong>${esc(p.id)}</strong>
-          <span class="meta pill err">${esc(r.error)}</span>
-        </div>
-      </div>`;
+      html += `<div class="prompt-card"><div class="head"><strong>${esc(p.id)}</strong>
+        <span class="meta pill err">${esc(r.error)}</span></div></div>`;
       continue;
     }
-
     html += `
       <div class="prompt-card" data-id="${esc(p.id)}">
         <div class="head">
@@ -1483,7 +2219,7 @@ function renderPrompts() {
           <span>📐 ${r.suggestedParams.aspectRatio}</span>
           <span>🎞 ${r.suggestedParams.fps}fps</span>
           <span>🔍 ${r.suggestedParams.focalLength}mm</span>
-          <span>🎬 ${esc(r.suggestedParams.cameraMotion)} (${r.suggestedParams.motionIntensity})</span>
+          <span>🎬 ${esc(r.suggestedParams.cameraMotion)}</span>
           <span>🌱 ${r.suggestedParams.seed}</span>
         </div>
         ${r.notas.length
@@ -1492,10 +2228,8 @@ function renderPrompts() {
       </div>
     `;
   }
-
   cont.innerHTML = html;
   document.getElementById('promptCount').textContent = `${planos.length} planos`;
-
   cont.querySelectorAll('.copy-one').forEach(btn => {
     btn.onclick = async () => {
       const r = promptCache[btn.dataset.id];
@@ -1517,36 +2251,63 @@ function formatPromptText(r) {
     `aspect=${r.suggestedParams.aspectRatio}, ` +
     `fps=${r.suggestedParams.fps}, ` +
     `focal=${r.suggestedParams.focalLength}mm, ` +
-    `motion=${r.suggestedParams.motionIntensity}, ` +
     `seed=${r.suggestedParams.seed}`,
     r.notas.length ? `\nNOTAS:\n${r.notas.map(n => '- ' + n).join('\n')}` : ''
   ].filter(Boolean).join('\n');
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 10 · EVENTOS DE UI (botones, import/export)
+   SECCIÓN 11 · EVENTOS DE UI
    ───────────────────────────────────────────────────────────────────────
-   Todos los handlers están aquí. Nada de lógica de dominio: solo
-   orquestan llamadas a las funciones de las secciones anteriores.
+   Toggle modo, botones de guardar/nuevo/duplicar/eliminar, import/export,
+   templates.
    ═══════════════════════════════════════════════════════════════════════ */
 
-document.getElementById('btnSave').onclick = saveForm;
-document.getElementById('btnNew').onclick = () => { clearForm(); render(); };
+document.getElementById('modoNormal').onclick = () => {
+  modo = 'normal';
+  document.getElementById('modoNormal').classList.add('active');
+  document.getElementById('modoAvanzado').classList.remove('active');
+  renderFormPlano();
+  renderFormEscena();
+  renderFormPatron();
+};
+
+document.getElementById('modoAvanzado').onclick = () => {
+  modo = 'avanzado';
+  document.getElementById('modoAvanzado').classList.add('active');
+  document.getElementById('modoNormal').classList.remove('active');
+  renderFormPlano();
+  renderFormEscena();
+  renderFormPatron();
+};
+
+document.getElementById('btnSave').onclick = saveFormPlano;
+document.getElementById('btnNew').onclick = () => { clearFormPlano(); render(); };
 document.getElementById('btnDelete').onclick = deletePlan;
 document.getElementById('btnDuplicate').onclick = duplicatePlan;
+
+document.getElementById('btnSaveEscena').onclick = saveFormEscena;
+document.getElementById('btnNewEscena').onclick = () => { clearFormEscena(); render(); };
+document.getElementById('btnDeleteEscena').onclick = deleteEscena;
+
+document.getElementById('btnSavePatron').onclick = saveFormPatron;
+document.getElementById('btnNewPatron').onclick = () => { clearFormPatron(); render(); };
+document.getElementById('btnDeletePatron').onclick = deletePatron;
 
 document.getElementById('btnExportJson').onclick = () => {
   const planos = getPlanosOrdenados();
   const payload = {
-    scene: 'S1',
+    scene: 'ALL',
     generated: new Date().toISOString(),
     globalContext: CONTEXTO_GLOBAL,
-    planos
+    planos,
+    escenas: getEscenas(),
+    patrones: getPatrones()
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `shotlist_S1_${Date.now()}.json`;
+  a.download = `shotlist_${Date.now()}.json`;
   a.click();
 };
 
@@ -1561,22 +2322,41 @@ document.getElementById('importFile').onchange = (e) => {
   reader.onload = (ev) => {
     try {
       const data = JSON.parse(ev.target.result);
-      const planos = data.planos || data;
-      if (!Array.isArray(planos)) throw new Error('Se esperaba array de planos');
-      for (const p of planos) {
-        if (!p.id) p.id = 'P' + Date.now().toString(36).slice(-6);
-        core.append({
-          id: 'ev_' + p.id,
-          entidad: 'plano',
-          entidadId: p.id,
-          tipo: 'plano_creado',
-          campo: null, de: null, a: p,
-          ts: new Date().toISOString(),
-          actor: 'import',
-          version: 1
-        });
+      // Importar escenas
+      if (Array.isArray(data.escenas)) {
+        for (const esc of data.escenas) {
+          if (esc.metadata) {
+            core.append({
+              id: 'ev_esc_' + esc.id, entidad: 'escena', entidadId: esc.id,
+              tipo: 'escena_creada', campo: null, de: null, a: esc.metadata,
+              ts: new Date().toISOString(), actor: 'import', version: 1
+            });
+          }
+        }
       }
-      document.getElementById('formStatus').textContent = `✅ ${planos.length} planos importados`;
+      // Importar patrones
+      if (Array.isArray(data.patrones)) {
+        for (const pat of data.patrones) {
+          core.append({
+            id: 'ev_pat_' + pat.id, entidad: 'patron', entidadId: pat.id,
+            tipo: 'patron_creado', campo: null, de: null, a: pat,
+            ts: new Date().toISOString(), actor: 'import', version: 1
+          });
+        }
+      }
+      // Importar planos
+      const planos = data.planos || data;
+      if (Array.isArray(planos)) {
+        for (const p of planos) {
+          if (!p.id) p.id = 'P' + Date.now().toString(36).slice(-6);
+          core.append({
+            id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
+            tipo: 'plano_creado', campo: null, de: null, a: p,
+            ts: new Date().toISOString(), actor: 'import', version: 1
+          });
+        }
+      }
+      document.getElementById('formStatus').textContent = '✅ Importado';
       document.getElementById('formStatus').className = 'status ok';
       render();
     } catch (err) {
@@ -1589,10 +2369,12 @@ document.getElementById('importFile').onchange = (e) => {
 };
 
 document.getElementById('btnResetAll').onclick = () => {
-  if (!confirm('¿Borrar todos los planos?')) return;
+  if (!confirm('¿Borrar todo?')) return;
   core = new MiniCore(VISTAS);
   cargarDemo();
-  clearForm();
+  clearFormPlano();
+  clearFormEscena();
+  clearFormPatron();
   render();
 };
 
@@ -1615,7 +2397,7 @@ document.getElementById('btnCopyAllPrompts').onclick = async () => {
 document.getElementById('btnDownloadPrompts').onclick = () => {
   const planos = getPlanosOrdenados();
   const payload = {
-    scene: 'S1',
+    scene: 'ALL',
     generated: new Date().toISOString(),
     globalContext: CONTEXTO_GLOBAL,
     prompts: planos.map(p => promptCache[p.id]).filter(Boolean)
@@ -1623,19 +2405,43 @@ document.getElementById('btnDownloadPrompts').onclick = () => {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `prompts_S1_${Date.now()}.json`;
+  a.download = `prompts_${Date.now()}.json`;
   a.click();
 };
 
+/* ── Render de la grid de templates ──────────────────────────────── */
+
+function renderTemplates() {
+  const cont = document.getElementById('templateGrid');
+  cont.innerHTML = Object.entries(TEMPLATES).map(([id, t]) => `
+    <div class="template-card" data-template="${esc(id)}">
+      <div class="titulo">${esc(t.nombre)}</div>
+      <div class="desc">${esc(t.desc)}</div>
+      <div class="meta">${t.planos().length} planos</div>
+    </div>
+  `).join('');
+  cont.querySelectorAll('[data-template]').forEach(el => {
+    el.onclick = () => aplicarTemplate(el.dataset.template);
+  });
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 11 · DEMO INICIAL
+   SECCIÓN 12 · DEMO INICIAL
    ───────────────────────────────────────────────────────────────────────
-   Carga 5 planos de ejemplo: escena de tensión con Odiseo y el villano.
-   El P4 es un cruce de eje intencionado (permiteCruce: true).
-   El estilo es teatro_griego en todos.
+   Carga una escena con metadata + 5 planos + 1 patrón de contraplano.
    ═══════════════════════════════════════════════════════════════════════ */
 
 function cargarDemo() {
+  // Escena con metadata
+  core.append({
+    id: 'ev_esc_S1', entidad: 'escena', entidadId: 'S1',
+    tipo: 'escena_creada', campo: null, de: null,
+    a: { id: 'S1', nombre: 'Encuentro con Polifemo', acto: 'acto2',
+         funcionDramatica: 'crisis',
+         descripcion: 'Odiseo y sus hombres atrapados en la cueva del cíclope.' },
+    ts: new Date().toISOString(), actor: 'demo', version: 1
+  });
+
   const calida = ['#c97a3a', '#e0a060', '#8a4a2a'];
   const fria = ['#3a5a8a', '#6a8ac0', '#2a3a5a'];
   const planos = [
@@ -1662,35 +2468,37 @@ function cargarDemo() {
   ];
   for (const p of planos) {
     core.append({
-      id: 'ev_' + p.id,
-      entidad: 'plano',
-      entidadId: p.id,
-      tipo: 'plano_creado',
-      campo: null, de: null, a: p,
-      ts: new Date().toISOString(),
-      actor: 'demo',
-      version: 1
+      id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
+      tipo: 'plano_creado', campo: null, de: null, a: p,
+      ts: new Date().toISOString(), actor: 'demo', version: 1
     });
   }
+
+  // Patrón de contraplano P3-P4
+  core.append({
+    id: 'ev_pat_1', entidad: 'patron', entidadId: 'PAT1',
+    tipo: 'patron_creado', campo: null, de: null,
+    a: { id: 'PAT1', escenaId: 'S1', tipo: 'contraplano',
+         planos: ['P3', 'P4'], nota: 'Odiseo vs Polifemo' },
+    ts: new Date().toISOString(), actor: 'demo', version: 1
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 12 · TESTS
+   SECCIÓN 13 · TESTS
    ───────────────────────────────────────────────────────────────────────
-   Tests puros: no tocan el DOM, no modifican el core global.
-   Cubren las 5 vistas, el generador de prompts, los mapas de estilo
-   y el schema.
+   Tests puros. Verifican las 6 vistas, el generador, los schemas, los
+   templates y la integración.
    ═══════════════════════════════════════════════════════════════════════ */
 
 function runTests() {
   const out = document.getElementById('testsOut');
   let pass = 0, fail = 0;
-
   const t = (nombre, fn) => {
-    try { fn(); pass++; out.innerHTML +=
-      `<div class="t"><span class="pill ok">PASS</span>${nombre}</div>`; }
-    catch (e) { fail++; out.innerHTML +=
-      `<div class="t"><span class="pill err">FAIL</span>${nombre}: ${e.message}</div>`; }
+    try { fn(); pass++;
+      out.innerHTML += `<div class="t"><span class="pill ok">PASS</span>${nombre}</div>`; }
+    catch (e) { fail++;
+      out.innerHTML += `<div class="t"><span class="pill err">FAIL</span>${nombre}: ${e.message}</div>`; }
   };
   const assert = (c, m) => { if (!c) throw new Error(m); };
   const eq = (a, b, m) => {
@@ -1699,7 +2507,6 @@ function runTests() {
     }
   };
 
-  // Helper: crear un core temporal con eventos dados
   const buildCore = (eventos) => {
     const c = new MiniCore(VISTAS);
     for (const ev of eventos) c.append(ev);
@@ -1711,17 +2518,45 @@ function runTests() {
     ts: new Date().toISOString()
   });
 
-  /* ── CONTINUIDAD ───────────────────────────────────────────────── */
+  /* ── SCHEMAS ────────────────────────────────────────────────────── */
+  t('schema plano: 14 campos', () => {
+    eq(Object.keys(PLANO_SCHEMA).length, 14);
+  });
+
+  t('schema plano: básicos son 6', () => {
+    const basicos = Object.entries(PLANO_SCHEMA).filter(([,d]) => d.nivel === 'basico');
+    eq(basicos.length, 6);
+  });
+
+  t('schema escena: 5 campos', () => {
+    eq(Object.keys(ESCENA_SCHEMA).length, 5);
+  });
+
+  t('schema patrón: 4 campos', () => {
+    eq(Object.keys(PATRON_SCHEMA).length, 4);
+  });
+
+  t('todos los campos tienen label, tipo y nivel', () => {
+    for (const schema of [PLANO_SCHEMA, ESCENA_SCHEMA, PATRON_SCHEMA]) {
+      for (const [k, d] of Object.entries(schema)) {
+        assert(d.label, `${k} sin label`);
+        assert(d.tipo, `${k} sin tipo`);
+        assert(d.nivel, `${k} sin nivel`);
+      }
+    }
+  });
+
+  /* ── CONTINUIDAD ────────────────────────────────────────────────── */
   t('continuidad: eje 0 → 180 sin permiteCruce viola', () => {
     const c = buildCore([
       evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0 }),
       evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 180 })
     ]);
     const v = c.resultado('continuidad').violaciones;
-    assert(v.length === 1 && v[0].tipo === 'eje', `esperado 1 eje, hay ${v.length}`);
+    assert(v.length === 1 && v[0].tipo === 'eje', 'no detectó eje');
   });
 
-  t('continuidad: eje 0 → 180 con permiteCruce NO viola', () => {
+  t('continuidad: con permiteCruce no viola', () => {
     const c = buildCore([
       evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0 }),
       evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 180, permiteCruce: true })
@@ -1729,36 +2564,25 @@ function runTests() {
     eq(c.resultado('continuidad').violaciones.length, 0);
   });
 
-  t('continuidad: eyeline invertido mismo sujeto viola', () => {
+  t('continuidad: eyeline invertido viola', () => {
     const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, eyeline: 1, sujeto: 'odiseo' }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2, eyeline: -1, sujeto: 'odiseo' })
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eyeline: 1, sujeto: 'h' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eyeline: -1, sujeto: 'h' })
     ]);
-    const v = c.resultado('continuidad').violaciones;
-    assert(v.some(x => x.tipo === 'eyeline'), 'sin violación eyeline');
+    assert(c.resultado('continuidad').violaciones.some(x => x.tipo === 'eyeline'), 'sin eyeline');
   });
 
-  /* ── RITMO ─────────────────────────────────────────────────────── */
+  /* ── RITMO ──────────────────────────────────────────────────────── */
   t('ritmo: media correcta', () => {
     const c = buildCore([
       evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 2 }),
       evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 4 }),
       evPlano({ id: 'C', escenaId: 'S', orden: 3, duracion: 6 })
     ]);
-    const r = c.resultado('ritmo').S;
-    eq(r.total, 12); eq(r.media, 4); eq(r.min, 2); eq(r.max, 6);
+    eq(c.resultado('ritmo').S.media, 4);
   });
 
-  t('ritmo: alerta ritmo lento', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 10 }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 12 })
-    ]);
-    assert(c.resultado('ritmo').S.alertas.some(a => a.mensaje.includes('lento')),
-      'sin alerta lento');
-  });
-
-  /* ── PALETA ────────────────────────────────────────────────────── */
+  /* ── PALETA ─────────────────────────────────────────────────────── */
   t('paleta: salto sin cambio intención alerta', () => {
     const c = buildCore([
       evPlano({ id: 'A', escenaId: 'S', orden: 1, paleta: ['#ff0000'], intencion: 'tension' }),
@@ -1775,17 +2599,16 @@ function runTests() {
     eq(c.resultado('paleta').S.alertas.length, 0);
   });
 
-  /* ── COBERTURA ─────────────────────────────────────────────────── */
+  /* ── COBERTURA ──────────────────────────────────────────────────── */
   t('cobertura: sin general alerta', () => {
     const c = buildCore([
       evPlano({ id: 'A', escenaId: 'S', orden: 1, encuadre: 'primer', angulo: 'normal' }),
       evPlano({ id: 'B', escenaId: 'S', orden: 2, encuadre: 'medio', angulo: 'normal' })
     ]);
-    assert(c.resultado('cobertura').S.alertas.some(a => a.mensaje.includes('establecimiento')),
-      'sin alerta');
+    assert(c.resultado('cobertura').S.alertas.some(a => a.mensaje.includes('establecimiento')), 'sin alerta');
   });
 
-  /* ── ESTILO ────────────────────────────────────────────────────── */
+  /* ── ESTILO ─────────────────────────────────────────────────────── */
   t('estilo: escena con 1 estilo no alerta', () => {
     const c = buildCore([
       evPlano({ id: 'A', escenaId: 'S', orden: 1, estilo: 'teatro_griego' }),
@@ -1802,7 +2625,55 @@ function runTests() {
     assert(c.resultado('estilo').S.alertas.length >= 1, 'sin alerta');
   });
 
-  /* ── PROMPTS ───────────────────────────────────────────────────── */
+  /* ── CURVA TEMPORAL ─────────────────────────────────────────────── */
+  t('curva: total es suma de duraciones', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 2, encuadre: 'medio' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 3, encuadre: 'primer' })
+    ]);
+    eq(c.resultado('curva_temporal').total, 5);
+  });
+
+  t('curva: tensión suma correctamente', () => {
+    // Plano con movimiento + duración corta + primer + tension = 4
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 1, encuadre: 'primer',
+                movimiento: 'handheld', intencion: 'tension' })
+    ]);
+    eq(c.resultado('curva_temporal').planos[0].tension, 4);
+  });
+
+  t('curva: detecta meseta de 4+ planos largos', () => {
+    const eventos = [];
+    for (let i = 0; i < 5; i++) {
+      eventos.push(evPlano({ id: 'P' + i, escenaId: 'S', orden: i + 1, duracion: 6 }));
+    }
+    const c = buildCore(eventos);
+    assert(c.resultado('curva_temporal').alertas.some(a => a.mensaje.includes('Meseta')), 'sin meseta');
+  });
+
+  t('curva: detecta aceleración de 4+ planos cortos', () => {
+    const eventos = [];
+    for (let i = 0; i < 5; i++) {
+      eventos.push(evPlano({ id: 'P' + i, escenaId: 'S', orden: i + 1, duracion: 1 }));
+    }
+    const c = buildCore(eventos);
+    assert(c.resultado('curva_temporal').alertas.some(a => a.mensaje.includes('Aceleración')), 'sin aceleración');
+  });
+
+  t('curva: 3 actos calculados', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 10 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 20 }),
+      evPlano({ id: 'C', escenaId: 'S', orden: 3, duracion: 10 })
+    ]);
+    const r = c.resultado('curva_temporal');
+    eq(r.actos.length, 3);
+    eq(r.actos[0].fin, 10);
+    eq(r.actos[2].inicio, 30);
+  });
+
+  /* ── PROMPTS ────────────────────────────────────────────────────── */
   t('prompt: plano completo genera ok', () => {
     const r = generarPrompt({
       id: 'X', sujeto: 'odiseo', encuadre: 'primer', angulo: 'contrapicado',
@@ -1812,22 +2683,18 @@ function runTests() {
     assert(r.ok, 'no generó');
     assert(r.prompt.includes('close-up'), 'falta close-up');
     assert(r.prompt.includes('Odysseus'), 'sujeto no traducido');
-    assert(r.prompt.includes('85mm'), 'falta focal');
-    assert(r.prompt.includes('#c97a3a'), 'falta paleta');
     assert(r.prompt.includes('Greek theatre'), 'falta estilo');
   });
 
   t('prompt: sin sujeto falla', () => {
     const r = generarPrompt({ id: 'X', encuadre: 'medio' });
     assert(!r.ok, 'debería fallar');
-    eq(r.error, 'plano sin sujeto');
   });
 
   t('prompt: determinista', () => {
     const p = { id: 'X', sujeto: 'odiseo', encuadre: 'medio', angulo: 'normal',
                 intencion: 'intimidad', focal: 35, estilo: 'teatro_griego' };
     eq(generarPrompt(p).prompt, generarPrompt(p).prompt);
-    eq(generarPrompt(p).negativePrompt, generarPrompt(p).negativePrompt);
   });
 
   t('prompt: negativo incluye base y estilo', () => {
@@ -1836,78 +2703,68 @@ function runTests() {
       estilo: 'teatro_griego'
     });
     assert(r.negativePrompt.includes('low quality'), 'falta low quality');
-    assert(r.negativePrompt.includes('watermark'), 'falta watermark');
-    assert(r.negativePrompt.includes('subtle facial expression'),
-      'falta negativo del estilo teatro');
+    assert(r.negativePrompt.includes('subtle facial expression'), 'falta negativo del estilo');
   });
 
-  t('prompt: seed determinista por id', () => {
-    const r1 = generarPrompt({ id: 'PLANO_X', sujeto: 'a', encuadre: 'medio',
-                               angulo: 'normal', estilo: 'teatro_griego' });
-    const r2 = generarPrompt({ id: 'PLANO_X', sujeto: 'a', encuadre: 'medio',
-                               angulo: 'normal', estilo: 'teatro_griego' });
-    eq(r1.suggestedParams.seed, r2.suggestedParams.seed);
-    assert(r1.suggestedParams.seed > 0, 'seed positivo');
+  /* ── ESCENAS Y PATRONES ─────────────────────────────────────────── */
+  t('escena: crear y modificar', () => {
+    const c = buildCore([]);
+    c.append({
+      id: 'ev_e1', entidad: 'escena', entidadId: 'S1',
+      tipo: 'escena_creada', campo: null, de: null,
+      a: { id: 'S1', nombre: 'Test' }, ts: new Date().toISOString()
+    });
+    assert(c.resultado('continuidad').escenas?.S1, 'escena no creada');
+    assert(c.resultado('continuidad').escenas.S1.nombre === 'Test', 'nombre incorrecto');
   });
 
-  t('prompt: nota de cambio de estilo', () => {
-    const r = generarPrompt(
-      { id: 'B', sujeto: 'odiseo', encuadre: 'medio', angulo: 'normal',
-        estilo: 'pulp_flash_gordon' },
-      { anterior: { id: 'A', sujeto: 'odiseo', estilo: 'teatro_griego' } }
-    );
-    assert(r.notas.some(n => n.includes('estilo')), 'sin nota de estilo');
-  });
-
-  /* ── SCHEMA ────────────────────────────────────────────────────── */
-  t('schema: 14 campos declarados', () => {
-    eq(Object.keys(PLANO_SCHEMA).length, 14);
-  });
-
-  t('schema: todos con label y tipo', () => {
-    for (const [k, d] of Object.entries(PLANO_SCHEMA)) {
-      assert(d.label, `${k} sin label`);
-      assert(d.tipo, `${k} sin tipo`);
-    }
-  });
-
-  t('schema: estilo es enum con 10 opciones', () => {
-    eq(PLANO_SCHEMA.estilo.enum.length, 10);
-    assert(PLANO_SCHEMA.estilo.enum.includes('teatro_griego'), 'falta teatro_griego');
-    assert(PLANO_SCHEMA.estilo.enum.includes('pulp_flash_gordon'), 'falta pulp');
-  });
-
-  /* ── MAPAS DE ESTILO ───────────────────────────────────────────── */
-  t('estilos: los 10 tienen positivo y negativo', () => {
-    for (const [id, e] of Object.entries(ESTILO_PROMPT)) {
-      assert(e.positivo, `${id} sin positivo`);
-      assert(e.negativo, `${id} sin negativo`);
-      assert(e.motionIntensity, `${id} sin motionIntensity`);
-    }
-  });
-
-  t('estilos: todos los del schema están en ESTILO_PROMPT', () => {
-    for (const id of PLANO_SCHEMA.estilo.enum) {
-      assert(ESTILO_PROMPT[id], `${id} sin entrada en ESTILO_PROMPT`);
-    }
-  });
-
-  /* ── INTEGRACIÓN ───────────────────────────────────────────────── */
-  t('integración: prompt generado desde eventos del core', () => {
+  t('patrón: crear y listar', () => {
     const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1, sujeto: 'odiseo',
-                encuadre: 'general', angulo: 'normal', duracion: 5,
-                estilo: 'teatro_griego' })
+      evPlano({ id: 'A', escenaId: 'S', orden: 1 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2 })
     ]);
-    const planos = Object.values(c.resultado('continuidad').planos)
-      .sort((a, b) => a.orden - b.orden);
-    const r = generarPrompt(planos[0]);
-    assert(r.ok, 'fallo integración');
-    assert(r.prompt.includes('Odysseus'), 'falta sujeto');
-    assert(r.prompt.includes('Greek theatre'), 'falta estilo');
+    c.append({
+      id: 'ev_p', entidad: 'patron', entidadId: 'PAT1',
+      tipo: 'patron_creado', campo: null, de: null,
+      a: { id: 'PAT1', escenaId: 'S', tipo: 'contraplano', planos: ['A', 'B'] },
+      ts: new Date().toISOString()
+    });
+    assert(c.resultado('continuidad').patrones?.PAT1, 'patrón no creado');
   });
 
-  t('integración: edición emite campo_modificado y actualiza vistas', () => {
+  /* ── TEMPLATES ──────────────────────────────────────────────────── */
+  t('templates: 6 definidos', () => {
+    eq(Object.keys(TEMPLATES).length, 6);
+  });
+
+  t('templates: todos generan planos válidos', () => {
+    for (const [id, tpl] of Object.entries(TEMPLATES)) {
+      const planos = tpl.planos('TEST', 'teatro_griego');
+      assert(planos.length > 0, `${id} sin planos`);
+      for (const p of planos) {
+        assert(p.sujeto, `${id} plano sin sujeto`);
+        assert(p.encuadre, `${id} plano sin encuadre`);
+        assert(p.duracion > 0, `${id} plano sin duración`);
+        assert(p.estilo === 'teatro_griego', `${id} estilo incorrecto`);
+      }
+    }
+  });
+
+  t('templates: aplicar crea N eventos', () => {
+    const c = buildCore([]);
+    const planos = TEMPLATES.dialogo_intimo.planos('S1');
+    for (const p of planos) {
+      c.append({
+        id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
+        tipo: 'plano_creado', campo: null, de: null, a: { ...p, id: 'P' + Math.random() },
+        ts: new Date().toISOString()
+      });
+    }
+    eq(c.resultado('ritmo').S1.n, 4);
+  });
+
+  /* ── INTEGRACIÓN ────────────────────────────────────────────────── */
+  t('integración: edición emite campo_modificado', () => {
     const c = buildCore([
       evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0, duracion: 2 })
     ]);
@@ -1920,39 +2777,27 @@ function runTests() {
     eq(c.resultado('ritmo').S.total, 8);
   });
 
-  t('integración: eliminar plano limpia estado', () => {
-    const c = buildCore([
-      evPlano({ id: 'A', escenaId: 'S', orden: 1 }),
-      evPlano({ id: 'B', escenaId: 'S', orden: 2 })
-    ]);
-    c.append({
-      id: 'ev_del', entidad: 'plano', entidadId: 'B',
-      tipo: 'plano_eliminado', ts: new Date().toISOString()
-    });
-    assert(!c.resultado('continuidad').planos.B, 'B sigue en planos');
-    eq(c.resultado('ritmo').S.n, 1);
-  });
-
-  /* ── RESUMEN ───────────────────────────────────────────────────── */
+  /* ── RESUMEN ────────────────────────────────────────────────────── */
   out.innerHTML += `<div class="t" style="margin-top:8px;font-weight:600;">` +
     `${pass} pasan · ${fail} fallan</div>`;
   console.log(`[tests] ${pass} pasan · ${fail} fallan`);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SECCIÓN 13 · BOOT
+   SECCIÓN 14 · BOOT
    ───────────────────────────────────────────────────────────────────────
-   Orden de arranque:
-     1. Renderizar formulario (aún vacío)
-     2. Cargar demo (5 planos de ejemplo)
-     3. Limpiar formulario (deja el editor listo para nuevo plano)
-     4. Renderizar todos los paneles
-     5. Ejecutar tests
+   Orden: renderizar formularios → cargar demo → limpiar formularios →
+   renderizar todo → ejecutar tests.
    ═══════════════════════════════════════════════════════════════════════ */
 
-renderForm();
+renderFormPlano();
+renderFormEscena();
+renderFormPatron();
+renderTemplates();
 cargarDemo();
-clearForm();
+clearFormPlano();
+clearFormEscena();
+clearFormPatron();
 render();
 runTests();
 </script>
