@@ -1,0 +1,691 @@
+════════════════════════════════════════════════════════════════════════════════
+MONITOR PC · MVP
+Documentación técnica · v1.0.1
+════════════════════════════════════════════════════════════════════════════════
+
+Este documento explica:
+  1. Qué es y qué NO es
+  2. Qué hace (operativa)
+  3. Cómo lo hace (arquitectura y flujo)
+  4. El rule set JSON en detalle (campo por campo)
+  5. Cómo conectarlo a un PC real
+  6. Límites y advertencias
+
+Archivo único: monitor.html
+Licencia: úsalo como quieras, no garantiza nada.
+
+
+════════════════════════════════════════════════════════════════════════════════
+1. QUÉ ES Y QUÉ NO ES
+════════════════════════════════════════════════════════════════════════════════
+
+QUÉ ES
+──────
+Un monitor de sistema con doble seguridad. Lee métricas de una máquina (CPU,
+RAM, disco, procesos), las valida por dos caminos independientes, las compara
+contra umbrales declarados en JSON, y emite un estado global de 4 niveles
+(verde, ámbar, naranja, rojo).
+
+Está inspirado en sistemas LZB (control ferroviario) y SIS (Safety Instrumented
+Systems). La idea de fondo es la misma: dos sensores deben coincidir para
+confiar en el dato, y el sensor debe estar vivo para confiar en el silencio.
+
+QUÉ NO ES
+─────────
+- NO mide personas. No es cuantificación personal, no es un diario, no es
+  introspección. Mide un ordenador.
+- NO es un modelo validado. Los umbrales por defecto son de ejemplo, no están
+  calibrados contra ningún sistema real. Hay que ajustarlos.
+- NO predice fallos. Detecta estados fuera de rango, no anticipa problemas.
+- NO es un antivirus, ni un firewall, ni un IDS. Solo mira métricas numéricas.
+- NO garantiza que el sistema esté sano. Garantiza que los sensores están de
+  acuerdo y frescos. La salud real del sistema es otra cosa.
+
+TRES FRASES QUE EL PROPIO MONITOR MUESTRA EN CABECERA
+──────────────────────────────────────────────────────
+  1. "Esto mide un ordenador, no a ti."
+  2. "Coincidencia interna ≠ verdad. Dos sensores de acuerdo no garantizan
+      salud. Garantizan que dos sensores están de acuerdo."
+  3. "El silencio = 'sano' solo si el sensor está vivo. Si el sensor muere,
+      silencio = 'no sé'."
+
+Estas frases no son decoración. Son la postura epistemológica del sistema.
+Sin ellas, el monitor miente por omisión.
+
+
+════════════════════════════════════════════════════════════════════════════════
+2. QUÉ HACE (operativa)
+════════════════════════════════════════════════════════════════════════════════
+
+CICLO
+─────
+Cada N milisegundos (configurable, por defecto 2000ms):
+
+  1. Pide datos a la fuente (ping).
+  2. Valida cada indicador con dos validadores independientes.
+  3. Actualiza el historial (ventana deslizante para condiciones sostenidas).
+  4. Evalúa las reglas contra el estado de los indicadores.
+  5. Evalúa las meta-reglas (coherencia A/B, frescura del sensor).
+  6. Calcula el estado global = máximo de severidades.
+  7. Emite eventos y actualiza la UI.
+
+CUATRO ESTADOS
+──────────────
+  VERDE    Todo dentro de rango, fuentes coincidentes, sensores frescos.
+           Silencio. Es la experiencia normal.
+
+  ÁMBAR    Un indicador se aleja del baseline, o una regla de severidad ámbar
+           dispara. Aviso, pero no requiere acción inmediata.
+
+  NARANJA  Las fuentes A y B discrepan, o una regla naranja dispara, o un
+           valor está degradado. El sistema no puede confiar plenamente en
+           los datos que está viendo.
+
+  ROJO     Un sensor está muerto (timestamp viejo o ausente), un valor está
+           fuera de rango, o el propio sensor de frescura ha disparado.
+           El sistema no sabe qué está pasando.
+
+REGLA DE ORO DEL ESTADO GLOBAL
+───────────────────────────────
+El estado global es el MÁXIMO de severidades. Si un solo indicador está en
+rojo, el sistema entero está en rojo. No hay "promedio". No hay "mayoría".
+Un solo punto ciego convierte el silencio en sospechoso.
+
+
+════════════════════════════════════════════════════════════════════════════════
+3. CÓMO LO HACE (arquitectura y flujo)
+════════════════════════════════════════════════════════════════════════════════
+
+MÓDULOS (todos desacoplados vía EventBus)
+──────────────────────────────────────────
+  EventBus            Mediador. Nadie llama a nadie directamente.
+  Logger              Buffer de logs con niveles.
+  RuleSetSchema       Validador del JSON. Si falla, el motor no arranca.
+  GroundSource        Puerto abstracto: "algo que devuelve datos".
+  SimSource           Adapter de simulación con 5 modos.
+  ValidadorA          Chequeo cuantitativo (rango + baseline).
+  ValidadorB          Chequeo de procedencia (coherencia A/B + sensor vivo).
+  Engine              Orquestador. Ejecuta el ciclo.
+  UI                  Dashboard, log, raw, editor, meta-ping, tests.
+
+DOBLE VALIDACIÓN (dos validadores independientes por indicador)
+────────────────────────────────────────────────────────────────
+Validador A (cuantitativo):
+  - ¿Está el valor dentro de [rango_min, rango_max]?
+  - ¿Está cerca del baseline ± tolerancia?
+  No sabe nada de fuentes ni de procedencia. Solo compara números.
+
+Validador B (procedencia):
+  - ¿Llegó por las dos fuentes (A y B)?
+  - ¿Coinciden A y B dentro de epsilon?
+  - ¿El timestamp del dato es fresco (< max_edad_s)?
+  - ¿La opción resultante es 'aceptar', 'degradar' o 'rechazar'?
+  No mira el valor: mira si el valor es FIABLE.
+
+Los dos validadores deben coincidir para aceptar el dato. Si A dice "valor
+correcto" pero B dice "fuente no fiable", el dato NO se usa. Es la doble
+seguridad: no actúa si los dos canales no están de acuerdo.
+
+DOS FUENTES DE DATOS (A y B)
+─────────────────────────────
+La fuente debe exponer cada indicador POR DOS CAMINOS independientes.
+
+Ejemplo con CPU:
+  Camino A: os.loadavg() o equivalente (API de alto nivel)
+  Camino B: /proc/stat (lectura de bajo nivel)
+
+Si A y B coinciden dentro de epsilon → el dato es fiable.
+Si difieren → uno de los dos caminos está roto. La discrepancia es la señal.
+
+Esto es lo que un SIS llama "voting logic". Con dos sensores:
+  - Coincidencia protege contra falsos positivos.
+  - NO protege contra fallos silenciosos (si ambos fallan igual, coinciden
+    y mienten).
+  - El tercer chequeo (timestamp fresco) es el que detecta la ceguera.
+
+REGLA CLAVE: la frescura del sensor es OBLIGATORIA.
+─────────────────────────────────────────────────────
+Aunque A y B coincidan, si el timestamp es más viejo que max_edad_s, el dato
+se rechaza. Sin este chequeo, un sensor atascado en "todo bien" apaga el
+sistema sin avisar. El silencio se confunde con salud. Eso es lo que el
+monitor previene.
+
+CONDICIONES SOPORTADAS EN LAS REGLAS
+─────────────────────────────────────
+  simple      Compara UN indicador con un umbral. Ej: cpu > 80.
+  and         Todas las subcondiciones deben cumplirse.
+  or          Al menos una subcondición debe cumplirse.
+  sostenido   El indicador debe cumplir la condición durante N segundos
+              seguidos, mirando el historial. Ej: cpu > 80 durante 60s.
+
+La condición 'sostenido' es la que distingue "pico benigno" de "problema
+real". Un pico de 5s no dispara. 60s seguidos sí.
+
+FLUJO DE UN CICLO (paso a paso)
+────────────────────────────────
+  1. ping() de la fuente → { ok, timestamp, valores: { id: { A, B } } }
+  2. Para cada indicador:
+       a. ValidadorB.validar(valoresAB, timestamp, now, config)
+       b. ValidadorA.validar(valorEfectivo, config)
+       c. Combinar ambos resultados en un estado (verde/ámbar/naranja/rojo)
+       d. Si el dato es válido, añadirlo al historial
+  3. Para cada regla: _evaluarCondicion(condicion, estados, now)
+  4. Para cada meta-regla: buscar discrepancia A/B o sensor muerto
+  5. Estado global = max(severidades)
+  6. Emitir eventos: 'cycle:done', 'state:transition', 'alarm:fired'
+
+MODO RAW
+────────
+Todo lo que llega de la fuente se emite en 'cycle:raw' ANTES de cualquier
+validación. La pestaña Raw muestra esto. Sirve para ver lo que las reglas
+NO están mirando. Sin esto, el monitor se convierte en un filtro excluyente
+y no lo sabes.
+
+META-PING
+─────────
+Cada N ciclos (configurable), el monitor pide revisión humana del rule set.
+No es introspección: es mantenimiento de SIS. Cada alarma disparada permite
+marcar "¿fue correcta? ¿falso positivo? ¿qué pasó después?". Con eso, el
+operador puede calibrar.
+
+Si el rule set lleva más de 7 días sin revisión, el dashboard lo grita.
+El silencio (verde) sin revisión reciente NO es interpretable como "sano".
+
+
+════════════════════════════════════════════════════════════════════════════════
+4. EL RULE SET JSON · campo por campo
+════════════════════════════════════════════════════════════════════════════════
+
+El rule set es un JSON con cuatro bloques: meta, indicadores, reglas,
+meta_reglas y config. Todo lo que el motor sabe del mundo viene de aquí.
+El motor NO conoce ningún nombre de indicador. Si cambias el JSON, el motor
+se adapta sin tocar código.
+
+EJEMPLO COMPLETO MÍNIMO:
+
+{
+  "meta": {
+    "version": "1.0.1",
+    "autor": "usuario_local",
+    "creado": "2026-10-29T00:00:00Z",
+    "ultima_revision": "2026-10-29T00:00:00Z",
+    "hipotesis_global": "..."
+  },
+  "indicadores": [...],
+  "reglas": [...],
+  "meta_reglas": [...],
+  "config": { "ciclo_ms": 2000, "meta_ping_cada_ciclos": 60 }
+}
+
+
+────────────────────────────────────────────────────────────────────────────────
+4.1 BLOQUE "meta"
+────────────────────────────────────────────────────────────────────────────────
+
+Metadatos del rule set. Trazabilidad.
+
+  version             string   Versión semántica del rule set. Se muestra
+                               en el dashboard y en el log. Si cambias una
+                               regla, sube la versión.
+                               Ejemplo: "1.0.1" → "1.1.0"
+
+  autor               string   Quién escribió este rule set.
+
+  creado              string   ISO 8601. Cuándo se creó.
+                               Ej: "2026-10-29T00:00:00Z"
+
+  ultima_revision     string   ISO 8601. Cuándo se revisó por última vez.
+                               El motor calcula la edad y avisa si > 7 días.
+                               Esta fecha la actualiza el botón "Marcar
+                               rule set como revisado".
+
+  hipotesis_global    string   Frase que declara qué asume el rule set
+                               como "normal". Es la tautología operacional
+                               explicitada. Si no puedes escribirla, el rule
+                               set no está pensado todavía.
+                               Ej: "PC de desarrollo. CPU y RAM tienen
+                               picos benignos. Disco no. Ruido esperado ±5%."
+
+
+────────────────────────────────────────────────────────────────────────────────
+4.2 BLOQUE "indicadores"
+────────────────────────────────────────────────────────────────────────────────
+
+Array de indicadores. Cada indicador es una métrica que el motor mira.
+
+CAMPOS POR INDICADOR:
+
+  id              string    Identificador único. Se usa para cruzar con las
+                            reglas. Ej: "cpu_pct", "ram_pct".
+                            Debe ser único en todo el array.
+
+  label           string    Nombre legible. Ej: "CPU", "RAM".
+
+  unidad          string    Unidad de medida para mostrar. "%", "uds", "MB".
+                            Solo afecta a la presentación.
+
+  rango           [min,max] Rango válido del valor. Si el valor sale de este
+                            rango, ValidadorA lo marca como fuera_rango y el
+                            indicador pasa a estado rojo.
+                            Ej: [0, 100] para un porcentaje.
+
+  baseline        number    Valor "normal" esperado. Punto de referencia.
+                            Debe estar dentro del rango.
+                            Ej: 20 (CPU al 20% en reposo).
+
+  tolerancia      number    Margen alrededor del baseline. Si |valor -
+                            baseline| > tolerancia, ValidadorA lo marca como
+                            lejos_baseline y el indicador pasa a ámbar.
+                            Ej: 30 significa que [baseline-30, baseline+30]
+                            se considera "normal".
+
+  ventana_s       number    Tamaño de la ventana deslizante en segundos.
+                            El historial solo retiene muestras dentro de
+                            esta ventana (×2 para margen). Solo lo usan
+                            las condiciones 'sostenido'.
+
+  max_edad_s      number    Segundos máximos que un dato puede tener antes
+                            de considerarse "sensor muerto". Si el timestamp
+                            del dato tiene más edad, ValidadorB rechaza.
+                            CRÍTICO: sin este campo, el monitor no detecta
+                            sensores atascados.
+                            Ej: 30 (dato debe tener menos de 30s de antigüedad).
+
+  fuentes         array     Qué caminos de lectura se esperan. Ej: ["A","B"].
+                            Si tiene A y B, ValidadorB exige que coincidan.
+                            Si solo tiene A, acepta sin comparar.
+
+  epsilon_ab      number    Tolerancia para la comparación A vs B. Si
+                            |A - B| > epsilon_ab, se considera discrepancia
+                            y el indicador pasa a naranja (valor_degradado).
+                            Ej: 5 (acepta diferencias menores a 5 unidades
+                            entre camino A y camino B).
+
+EJEMPLO DE UN INDICADOR COMPLETO:
+
+  {
+    "id": "cpu_pct",
+    "label": "CPU",
+    "unidad": "%",
+    "rango": [0, 100],
+    "baseline": 20,
+    "tolerancia": 30,
+    "ventana_s": 60,
+    "max_edad_s": 30,
+    "fuentes": ["A", "B"],
+    "epsilon_ab": 5
+  }
+
+Traducción al español:
+  "Mide el porcentaje de CPU. El rango válido es 0-100. Lo normal es 20%,
+   con margen de ±30% (o sea, hasta 50% se considera normal). Para reglas
+   sostenidas, mira los últimos 60 segundos. El dato no debe tener más de
+   30s de antigüedad. Debe llegar por dos caminos (A y B), y si difieren
+   en más de 5 puntos porcentuales, hay discrepancia."
+
+
+────────────────────────────────────────────────────────────────────────────────
+4.3 BLOQUE "reglas"
+────────────────────────────────────────────────────────────────────────────────
+
+Array de reglas de negocio. Cada regla describe un patrón que, si se cumple,
+dispara una alarma con cierta severidad.
+
+CAMPOS POR REGLA:
+
+  id          string    Identificador único de la regla.
+                        Ej: "cpu_sostenido".
+
+  label       string    Nombre legible. Se muestra en logs y dashboard.
+
+  condicion   object    La condición evaluable. Ver tipos abajo.
+
+  severidad   string    Una de: "verde" | "ambar" | "naranja" | "rojo".
+                        Cuando la condición se cumple, el estado global sube
+                        al menos a esta severidad.
+                        "verde" casi no se usa (no hay alarma).
+                        "ambar" es aviso.
+                        "naranja" es degradación.
+                        "rojo" es fallo.
+
+  hipotesis   string    OBLIGATORIO. Qué asume esta regla como "normal", y
+                        por tanto qué la convertiría en falso positivo.
+                        Si no puedes escribirla, la regla sobra. El motor
+                        no arranca sin este campo.
+                        Ej: "Un pico de 5s es normal. 60s seguidos no."
+
+TIPOS DE "condicion":
+
+  simple:
+    {
+      "tipo": "simple",
+      "operador": "gt" | "lt" | "gte" | "lte" | "eq" | "ne",
+      "indicador": "cpu_pct",
+      "valor": 80
+    }
+    Significado: el indicador cumple (operador) valor.
+    Ejemplo: cpu_pct > 80.
+
+  and:
+    {
+      "tipo": "and",
+      "operandos": [
+        { "tipo": "simple", "operador": "gt", "indicador": "ram_pct", "valor": 90 },
+        { "tipo": "simple", "operador": "lt", "indicador": "cpu_pct", "valor": 20 }
+      ]
+    }
+    Significado: TODAS las subcondiciones se cumplen.
+
+  or:
+    {
+      "tipo": "or",
+      "operandos": [...]
+    }
+    Significado: AL MENOS UNA subcondición se cumple.
+
+  sostenido:
+    {
+      "tipo": "sostenido",
+      "operador": "gt",
+      "indicador": "cpu_pct",
+      "valor": 80,
+      "duracion_s": 60
+    }
+    Significado: el indicador cumple la condición durante 'duracion_s'
+    segundos seguidos, mirando el historial.
+    Es el tipo más útil: distingue picos benignos de problemas reales.
+
+EJEMPLO DE REGLA COMPLETA:
+
+  {
+    "id": "cpu_sostenido",
+    "label": "CPU alta sostenida",
+    "condicion": {
+      "tipo": "sostenido",
+      "operador": "gt",
+      "indicador": "cpu_pct",
+      "valor": 80,
+      "duracion_s": 60
+    },
+    "severidad": "ambar",
+    "hipotesis": "Un pico de 5s es normal (compilación, arranque). 60s seguidos no."
+  }
+
+Traducción:
+  "Si la CPU supera el 80% durante 60 segundos seguidos, dispara una alarma
+   ámbar. Asumo que los picos de 5s son benignos; si esta regla salta con
+   un pico corto, es falso positivo."
+
+
+────────────────────────────────────────────────────────────────────────────────
+4.4 BLOQUE "meta_reglas"
+────────────────────────────────────────────────────────────────────────────────
+
+Reglas que vigilan al vigilante. No miran indicadores individuales: miran
+el estado de la validación.
+
+CAMPOS:
+
+  id          string    Identificador único.
+
+  label       string    Nombre legible.
+
+  tipo        string    "coherencia" | "frescura".
+                        - "coherencia": se dispara si algún indicador tiene
+                          discrepancia A/B (los dos caminos no coinciden).
+                        - "frescura": se dispara si algún sensor está muerto
+                          (timestamp demasiado viejo o ausente).
+
+  severidad   string    Una de: verde, ámbar, naranja, rojo.
+                        Se recomienda:
+                        - coherencia → "naranja" (dato dudoso, no actúes).
+                        - frescura   → "rojo" (no sabes qué pasa, no actúes).
+
+Por defecto vienen dos:
+
+  { "id": "sensor_discrepancia", "label": "Fuentes A y B discrepan",
+    "tipo": "coherencia", "severidad": "naranja" }
+  { "id": "sensor_muerto", "label": "Sensor sin datos frescos",
+    "tipo": "frescura", "severidad": "rojo" }
+
+Estas dos son la doble seguridad del propio monitor. Si quitas una, pierdes
+una capa de protección.
+
+
+────────────────────────────────────────────────────────────────────────────────
+4.5 BLOQUE "config"
+────────────────────────────────────────────────────────────────────────────────
+
+Parámetros operativos del motor.
+
+  ciclo_ms                number    Milisegundos entre ciclos.
+                                    Mínimo 100 (para no saturar).
+                                    Ej: 2000 → un ciclo cada 2 segundos.
+
+  meta_ping_cada_ciclos   number    Cada cuántos ciclos se pide revisión
+                                    humana del rule set.
+                                    Ej: 60 ciclos × 2000ms = 120s = 2 min.
+                                    Para producción real se recomienda subir
+                                    a 1800 ciclos (1 hora) o más.
+
+
+────────────────────────────────────────────────────────────────────────────────
+4.6 VALIDACIÓN DEL RULE SET
+────────────────────────────────────────────────────────────────────────────────
+
+Al cargar, RuleSetSchema.validar() comprueba:
+
+  - Estructura: los 5 bloques existen.
+  - Meta: los 5 campos están.
+  - Indicadores:
+      · id único, no vacío
+      · rango es [min, max] con min < max
+      · baseline dentro de rango
+      · tolerancia > 0, ventana_s > 0, max_edad_s > 0
+      · fuentes es array no vacío
+      · epsilon_ab >= 0
+  - Reglas:
+      · id único
+      · label no vacío
+      · hipotesis no vacía  ← la validación más importante
+      · severidad válida
+      · condicion válida recursivamente, y referencias a indicadores
+        existentes
+  - Meta-reglas: tipo y severidad válidos.
+  - Config: ciclo_ms >= 100, meta_ping_cada_ciclos >= 1.
+
+Si hay errores: el motor NO arranca. La UI muestra la lista de errores.
+Esto es deliberado: un rule set roto es indistinguible de "todo bien" si
+no grita al cargar. En un sistema de monitorización, el silencio ante un
+error de configuración es el peor fallo posible.
+
+Si hay avisos (no bloquean): por ejemplo, rule set no revisado en > 7 días.
+Se muestran pero el motor funciona.
+
+
+────────────────────────────────────────────────────────────────────────────────
+4.7 RECOMENDACIONES PARA EDITAR EL RULE SET
+────────────────────────────────────────────────────────────────────────────────
+
+  - Un indicador = una métrica. No mezcles dos métricas en una.
+  - Una regla = una hipótesis. Si necesitas "and", probablemente son dos
+    reglas sobre el mismo problema, no una regla compleja.
+  - Si una regla no puede fallar (siempre se cumple o nunca se cumple con
+    datos reales), sobra. Bórrala.
+  - Si una regla dispara más de 3 veces al día en uso normal, la tolerancia
+    está mal. Súbela.
+  - Si una regla no dispara nunca en 2 semanas con el sistema estresado, la
+    tolerancia está mal. Bájala o bórrala.
+  - Documenta cada regla con su hipótesis. En 3 meses no recordarás por qué
+    la pusiste.
+  - Sube la versión cuando cambies algo. El log registra con qué versión
+    se evaluó cada decisión. Sin eso, no puedes comparar turnos.
+  - Revisa el rule set cada 1-4 semanas. El botón "Marcar como revisado"
+    actualiza 'ultima_revision' y resetea el contador.
+
+
+════════════════════════════════════════════════════════════════════════════════
+5. CÓMO CONECTARLO A UN PC REAL
+════════════════════════════════════════════════════════════════════════════════
+
+Por defecto usa SimSource (simulador con 5 modos para demo y tests). Para
+datos reales, hay que sustituir el adapter.
+
+CONTRATO DE GroundSource
+────────────────────────
+  async ping() -> {
+    ok: boolean,
+    timestamp: number,        // ms epoch, autoritativo de la fuente
+    valores: {
+      [indicador_id]: {
+        A: number|null,       // camino A (alto nivel)
+        B: number|null        // camino B (bajo nivel, independiente)
+      }
+    },
+    motivo?: string           // si ok=false: 'sin_conexion' | 'timeout' | ...
+  }
+
+El timestamp es CLAVE. Debe ser el momento real de la lectura, no el momento
+de la petición. Si la fuente devuelve un timestamp viejo, el motor lo detecta
+y rechaza los datos. Así se detectan sensores atascados.
+
+EJEMPLO: SERVIDOR NODE.JS LOCAL
+───────────────────────────────
+El adapter más simple es un servidor HTTP local que expone /metrics con
+los datos del sistema.
+
+Servidor (server.js):
+  - Escucha en localhost:8080
+  - En /metrics, lee:
+      Camino A: os.loadavg(), os.freemem(), os.totalmem()
+      Camino B: /proc/stat, /proc/meminfo (en Linux/Mac)
+      En Windows, ambos caminos usan APIs nativas de Node → coincide trivial.
+  - Devuelve JSON con el contrato de arriba.
+
+Cliente (en el HTML, sustituir SimSource por):
+  class HTTPFetchSource extends GroundSource {
+    constructor(url) { super(); this.url = url; }
+    getName() { return 'HTTPFetch'; }
+    async ping() {
+      try {
+        const r = await fetch(this.url);
+        return await r.json();
+      } catch (e) {
+        return { ok: false, motivo: 'sin_conexion',
+                 timestamp: Date.now(), valores: {} };
+      }
+    }
+  }
+
+Y en la inicialización del Engine:
+  new Engine({
+    source: new HTTPFetchSource('http://localhost:8080/metrics'),
+    ruleSet: ruleSetValidado
+  })
+
+El resto del código (validadores, motor, UI, tests) NO cambia. Ese es el
+punto del puerto abstracto.
+
+ALTERNATIVAS
+────────────
+  - WebSocket a un daemon local (si quieres push en lugar de pull).
+  - Extensión de navegador con permisos nativos.
+  - Fichero JSON local leído con fetch + polling.
+  - Cualquier cosa que implemente ping() con el contrato.
+
+IMPORTANTE: el timestamp debe reflejar el momento de la lectura real.
+No uses Date.now() en el cliente si la lectura la hizo el servidor hace 10s.
+Usa el timestamp que devuelve el servidor. Si no lo tienes, no puedes detectar
+sensores atascados.
+
+
+════════════════════════════════════════════════════════════════════════════════
+6. LÍMITES Y ADVERTENCIAS
+════════════════════════════════════════════════════════════════════════════════
+
+LÍMITES TÉCNICOS
+────────────────
+  1. Solo mide lo que le pides. Si no está en el rule set, no existe para
+     el monitor. El "modo Raw" palía esto parcialmente, pero no lo resuelve.
+
+  2. La doble fuente no garantiza verdad. Protege contra fallos aleatorios
+     (un sensor loco), pero no contra fallos sistemáticos (dos sensores mal
+     calibrados que coinciden y mienten).
+
+  3. El chequeo de frescura depende del timestamp. Si la fuente miente sobre
+     el timestamp (lo actualiza sin leer), el monitor no lo detecta.
+
+  4. Las reglas son tuyas. El motor no tiene conocimiento del dominio. Si
+     pones mal los umbrales, el monitor gritará con falsos positivos o
+     callará con falsos negativos. La calibración es trabajo manual.
+
+  5. No hay predicción. El monitor detecta estados actuales, no anticipa
+     futuros. Un indicador puede estar en verde ahora y en rojo en el
+     siguiente ciclo.
+
+  6. La UI es una capa. Si la quitas, el motor sigue funcionando (los tests
+     lo usan sin UI). Esto es intencional: la lógica debe ser testeable
+     sin DOM.
+
+ADVERTENCIAS EPISTEMOLÓGICAS
+────────────────────────────
+  1. El silencio es ambiguo. Verde significa "todo dentro de rango Y
+     fuentes coincidentes Y sensores frescos Y rule set revisado
+     recientemente". Si falta cualquiera de esas condiciones, el silencio
+     no significa salud. Por eso el meta-ping existe.
+
+  2. La coincidencia es sospechosa cuando es perfecta. Si dos sensores
+     independientes dan SIEMPRE el mismo valor sin ruido, uno de los dos
+     no es independiente. La independencia se pierde cuando se copia.
+
+  3. El sistema no te dice qué hacer. Avisa. Las decisiones son tuyas.
+     Si algún día le pones actuadores (apagar procesos, mandar alertas),
+     asegúrate de que la doble seguridad sea MÁS estricta, no menos.
+
+  4. El propio monitor puede convertirse en tautología. Si tus reglas solo
+     se disparan con las métricas que ya tienes, y esas métricas solo se
+     generan con las reglas que ya tienes, el monitor se mira al ombligo.
+     El modo Raw y el meta-ping son las dos válvulas de escape.
+
+  5. No confundas este monitor con un diagnóstico. No lo es. No puede
+     serlo. El día que lo trates como tal, lo rompes.
+
+
+════════════════════════════════════════════════════════════════════════════════
+7. TESTS INCLUIDOS (11 casos)
+════════════════════════════════════════════════════════════════════════════════
+
+  T1   Normal: 30 ciclos en verde sin alarmas.
+  T2   Stress: CPU alta dispara la regla 'cpu_sostenido'.
+  T3   Discrepancia A/B: fuente divergente → estado naranja.
+  T4   Sensor muerto: ping falla → estado rojo.
+  T5   Datos forjados: timestamp viejo con valores válidos → estado rojo.
+  T6a  Rule set sin hipótesis → validación falla.
+  T6b  Rule set con indicador inexistente → validación falla.
+  T6c  Rule set con rango invertido → validación falla.
+  T6d  Rule set válido → validación pasa.
+  T7   Regresión: normal→stress→normal transita sin quedarse en rojo.
+
+Los tests usan un clock controlado (avanza 2000ms por llamada) para no
+esperar tiempo real. Cada test es independiente: crea su propio Engine con
+su propio SimSource. No comparten estado.
+
+Para ejecutarlos: pestaña Tests → botón "Ejecutar tests".
+
+
+════════════════════════════════════════════════════════════════════════════════
+8. RESUMEN EN UNA FRASE
+════════════════════════════════════════════════════════════════════════════════
+
+Monitor de sistema con dos sensores independientes por métrica, validación
+en dos capas (valor + procedencia), reglas declarativas en JSON con
+hipótesis obligatoria, y tres mecanismos contra la ceguera silenciosa:
+frescura del timestamp, modo raw y meta-ping de revisión.
+
+No es un modelo validado. Es un andamio para estructurar la monitorización,
+con la honestidad de declarar explícitamente qué asume como normal, qué
+descarta como ruido, y cuándo el silencio no significa salud.
+
+════════════════════════════════════════════════════════════════════════════════
+Fin del documento.
+════════════════════════════════════════════════════════════════════════════════
