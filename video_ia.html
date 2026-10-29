@@ -2,39 +2,76 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Editor de planos + coherencia + prompts</title>
+<title>Editor de planos · estilos · coherencia · prompts · event sourcing</title>
 <style>
+  /* ─────────────────────────────────────────────────────────────────
+     ESTILOS DE UI
+     Dark theme, layout en grid. Paneles con borde suave.
+     El editor está a la izquierda, las vistas a la derecha.
+     Los prompts van abajo a todo el ancho.
+     ───────────────────────────────────────────────────────────────── */
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; padding: 12px; font-size: 13px; }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: #0f172a; color: #e2e8f0;
+    padding: 12px; font-size: 13px; min-height: 100vh;
+  }
   h1 { font-size: 1.05rem; font-weight: 400; color: #60a5fa; margin-bottom: 4px; }
   .sub { color: #94a3b8; font-size: 11px; margin-bottom: 12px; }
-  h2 { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 500; }
+  h2 {
+    font-size: 0.72rem; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 8px; font-weight: 500;
+  }
   h3 { font-size: 0.82rem; color: #cbd5e1; margin-bottom: 6px; }
+
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
-  .panel { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
-  button { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-family: inherit; }
+
+  .panel {
+    background: #1e293b; border: 1px solid #334155;
+    border-radius: 10px; padding: 12px; margin-bottom: 10px;
+  }
+
+  button {
+    background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
+    border-radius: 6px; padding: 6px 12px; cursor: pointer;
+    font-size: 12px; font-family: inherit; transition: background 0.15s;
+  }
   button:hover { background: #334155; }
   button.primary { background: #3b82f6; border-color: #3b82f6; color: #fff; }
   button.primary:hover { background: #2563eb; }
   button.danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
   button.success { background: #16a34a; border-color: #16a34a; color: #fff; }
   button.small { padding: 3px 8px; font-size: 11px; }
+
   .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
-  .pill { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; background: #334155; margin-right: 4px; }
+
+  .pill {
+    display: inline-block; padding: 1px 7px; border-radius: 10px;
+    font-size: 10px; background: #334155; margin-right: 4px;
+  }
   .pill.ok { background: #14532d; color: #86efac; }
   .pill.warn { background: #78350f; color: #fcd34d; }
   .pill.err { background: #7f1d1d; color: #fecaca; }
   .pill.info { background: #1e3a5f; color: #93c5fd; }
-  .kv { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #1e293b; font-size: 12px; gap: 8px; }
+
+  .kv {
+    display: flex; justify-content: space-between; padding: 3px 0;
+    border-bottom: 1px solid #1e293b; font-size: 12px; gap: 8px;
+  }
   .kv:last-child { border-bottom: none; }
   .kv .k { color: #94a3b8; flex-shrink: 0; }
-  .kv .v { color: #e2e8f0; font-family: ui-monospace, monospace; text-align: right; word-break: break-all; }
+  .kv .v {
+    color: #e2e8f0; font-family: ui-monospace, monospace;
+    text-align: right; word-break: break-all;
+  }
+
   .empty { color: #475569; font-style: italic; font-size: 12px; padding: 6px 0; }
 
-  /* Form */
+  /* Formulario del editor: generado desde el schema */
   .form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .form-row label { flex: 0 0 110px; color: #94a3b8; font-size: 11px; }
+  .form-row label { flex: 0 0 120px; color: #94a3b8; font-size: 11px; }
   .form-row input, .form-row select {
     flex: 1; background: #0f172a; color: #e2e8f0; border: 1px solid #334155;
     border-radius: 5px; padding: 4px 8px; font-family: inherit; font-size: 12px;
@@ -42,59 +79,116 @@
   .form-row input:focus, .form-row select:focus { outline: none; border-color: #3b82f6; }
   .form-row input[type=checkbox] { flex: 0 0 auto; }
   .form-row input[type=number] { flex: 0 0 90px; }
-  .form-row .required { color: #ef4444; margin-left: 2px; }
+  .form-row .hint { font-size: 10px; color: #64748b; flex: 0 0 100%; margin-left: 128px; }
 
   .palette-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-  .palette-row input[type=color] { width: 40px; height: 26px; padding: 0; border: 1px solid #334155; background: #0f172a; cursor: pointer; border-radius: 4px; }
-  .palette-row input[type=text] { flex: 1; font-family: ui-monospace, monospace; font-size: 11px; background: #0f172a; color: #94a3b8; border: 1px solid #334155; border-radius: 4px; padding: 3px 6px; }
+  .palette-row input[type=color] {
+    width: 40px; height: 26px; padding: 0; border: 1px solid #334155;
+    background: #0f172a; cursor: pointer; border-radius: 4px;
+  }
+  .palette-row input[type=text] {
+    flex: 1; font-family: ui-monospace, monospace; font-size: 11px;
+    background: #0f172a; color: #94a3b8; border: 1px solid #334155;
+    border-radius: 4px; padding: 3px 6px;
+  }
 
-  /* Shot list */
+  /* Lista de planos */
   .shot {
     background: #0f172a; border: 1px solid #334155; border-radius: 6px;
     padding: 8px; margin-bottom: 6px; font-family: ui-monospace, monospace;
-    font-size: 11px; cursor: pointer;
+    font-size: 11px; cursor: pointer; transition: border-color 0.15s;
   }
   .shot:hover { border-color: #475569; }
   .shot.selected { border-color: #3b82f6; background: #1e3a5f; }
   .shot .line { display: flex; justify-content: space-between; margin-bottom: 2px; }
   .shot .meta { color: #94a3b8; font-size: 10px; }
   .shot .swatches { display: flex; gap: 2px; margin-top: 4px; }
-  .shot .swatches span { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.1); }
+  .shot .swatches span {
+    width: 12px; height: 12px; border-radius: 2px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .shot .estilo-tag {
+    display: inline-block; padding: 0 5px; border-radius: 3px;
+    background: #1e3a5f; color: #93c5fd; font-size: 9px; margin-left: 4px;
+  }
 
-  .alert { padding: 4px 6px; margin: 2px 0; border-left: 3px solid; background: #0f172a; border-radius: 4px; font-size: 11px; }
+  .alert {
+    padding: 4px 6px; margin: 2px 0; border-left: 3px solid;
+    background: #0f172a; border-radius: 4px; font-size: 11px;
+  }
   .alert.err { border-color: #ef4444; color: #fca5a5; }
   .alert.warn { border-color: #f59e0b; color: #fcd34d; }
   .alert.info { border-color: #3b82f6; color: #93c5fd; }
+
   .status { font-size: 11px; margin-top: 6px; }
   .status.ok { color: #4ade80; }
   .status.err { color: #f87171; }
 
-  .prompt-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+  /* Tarjetas de prompt */
+  .prompt-card {
+    background: #0f172a; border: 1px solid #334155;
+    border-radius: 8px; padding: 10px; margin-bottom: 10px;
+  }
   .prompt-card.highlight { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
-  .prompt-card .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+  .prompt-card .head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px; gap: 8px;
+  }
   .prompt-card .head strong { color: #60a5fa; }
   .prompt-card .head .meta { color: #94a3b8; font-size: 10px; }
-  .prompt-card .label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; margin-bottom: 2px; margin-top: 8px; font-weight: 600; }
+  .prompt-card .label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: #64748b; margin-bottom: 2px; margin-top: 8px; font-weight: 600;
+  }
   .prompt-card .label:first-child { margin-top: 0; }
-  .prompt-card .text { font-family: ui-monospace, monospace; font-size: 11px; color: #e2e8f0; line-height: 1.6; background: #0a0f1a; padding: 6px 8px; border-radius: 4px; white-space: pre-wrap; word-break: break-word; }
+  .prompt-card .text {
+    font-family: ui-monospace, monospace; font-size: 11px;
+    color: #e2e8f0; line-height: 1.6; background: #0a0f1a;
+    padding: 6px 8px; border-radius: 4px;
+    white-space: pre-wrap; word-break: break-word;
+  }
   .prompt-card .text.neg { color: #fca5a5; }
-  .prompt-card .params { font-size: 10px; color: #94a3b8; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px; }
-  .prompt-card .notas { font-size: 10px; color: #fcd34d; margin-top: 8px; padding: 6px 8px; background: rgba(245, 158, 11, 0.08); border-left: 2px solid #f59e0b; border-radius: 3px; line-height: 1.6; }
+  .prompt-card .text.style { color: #93c5fd; }
+  .prompt-card .params {
+    font-size: 10px; color: #94a3b8; margin-top: 8px;
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+  .prompt-card .notas {
+    font-size: 10px; color: #fcd34d; margin-top: 8px;
+    padding: 6px 8px; background: rgba(245, 158, 11, 0.08);
+    border-left: 2px solid #f59e0b; border-radius: 3px; line-height: 1.6;
+  }
 
-  .tests { font-family: ui-monospace, monospace; font-size: 11px; max-height: 300px; overflow-y: auto; background: #0f172a; border-radius: 6px; padding: 8px; }
+  .tests {
+    font-family: ui-monospace, monospace; font-size: 11px;
+    max-height: 400px; overflow-y: auto; background: #0f172a;
+    border-radius: 6px; padding: 8px;
+  }
   .tests .t { padding: 1px 0; }
-  .bar { height: 4px; background: #1e293b; border-radius: 2px; margin-top: 2px; overflow: hidden; }
+
+  .bar {
+    height: 4px; background: #1e293b; border-radius: 2px;
+    margin-top: 2px; overflow: hidden;
+  }
   .bar > div { height: 100%; background: #3b82f6; }
 </style>
 </head>
 <body>
 
-<h1>Editor de planos + coherencia + prompts</h1>
-<p class="sub">Cada plano se define en el formulario · los planos existentes se editan al hacer clic · schema declarativo</p>
+<h1>Editor de planos · estilos visuales · coherencia · prompts</h1>
+<p class="sub">
+  Event sourcing · schema declarativo · 5 vistas de coherencia ·
+  generador de prompts con estilo · tests automáticos
+</p>
 
 <div class="grid">
 
   <div>
+    <!-- ═══════════════════════════════════════════════════════════════
+         EDITOR DE PLANOS
+         El formulario se genera desde PLANO_SCHEMA.
+         Cada cambio se emite como evento al MiniCore.
+         ═══════════════════════════════════════════════════════════════ -->
     <div class="panel">
       <h2>✏️ Editor de plano <span class="pill" id="editorMode">Nuevo</span></h2>
       <div id="planForm"></div>
@@ -107,6 +201,7 @@
       <div class="status" id="formStatus"></div>
     </div>
 
+    <!-- Lista de planos ordenados. Clic para cargar en el editor. -->
     <div class="panel">
       <h2>🎬 Planos · S1 <span class="pill info" id="shotCount">0</span></h2>
       <div id="listaShots"><div class="empty">Sin planos.</div></div>
@@ -121,24 +216,32 @@
   </div>
 
   <div>
-    <div class="panel"><h2>🔗 Continuidad</h2><div id="vContinuidad"><div class="empty">Sin datos.</div></div></div>
-    <div class="panel"><h2>⏱ Ritmo</h2><div id="vRitmo"><div class="empty">Sin datos.</div></div></div>
-    <div class="panel"><h2>🎨 Paleta</h2><div id="vPaleta"><div class="empty">Sin datos.</div></div></div>
-    <div class="panel"><h2>🎬 Cobertura</h2><div id="vCobertura"><div class="empty">Sin datos.</div></div></div>
+    <!-- Las 5 vistas de coherencia -->
+    <div class="panel"><h2>🔗 Continuidad</h2><div id="vContinuidad"><div class="empty">—</div></div></div>
+    <div class="panel"><h2>⏱ Ritmo</h2><div id="vRitmo"><div class="empty">—</div></div></div>
+    <div class="panel"><h2>🎨 Paleta</h2><div id="vPaleta"><div class="empty">—</div></div></div>
+    <div class="panel"><h2>🎬 Cobertura</h2><div id="vCobertura"><div class="empty">—</div></div></div>
+    <div class="panel"><h2>🎭 Estilo visual</h2><div id="vEstilo"><div class="empty">—</div></div></div>
   </div>
 
 </div>
 
+<!-- Prompts generados, a todo el ancho -->
 <div class="panel">
   <h2>📝 Prompts generados · copiar y pegar en IA de vídeo</h2>
   <div class="row">
     <button class="small primary" id="btnCopyAllPrompts">📋 Copiar todos</button>
     <button class="small" id="btnDownloadPrompts">⬇️ Descargar JSON</button>
     <span class="pill info" id="promptCount">0 planos</span>
+    <span style="flex:1;"></span>
+    <span style="font-size:10px;color:#94a3b8;">
+      Prompts en inglés · negative prompt separado · estilo aplicado por plano
+    </span>
   </div>
   <div id="vPrompts"><div class="empty">Sin prompts todavía.</div></div>
 </div>
 
+<!-- Tests -->
 <div class="panel">
   <h2>Tests</h2>
   <div class="tests" id="testsOut"></div>
@@ -148,41 +251,180 @@
 'use strict';
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SCHEMA DECLARATIVO · añadir un campo aquí → aparece en el formulario
+   SECCIÓN 1 · SCHEMA DECLARATIVO
+   ───────────────────────────────────────────────────────────────────────
+   Cada campo del plano está declarado aquí con su tipo, label, default,
+   required, enum y rangos. El formulario se genera automáticamente desde
+   este schema. Añadir un campo aquí → aparece en la UI sin tocar código.
    ═══════════════════════════════════════════════════════════════════════ */
 
 const PLANO_SCHEMA = {
-  escenaId:     { label: 'Escena',      tipo: 'text',   required: true,  default: 'S1' },
-  orden:        { label: 'Orden',       tipo: 'number', required: true,  min: 1,   default: 1 },
-  encuadre:     { label: 'Encuadre',    tipo: 'enum',   required: true,  default: 'medio',
+  escenaId:     { label: 'Escena',        tipo: 'text',   required: true,  default: 'S1' },
+  orden:        { label: 'Orden',         tipo: 'number', required: true,  min: 1, default: 1 },
+  encuadre:     { label: 'Encuadre',      tipo: 'enum',   required: true,  default: 'medio',
                   enum: ['general','entero','medio','primer','primerisimo'] },
-  angulo:       { label: 'Ángulo',      tipo: 'enum',   required: true,  default: 'normal',
+  angulo:       { label: 'Ángulo',        tipo: 'enum',   required: true,  default: 'normal',
                   enum: ['normal','picado','contrapicado','holandes'] },
-  movimiento:   { label: 'Movimiento',  tipo: 'enum',   default: 'estatico',
+  movimiento:   { label: 'Movimiento',    tipo: 'enum',   default: 'estatico',
                   enum: ['estatico','pan','tilt','travelling','handheld','grua'] },
-  sujeto:       { label: 'Sujeto',      tipo: 'text',   required: true,  default: '' },
-  intencion:    { label: 'Intención',   tipo: 'enum',   required: true,  default: 'establecer',
-                  enum: ['establecer','intimidad','tension','epica','misterio','comedia','duelo','amenaza'] },
-  duracion:     { label: 'Duración (s)',tipo: 'number', required: true,  min: 0.5, max: 30, step: 0.5, default: 4 },
-  focal:        { label: 'Focal (mm)',  tipo: 'number', min: 14, max: 200, step: 1, default: 35 },
-  eje:          { label: 'Eje (°)',     tipo: 'number', min: 0, max: 360, step: 1, default: 0 },
-  eyeline:      { label: 'Eyeline',     tipo: 'enum',   default: '0',
+  sujeto:       { label: 'Sujeto',        tipo: 'text',   required: true,  default: '' },
+  intencion:    { label: 'Intención',     tipo: 'enum',   required: true,  default: 'establecer',
+                  enum: ['establecer','intimidad','tension','epica',
+                         'misterio','comedia','duelo','amenaza',
+                         'trickster_hubris','mythic_sorrow'] },
+  duracion:     { label: 'Duración (s)',  tipo: 'number', required: true,  min: 0.5, max: 30, step: 0.5, default: 4 },
+  focal:        { label: 'Focal (mm)',    tipo: 'number', min: 14, max: 200, step: 1, default: 35 },
+  eje:          { label: 'Eje (°)',       tipo: 'number', min: 0, max: 360, step: 1, default: 0 },
+  eyeline:      { label: 'Eyeline',       tipo: 'enum',   default: '0',
                   enum: ['-1','0','1'], numerico: true },
-  permiteCruce: { label: 'Permite cruce', tipo: 'bool', default: false },
-  paleta:       { label: 'Paleta',      tipo: 'paleta', default: ['#c97a3a','#e0a060'] }
+  permiteCruce: { label: 'Permite cruce', tipo: 'bool',   default: false },
+  estilo:       { label: 'Estilo visual', tipo: 'enum',   required: true,  default: 'teatro_griego',
+                  enum: ['teatro_griego','titeres_bunraku','sombras_wayang',
+                         'ceramica_griega','mosaico_bizantino','fresco_pompeyano',
+                         'grabado_dore','manuscrito_iluminado',
+                         'pulp_flash_gordon','cel_shading_anime'] },
+  paleta:       { label: 'Paleta',        tipo: 'paleta', default: ['#c97a3a','#e0a060'] }
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
-   VISTAS DE COHERENCIA (idénticas a la versión anterior)
+   SECCIÓN 2 · MAPAS DE ESTILO VISUAL
+   ───────────────────────────────────────────────────────────────────────
+   Cada estilo resuelve el valle inquietante de una forma distinta:
+   declarando artificialidad (teatro, títeres, sombras), aplanando la
+   imagen (cerámica, mosaico, fresco) o usando convenciones de género
+   (pulp, anime).
+
+   Para cada estilo:
+     - positivo: bloque que va al INICIO del prompt
+     - negativo: cosas que hay que EXCLUIR (si no, el modelo deriva
+                 a fotorrealismo)
+     - motionIntensity: sugerencia de intensidad de movimiento
+     - fps: sugerencia de fps (para el params del prompt)
+     - nota: por qué funciona (comentario interno, no va al prompt)
    ═══════════════════════════════════════════════════════════════════════ */
 
+const ESTILO_PROMPT = {
+  teatro_griego: {
+    positivo: 'ancient Greek theatre masks, chorus staging, painted skene backdrop, ' +
+              'declamatory pose, formalized gesture, theatrical lighting, ' +
+              'stage performance aesthetic',
+    negativo: 'subtle facial expression, realistic skin, micro-expressions, ' +
+              'naturalistic acting, photorealistic',
+    motionIntensity: 'low',
+    fps: 24,
+    nota: 'La máscara es el artificio original. El público acepta la convención.'
+  },
+  titeres_bunraku: {
+    positivo: 'bunraku puppet theatre, visible strings, wooden articulated limbs, ' +
+              'puppeteer dressed in black, dramatic painted backdrop, ' +
+              'traditional Japanese puppet staging',
+    negativo: 'photorealistic face, smooth skin, naturalistic movement, ' +
+              'subtle expressions, 3D rendering',
+    motionIntensity: 'medium',
+    fps: 24,
+    nota: 'La imperfección del títere es intencionada. El cerebro acepta.'
+  },
+  sombras_wayang: {
+    positivo: 'wayang kulit shadow puppet theatre, silhouette against ' +
+              'illuminated screen, intricate cut-out details, warm amber ' +
+              'backlight, Javanese shadow play aesthetic',
+    negativo: 'faces visible, realistic humans, 3D shading, depth of field',
+    motionIntensity: 'low',
+    fps: 24,
+    nota: 'Sin rostro, sin valle inquietante facial. Solo silueta y color.'
+  },
+  ceramica_griega: {
+    positivo: 'ancient Greek red-figure pottery style, terracotta background, ' +
+              'black silhouette figures, geometric decorative borders, ' +
+              'flat perspective, ceramic texture',
+    negativo: '3D rendering, photorealism, depth of field, realistic lighting, ' +
+              'gradients, smooth shading',
+    motionIntensity: 'low',
+    fps: 12,
+    nota: 'Medio en que se conservó la iconografía homérica. Sin profundidad.'
+  },
+  mosaico_bizantino: {
+    positivo: 'Byzantine mosaic, gold tesserae background, frontal iconic figures, ' +
+              'flat symbolic composition, tessellated texture, ' +
+              'Ravenna mosaic aesthetic',
+    negativo: 'realistic perspective, 3D depth, naturalistic faces, ' +
+              'photorealism, cinematic lighting',
+    motionIntensity: 'low',
+    fps: 12,
+    nota: 'La épica como icono. Dioses de frente, dorados, simbólicos.'
+  },
+  fresco_pompeyano: {
+    positivo: 'Pompeian fresco style, flat earth pigments, stylized figures, ' +
+              'architectural trompe-l-oeil frames, muted reds and ochres, ' +
+              'Roman wall painting',
+    negativo: 'photorealism, cinematic depth, realistic skin, 3D rendering',
+    motionIntensity: 'low',
+    fps: 12,
+    nota: 'Las escenas de la Odisea en frescos romanos son el referente directo.'
+  },
+  grabado_dore: {
+    positivo: 'woodcut engraving style, high contrast black and white, ' +
+              'cross-hatching, dramatic chiaroscuro, Gustave Dore inspired, ' +
+              '19th century book illustration',
+    negativo: 'color, gradients, photorealism, smooth shading, 3D rendering',
+    motionIntensity: 'low',
+    fps: 12,
+    nota: 'Las ediciones clásicas de Homero con grabados de Flaxman o Doré.'
+  },
+  manuscrito_iluminado: {
+    positivo: 'medieval illuminated manuscript, flat perspective, symbolic scale, ' +
+              'gold leaf details, ornate borders, vellum texture, ' +
+              'romanesque illumination',
+    negativo: 'realistic perspective, 3D depth, cinematic lighting, ' +
+              'photorealism, naturalistic faces',
+    motionIntensity: 'low',
+    fps: 12,
+    nota: 'La transmisión medieval de Homero. Perspectiva plana, escala simbólica.'
+  },
+  pulp_flash_gordon: {
+    positivo: '1980s Flash Gordon pulp sci-fi aesthetic, saturated colors, ' +
+              'theatrical sets, operatic tone, raygun gothic, ' +
+              'Queen soundtrack energy, practical effects look',
+    negativo: 'photorealism, muted tones, naturalistic lighting, ' +
+              'modern CGI, desaturated colors',
+    motionIntensity: 'medium',
+    fps: 24,
+    nota: 'Heredero directo del Dune de Jodorowsky. Convención de género.'
+  },
+  cel_shading_anime: {
+    positivo: 'cel-shaded animation, 2D anime style, flat color fills, ' +
+              'bold outlines, expressive stylized faces, ' +
+              'Studio Ghibli meets Ulysses 31',
+    negativo: 'photorealism, 3D rendering, realistic skin texture, ' +
+              'smooth gradients, naturalistic lighting',
+    motionIntensity: 'medium',
+    fps: 24,
+    nota: 'Convención 2D. El cerebro lee "animación", no "humano falso".'
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SECCIÓN 3 · HELPERS DE COHERENCIA
+   ───────────────────────────────────────────────────────────────────────
+   Funciones puras que usan las vistas. Nada toca el DOM.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/** Reconstruye el array ordenado de ids de planos de una escena. */
 function reconstruirEscena(estado, escenaId) {
   const shots = Object.values(estado.planos).filter(p => p.escenaId === escenaId);
-  estado.porEscena[escenaId] = shots.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)).map(p => p.id);
+  estado.porEscena[escenaId] = shots
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    .map(p => p.id);
 }
 
+/**
+ * Aplica un evento de plano al estado base.
+ * Devuelve las escenas afectadas, o null si el evento no aplica.
+ * Es la pieza común de las 5 vistas: todas usan este mismo aplicador.
+ */
 function aplicarEventoPlanoBase(estado, evento) {
   if (evento.entidad !== 'plano') return null;
+
   if (evento.tipo === 'plano_creado') {
     estado.planos[evento.entidadId] = { ...evento.a };
     return { escenasAfectadas: [evento.a.escenaId].filter(Boolean) };
@@ -205,78 +447,15 @@ function aplicarEventoPlanoBase(estado, evento) {
   return null;
 }
 
-const VistaContinuidad = {
-  id: 'continuidad',
-  init: () => ({ planos: {}, porEscena: {}, violaciones: [] }),
-  apply: (estado, evento) => {
-    const r = aplicarEventoPlanoBase(estado, evento);
-    if (!r) return estado;
-    for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
-    estado.violaciones = estado.violaciones.filter(v => !r.escenasAfectadas.includes(v.escenaId));
-    for (const id of r.escenasAfectadas) {
-      const ids = estado.porEscena[id] ?? [];
-      for (let i = 1; i < ids.length; i++) {
-        const a = estado.planos[ids[i - 1]], b = estado.planos[ids[i]];
-        if (!a || !b) continue;
-        if (a.eje != null && b.eje != null && !b.permiteCruce) {
-          const diff = Math.abs(a.eje - b.eje) % 360;
-          if (Math.min(diff, 360 - diff) > 90) {
-            estado.violaciones.push({ escenaId: id, planoId: b.id, tipo: 'eje',
-              mensaje: `Plano ${b.id} cruza el eje (${a.eje}° → ${b.eje}°)`, severidad: 'err' });
-          }
-        }
-        if (a.eyeline != null && b.eyeline != null && a.sujeto && a.sujeto === b.sujeto) {
-          if (a.eyeline * b.eyeline < 0 && !b.permiteCruce) {
-            estado.violaciones.push({ escenaId: id, planoId: b.id, tipo: 'eyeline',
-              mensaje: `Plano ${b.id} invierte eyeline de "${a.sujeto}"`, severidad: 'err' });
-          }
-        }
-      }
-    }
-    return estado;
-  },
-  result: (e) => e
-};
-
-const VistaRitmo = {
-  id: 'ritmo',
-  init: () => ({ planos: {}, porEscena: {} }),
-  apply: (estado, evento) => {
-    const r = aplicarEventoPlanoBase(estado, evento);
-    if (!r) return estado;
-    for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
-    return estado;
-  },
-  result: (estado) => {
-    const out = {};
-    for (const id of Object.keys(estado.porEscena)) {
-      const ids = estado.porEscena[id] ?? [];
-      const durs = ids.map(i => estado.planos[i]?.duracion ?? 0);
-      const n = durs.length;
-      const total = durs.reduce((a, b) => a + b, 0);
-      const media = n ? total / n : 0;
-      const alertas = [];
-      if (n === 0) alertas.push({ nivel: 'info', mensaje: 'Escena vacía' });
-      else {
-        if (media > 8) alertas.push({ nivel: 'warn', mensaje: `Ritmo lento: media ${media.toFixed(1)}s` });
-        if (media < 1.2 && n > 3) alertas.push({ nivel: 'warn', mensaje: `Ritmo muy rápido: media ${media.toFixed(1)}s` });
-      }
-      out[id] = { escenaId: id, n, total: +total.toFixed(2), media: +media.toFixed(2),
-                  min: n ? +Math.min(...durs).toFixed(2) : 0, max: n ? +Math.max(...durs).toFixed(2) : 0,
-                  alertas };
-    }
-    return out;
-  }
-};
-
+/** Distancia entre dos paletas, normalizada a [0,1]. */
 function hexToRgb(hex) {
-  if (!hex || !hex.startsWith('#')) return [0,0,0];
+  if (!hex || !hex.startsWith('#')) return [0, 0, 0];
   const n = parseInt(hex.slice(1), 16);
-  return [(n>>16)&255, (n>>8)&255, n&255];
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 function promedioPaleta(p) {
-  if (!p?.length) return [0,0,0];
-  const s = [0,0,0];
+  if (!p?.length) return [0, 0, 0];
+  const s = [0, 0, 0];
   for (const h of p) { const r = hexToRgb(h); s[0]+=r[0]; s[1]+=r[1]; s[2]+=r[2]; }
   return s.map(v => v / p.length);
 }
@@ -286,174 +465,513 @@ function distanciaPaleta(p1, p2) {
   return Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]) / 441.67;
 }
 
-const VistaPaleta = {
-  id: 'paleta',
+/* ═══════════════════════════════════════════════════════════════════════
+   SECCIÓN 4 · LAS 5 VISTAS DE COHERENCIA
+   ───────────────────────────────────────────────────────────────────────
+   Cada vista es un objeto con { id, init, apply, result }.
+   · init()   → estado vacío
+   · apply()  → aplica un evento, devuelve estado nuevo
+   · result() → deriva el resultado legible
+
+   Las vistas son proyecciones puras del log de eventos. Añadir una vista
+   no cambia las demás.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────
+   VISTA 1 · CONTINUIDAD
+   Detecta violaciones de eje (180°) y de raccord de mirada (eyeline).
+   Las violaciones se acumulan en estado.violaciones para renderizar.
+   ───────────────────────────────────────────────────────────────────── */
+const VistaContinuidad = {
+  id: 'continuidad',
+  init: () => ({ planos: {}, porEscena: {}, violaciones: [] }),
+
+  apply: (estado, evento) => {
+    const r = aplicarEventoPlanoBase(estado, evento);
+    if (!r) return estado;
+
+    // Reconstruir escenas afectadas
+    for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
+
+    // Limpiar violaciones antiguas de esas escenas
+    estado.violaciones = estado.violaciones.filter(v =>
+      !r.escenasAfectadas.includes(v.escenaId));
+
+    // Detectar violaciones nuevas para cada escena afectada
+    for (const escenaId of r.escenasAfectadas) {
+      const ids = estado.porEscena[escenaId] ?? [];
+      for (let i = 1; i < ids.length; i++) {
+        const a = estado.planos[ids[i - 1]];
+        const b = estado.planos[ids[i]];
+        if (!a || !b) continue;
+
+        // Eje: diferencia angular > 90° sin permiteCruce
+        if (a.eje != null && b.eje != null && !b.permiteCruce) {
+          const diff = Math.abs(a.eje - b.eje) % 360;
+          if (Math.min(diff, 360 - diff) > 90) {
+            estado.violaciones.push({
+              escenaId, planoId: b.id, tipo: 'eje',
+              mensaje: `Plano ${b.id} cruza el eje (${a.eje}° → ${b.eje}°)`,
+              severidad: 'err'
+            });
+          }
+        }
+
+        // Eyeline: mismo sujeto con eyelines opuestos sin permiteCruce
+        if (a.eyeline != null && b.eyeline != null &&
+            a.sujeto && a.sujeto === b.sujeto) {
+          if (a.eyeline * b.eyeline < 0 && !b.permiteCruce) {
+            estado.violaciones.push({
+              escenaId, planoId: b.id, tipo: 'eyeline',
+              mensaje: `Plano ${b.id} invierte eyeline de "${a.sujeto}"`,
+              severidad: 'err'
+            });
+          }
+        }
+      }
+    }
+    return estado;
+  },
+
+  result: (estado) => estado
+};
+
+/* ─────────────────────────────────────────────────────────────────────
+   VISTA 2 · RITMO
+   Calcula estadísticas de duración por escena. Detecta ritmo lento o
+   rápido, saltos bruscos entre planos consecutivos.
+   ───────────────────────────────────────────────────────────────────── */
+const VistaRitmo = {
+  id: 'ritmo',
   init: () => ({ planos: {}, porEscena: {} }),
+
   apply: (estado, evento) => {
     const r = aplicarEventoPlanoBase(estado, evento);
     if (!r) return estado;
     for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
     return estado;
   },
+
+  result: (estado) => {
+    const out = {};
+    for (const id of Object.keys(estado.porEscena)) {
+      const ids = estado.porEscena[id] ?? [];
+      const durs = ids.map(i => estado.planos[i]?.duracion ?? 0);
+      const n = durs.length;
+      const total = durs.reduce((a, b) => a + b, 0);
+      const media = n ? total / n : 0;
+      const alertas = [];
+
+      if (n === 0) alertas.push({ nivel: 'info', mensaje: 'Escena vacía' });
+      else {
+        if (media > 8) alertas.push({
+          nivel: 'warn', mensaje: `Ritmo lento: media ${media.toFixed(1)}s` });
+        if (media < 1.2 && n > 3) alertas.push({
+          nivel: 'warn', mensaje: `Ritmo muy rápido: media ${media.toFixed(1)}s` });
+
+        // Saltos bruscos entre consecutivos
+        for (let i = 1; i < n; i++) {
+          const ratio = durs[i-1] > 0.1 ? durs[i] / durs[i-1] : null;
+          if (ratio && (ratio > 4 || ratio < 0.25)) {
+            alertas.push({
+              nivel: 'warn',
+              mensaje: `Salto de duración ${ids[i-1]} → ${ids[i]} (${durs[i-1]}s → ${durs[i]}s)`
+            });
+            break;
+          }
+        }
+      }
+
+      out[id] = {
+        escenaId: id, n,
+        total: +total.toFixed(2), media: +media.toFixed(2),
+        min: n ? +Math.min(...durs).toFixed(2) : 0,
+        max: n ? +Math.max(...durs).toFixed(2) : 0,
+        alertas
+      };
+    }
+    return out;
+  }
+};
+
+/* ─────────────────────────────────────────────────────────────────────
+   VISTA 3 · PALETA
+   Detecta saltos cromáticos entre planos consecutivos.
+   Dos avisos distintos:
+     - Salto fuerte sin cambio de intención → sospechoso
+     - Cambio de intención sin salto visual → sospechoso
+   ───────────────────────────────────────────────────────────────────── */
+const VistaPaleta = {
+  id: 'paleta',
+  init: () => ({ planos: {}, porEscena: {} }),
+
+  apply: (estado, evento) => {
+    const r = aplicarEventoPlanoBase(estado, evento);
+    if (!r) return estado;
+    for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
+    return estado;
+  },
+
   result: (estado) => {
     const out = {};
     for (const id of Object.keys(estado.porEscena)) {
       const ids = estado.porEscena[id] ?? [];
       const trans = [], alerts = [];
+
       for (let i = 1; i < ids.length; i++) {
-        const a = estado.planos[ids[i-1]], b = estado.planos[ids[i]];
+        const a = estado.planos[ids[i-1]];
+        const b = estado.planos[ids[i]];
         if (!a || !b) continue;
+
         const d = distanciaPaleta(a.paleta, b.paleta);
         const camb = a.intencion && b.intencion && a.intencion !== b.intencion;
         let aviso = null;
-        if (d > 0.5 && !camb) aviso = { nivel: 'warn', mensaje: `Salto cromático sin cambio de intención (${(d*100).toFixed(0)}%)` };
-        else if (d < 0.1 && camb) aviso = { nivel: 'warn', mensaje: 'Cambio de intención sin cambio visual' };
-        trans.push({ desde: ids[i-1], hasta: ids[i], distancia: +(d*100).toFixed(1),
-                     intencionA: a.intencion, intencionB: b.intencion, aviso });
+
+        if (d > 0.5 && !camb) {
+          aviso = { nivel: 'warn',
+            mensaje: `Salto cromático sin cambio de intención (${(d*100).toFixed(0)}%)` };
+        } else if (d < 0.1 && camb) {
+          aviso = { nivel: 'warn',
+            mensaje: 'Cambio de intención sin cambio visual' };
+        }
+
+        trans.push({
+          desde: ids[i-1], hasta: ids[i],
+          distancia: +(d*100).toFixed(1),
+          intencionA: a.intencion, intencionB: b.intencion, aviso
+        });
         if (aviso) alerts.push({ ...aviso, desde: ids[i-1], hasta: ids[i] });
       }
+
       out[id] = { escenaId: id, n: ids.length, transiciones: trans, alertas: alerts };
     }
     return out;
   }
 };
 
+/* ─────────────────────────────────────────────────────────────────────
+   VISTA 4 · COBERTURA
+   Cuenta planos por encuadre, ángulo y movimiento. Alerta si falta
+   establecimiento, hay exceso de primeros, o hay un solo ángulo.
+   ───────────────────────────────────────────────────────────────────── */
 const VistaCobertura = {
   id: 'cobertura',
   init: () => ({ planos: {}, porEscena: {} }),
+
   apply: (estado, evento) => {
     const r = aplicarEventoPlanoBase(estado, evento);
     if (!r) return estado;
     for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
     return estado;
   },
+
   result: (estado) => {
     const out = {};
     for (const id of Object.keys(estado.porEscena)) {
       const ids = estado.porEscena[id] ?? [];
       const enc = {}, ang = {}, mov = {};
+
       for (const i of ids) {
-        const p = estado.planos[i]; if (!p) continue;
-        if (p.encuadre) enc[p.encuadre] = (enc[p.encuadre]??0)+1;
-        if (p.angulo) ang[p.angulo] = (ang[p.angulo]??0)+1;
-        if (p.movimiento) mov[p.movimiento] = (mov[p.movimiento]??0)+1;
+        const p = estado.planos[i];
+        if (!p) continue;
+        if (p.encuadre) enc[p.encuadre] = (enc[p.encuadre] ?? 0) + 1;
+        if (p.angulo) ang[p.angulo] = (ang[p.angulo] ?? 0) + 1;
+        if (p.movimiento) mov[p.movimiento] = (mov[p.movimiento] ?? 0) + 1;
       }
+
       const n = ids.length;
       const alerts = [];
       if (n === 0) alerts.push({ nivel: 'info', mensaje: 'Escena vacía' });
       else {
-        if (!enc.general && !enc.entero) alerts.push({ nivel: 'warn', mensaje: 'Sin plano de establecimiento' });
-        const np = (enc.primer??0) + (enc.primerisimo??0);
-        if (np / n > 0.7 && n > 3) alerts.push({ nivel: 'warn', mensaje: `Exceso de primeros (${np}/${n})` });
-        if (Object.keys(ang).length === 1 && n > 2) alerts.push({ nivel: 'warn', mensaje: 'Un solo ángulo' });
+        if (!enc.general && !enc.entero) {
+          alerts.push({ nivel: 'warn', mensaje: 'Sin plano de establecimiento' });
+        }
+        const np = (enc.primer ?? 0) + (enc.primerisimo ?? 0);
+        if (np / n > 0.7 && n > 3) {
+          alerts.push({ nivel: 'warn', mensaje: `Exceso de primeros (${np}/${n})` });
+        }
+        if (Object.keys(ang).length === 1 && n > 2) {
+          alerts.push({ nivel: 'warn', mensaje: 'Un solo ángulo' });
+        }
       }
-      out[id] = { escenaId: id, n, porEncuadre: enc, porAngulo: ang, porMovimiento: mov, alertas: alerts };
+
+      out[id] = {
+        escenaId: id, n,
+        porEncuadre: enc, porAngulo: ang, porMovimiento: mov,
+        alertas: alerts
+      };
+    }
+    return out;
+  }
+};
+
+/* ─────────────────────────────────────────────────────────────────────
+   VISTA 5 · ESTILO VISUAL
+   Detecta dos problemas:
+     1. Un plano usa un estilo distinto al resto de la escena sin
+        marcarlo como intencionado. Puede ser un error o un cambio
+        deliberado; el sistema avisa.
+     2. La escena mezcla estilos que no deberían combinarse (teatro
+        griego + cel-shading, por ejemplo). Eso rompe la coherencia
+        visual del output generado.
+   ───────────────────────────────────────────────────────────────────── */
+const VistaEstilo = {
+  id: 'estilo',
+  init: () => ({ planos: {}, porEscena: {} }),
+
+  apply: (estado, evento) => {
+    const r = aplicarEventoPlanoBase(estado, evento);
+    if (!r) return estado;
+    for (const id of r.escenasAfectadas) reconstruirEscena(estado, id);
+    return estado;
+  },
+
+  result: (estado) => {
+    const out = {};
+    for (const id of Object.keys(estado.porEscena)) {
+      const ids = estado.porEscena[id] ?? [];
+      const estilos = {};
+      for (const i of ids) {
+        const p = estado.planos[i];
+        if (!p || !p.estilo) continue;
+        estilos[p.estilo] = (estilos[p.estilo] ?? 0) + 1;
+      }
+
+      const alertas = [];
+      const dominante = Object.entries(estilos).sort((a,b) => b[1] - a[1])[0];
+      if (dominante) {
+        const [estiloDom, countDom] = dominante;
+        const total = Object.values(estilos).reduce((a, b) => a + b, 0);
+        // Si hay más de un estilo y el dominante no es aplastante, avisar
+        if (Object.keys(estilos).length > 1) {
+          const minoritarios = Object.entries(estilos)
+            .filter(([k]) => k !== estiloDom)
+            .map(([k, v]) => `${k}: ${v}`);
+          alertas.push({
+            nivel: 'warn',
+            mensaje: `Escena con ${Object.keys(estilos).length} estilos. ` +
+                     `Dominante: ${estiloDom} (${countDom}/${total}). ` +
+                     `Minoritarios: ${minoritarios.join(', ')}`
+          });
+        }
+      }
+
+      out[id] = { escenaId: id, n: ids.length, estilos, alertas };
     }
     return out;
   }
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
-   GENERADOR DE PROMPTS (idéntico)
+   SECCIÓN 5 · GENERADOR DE PROMPTS
+   ───────────────────────────────────────────────────────────────────────
+   Función pura que traduce un plano a:
+     - prompt positivo (inglés, formato Runway/Pika/Kling/Sora)
+     - negative prompt (base + específico por intención + específico por estilo)
+     - parámetros sugeridos (duración, aspect, focal, motion, seed)
+     - notas de continuidad (avisos para el humano, no para el modelo)
    ═══════════════════════════════════════════════════════════════════════ */
 
+/* Contexto global de todos los prompts */
 const CONTEXTO_GLOBAL = {
   style: 'cinematic film still, photorealistic, 35mm film grain, anamorphic',
-  aspectRatio: '16:9', resolution: '1080p', fps: 24,
-  negativeBase: ['low quality','blurry','distorted','deformed','watermark','text',
-                 'subtitle','logo','frame border','bad anatomy','cartoonish','oversaturated']
+  aspectRatio: '16:9',
+  resolution: '1080p',
+  fps: 24,
+  negativeBase: [
+    'low quality', 'blurry', 'distorted', 'deformed', 'watermark',
+    'text', 'subtitle', 'logo', 'frame border', 'bad anatomy',
+    'cartoonish', 'oversaturated'
+  ]
 };
 
-const ENCUADRE_PROMPT = { general:'wide establishing shot, vast landscape visible',
-  entero:'full body shot, character visible head to toe',
-  medio:'medium shot, subject framed from waist up',
-  primer:'close-up shot, subject face fills frame',
-  primerisimo:'extreme close-up, intense detail on face or object' };
-const ANGULO_PROMPT = { normal:'eye-level camera', picado:'high-angle shot looking down',
-  contrapicado:'low-angle shot looking up', holandes:'dutch angle, tilted horizon' };
-const MOVIMIENTO_PROMPT = { estatico:'static locked-off camera', pan:'slow horizontal pan',
-  tilt:'vertical tilt movement', travelling:'smooth dolly travelling shot',
-  handheld:'handheld camera, subtle organic shake', grua:'crane shot, sweeping vertical movement' };
-const INTENCION_PROMPT = { establecer:'natural ambient light, wide context, establishing atmosphere',
-  intimidad:'warm soft lighting, shallow depth of field, intimate atmosphere',
-  tension:'harsh directional light, high contrast, tense atmosphere, hard shadows',
-  epica:'dramatic golden hour lighting, epic scale, heroic atmosphere',
-  misterio:'low-key lighting, deep shadows, mysterious atmosphere',
-  comedia:'bright even lighting, saturated playful colors, light atmosphere',
-  duelo:'somber desaturated muted tones, melancholic atmosphere',
-  amenaza:'cold blue light, sharp angles, threatening atmosphere' };
-const SUJETO_MAP = { 'héroe':'the hero','heroe':'the hero','hero':'the hero',
-  'villano':'the villain','villain':'the villain','antihéroe':'the anti-hero',
-  'antiheroe':'the anti-hero','trickster':'the trickster','sombra':'the shadow',
-  'guía':'the guide','guia':'the guide','mentor':'the mentor',
-  'niño':'the child','nino':'the child','anciano':'the elder',
-  'mujer':'the woman','hombre':'the man' };
+/* Mapas de traducción: campo del plano → fragmento de prompt */
+const ENCUADRE_PROMPT = {
+  general: 'wide establishing shot, vast landscape visible',
+  entero: 'full body shot, character visible head to toe',
+  medio: 'medium shot, subject framed from waist up',
+  primer: 'close-up shot, subject face fills frame',
+  primerisimo: 'extreme close-up, intense detail on face or object'
+};
+const ANGULO_PROMPT = {
+  normal: 'eye-level camera',
+  picado: 'high-angle shot looking down',
+  contrapicado: 'low-angle shot looking up',
+  holandes: 'dutch angle, tilted horizon'
+};
+const MOVIMIENTO_PROMPT = {
+  estatico: 'static locked-off camera',
+  pan: 'slow horizontal pan',
+  tilt: 'vertical tilt movement',
+  travelling: 'smooth dolly travelling shot',
+  handheld: 'handheld camera, subtle organic shake',
+  grua: 'crane shot, sweeping vertical movement'
+};
+const INTENCION_PROMPT = {
+  establecer: 'natural ambient light, wide context, establishing atmosphere',
+  intimidad: 'warm soft lighting, shallow depth of field, intimate atmosphere',
+  tension: 'harsh directional light, high contrast, tense atmosphere, hard shadows',
+  epica: 'dramatic golden hour lighting, epic scale, heroic atmosphere',
+  misterio: 'low-key lighting, deep shadows, mysterious atmosphere',
+  comedia: 'bright even lighting, saturated playful colors, light atmosphere',
+  duelo: 'somber desaturated muted tones, melancholic atmosphere',
+  amenaza: 'cold blue light, sharp angles, threatening atmosphere',
+  trickster_hubris: 'mischievous tension, playful danger, ironic contrast',
+  mythic_sorrow: 'ancient grief, monumental stillness, timeless sorrow'
+};
+const SUJETO_MAP = {
+  'héroe': 'the hero', 'heroe': 'the hero', 'hero': 'the hero',
+  'villano': 'the villain', 'villain': 'the villain',
+  'antihéroe': 'the anti-hero', 'antiheroe': 'the anti-hero',
+  'trickster': 'the trickster', 'sombra': 'the shadow',
+  'guía': 'the guide', 'guia': 'the guide', 'guide': 'the guide',
+  'mentor': 'the mentor', 'niño': 'the child', 'nino': 'the child',
+  'anciano': 'the elder', 'mujer': 'the woman', 'hombre': 'the man',
+  'odiseo': 'Odysseus', 'ulises': 'Ulysses', 'polifemo': 'Polyphemus',
+  'aquiles': 'Achilles', 'penelope': 'Penelope', 'atenea': 'Athena',
+  'poseidon': 'Poseidon', 'circe': 'Circe', 'calipso': 'Calypso',
+  'sirena': 'the siren', 'sirenas': 'the sirens'
+};
 
 function traducirSujeto(s) {
   if (!s) return 'a character';
-  return SUJETO_MAP[s.toLowerCase().trim()] || s;
+  const key = s.toLowerCase().trim();
+  return SUJETO_MAP[key] || s;
 }
+
+/** Hash determinista para generar seeds reproducibles. */
 function hashString(s) {
   let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h<<5)-h+s.charCodeAt(i))|0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
   return Math.abs(h) % 2147483647;
 }
 
+/**
+ * Genera el prompt completo de un plano.
+ * @param {Object} plano - el plano con sus campos
+ * @param {Object} contexto - { anterior: planoAnterior | null }
+ * @returns {Object} { ok, planoId, prompt, negativePrompt, suggestedParams, notas }
+ */
 function generarPrompt(plano, contexto = {}) {
-  if (!plano?.sujeto) return { ok: false, error: 'plano sin sujeto', planoId: plano?.id };
-  const partes = [];
-  partes.push(`${ENCUADRE_PROMPT[plano.encuadre] || ENCUADRE_PROMPT.medio} of ${traducirSujeto(plano.sujeto)}`);
-  partes.push(ANGULO_PROMPT[plano.angulo] || ANGULO_PROMPT.normal);
-  if (plano.intencion && INTENCION_PROMPT[plano.intencion]) partes.push(INTENCION_PROMPT[plano.intencion]);
-  if (Array.isArray(plano.paleta) && plano.paleta.length) {
-    partes.push(`color palette anchored on ${plano.paleta.slice(0,3).join(' and ')}`);
+  if (!plano?.sujeto) {
+    return { ok: false, error: 'plano sin sujeto', planoId: plano?.id };
   }
-  if (plano.movimiento && MOVIMIENTO_PROMPT[plano.movimiento]) partes.push(MOVIMIENTO_PROMPT[plano.movimiento]);
+
+  const partes = [];
+
+  // ─── Estilo visual ───────────────────────────────────────────────
+  // El bloque de estilo va PRIMERO. Si no se repite en cada prompt,
+  // el modelo deriva hacia fotorrealismo por defecto.
+  const estilo = ESTILO_PROMPT[plano.estilo] || ESTILO_PROMPT.teatro_griego;
+  partes.push(estilo.positivo);
+
+  // ─── Encuadre + sujeto ───────────────────────────────────────────
+  const enc = ENCUADRE_PROMPT[plano.encuadre] || ENCUADRE_PROMPT.medio;
+  const suj = traducirSujeto(plano.sujeto);
+  partes.push(`${enc} of ${suj}`);
+
+  // ─── Ángulo ──────────────────────────────────────────────────────
+  partes.push(ANGULO_PROMPT[plano.angulo] || ANGULO_PROMPT.normal);
+
+  // ─── Intención / mood ────────────────────────────────────────────
+  if (plano.intencion && INTENCION_PROMPT[plano.intencion]) {
+    partes.push(INTENCION_PROMPT[plano.intencion]);
+  }
+
+  // ─── Paleta ──────────────────────────────────────────────────────
+  if (Array.isArray(plano.paleta) && plano.paleta.length) {
+    partes.push(`color palette anchored on ${plano.paleta.slice(0, 3).join(' and ')}`);
+  }
+
+  // ─── Movimiento ──────────────────────────────────────────────────
+  if (plano.movimiento && MOVIMIENTO_PROMPT[plano.movimiento]) {
+    partes.push(MOVIMIENTO_PROMPT[plano.movimiento]);
+  }
+
+  // ─── Focal ───────────────────────────────────────────────────────
   if (plano.focal) partes.push(`shot on ${plano.focal}mm lens`);
+
+  // ─── Estilo cinematográfico global ───────────────────────────────
   partes.push(CONTEXTO_GLOBAL.style);
 
+  const prompt = partes.join(', ');
+
+  // ─── Negative prompt ─────────────────────────────────────────────
+  // Base + específicos por intención + específicos por estilo
   const negs = new Set(CONTEXTO_GLOBAL.negativeBase);
-  if (plano.intencion === 'tension' || plano.intencion === 'amenaza') { negs.add('cheerful colors'); negs.add('soft focus'); }
+
+  if (plano.intencion === 'tension' || plano.intencion === 'amenaza') {
+    negs.add('cheerful colors'); negs.add('soft focus');
+  }
   if (plano.intencion === 'intimidad') negs.add('harsh shadows');
   if (plano.intencion === 'duelo') negs.add('vibrant colors');
   if (plano.intencion === 'misterio') negs.add('bright even lighting');
   if (plano.intencion === 'comedia') negs.add('dark shadows');
 
-  const motionIntensity = plano.movimiento === 'estatico' ? 'low'
+  // Negativos específicos del estilo
+  for (const n of estilo.negativo.split(',')) negs.add(n.trim());
+
+  // ─── Parámetros sugeridos ────────────────────────────────────────
+  const motionIntensity = plano.movimiento === 'estatico'
+    ? 'low'
     : plano.movimiento === 'handheld' ? 'high' : 'medium';
 
   const suggestedParams = {
     duration: plano.duracion ?? 5,
     aspectRatio: contexto.aspectRatio ?? CONTEXTO_GLOBAL.aspectRatio,
-    resolution: CONTEXTO_GLOBAL.resolution, fps: CONTEXTO_GLOBAL.fps,
+    resolution: CONTEXTO_GLOBAL.resolution,
+    fps: estilo.fps ?? CONTEXTO_GLOBAL.fps,
     focalLength: plano.focal ?? 35,
     cameraMotion: plano.movimiento ?? 'estatico',
-    motionIntensity, style: CONTEXTO_GLOBAL.style,
+    motionIntensity,
+    style: estilo.positivo,
     seed: hashString(plano.id ?? 'default')
   };
 
+  // ─── Notas de continuidad ────────────────────────────────────────
+  // Estas notas NO son parte del prompt. Son avisos para el humano
+  // sobre riesgos de coherencia respecto al plano anterior.
   const notas = [];
   if (contexto.anterior) {
     const a = contexto.anterior;
-    if (a.permiteCruce === false && plano.eje != null && a.eje != null && plano.eje !== a.eje)
+
+    if (a.permiteCruce === false && plano.eje != null &&
+        a.eje != null && plano.eje !== a.eje) {
       notas.push('⚠️ Mantener dirección de pantalla del plano anterior (eje 180°)');
-    if (a.sujeto === plano.sujeto && a.eyeline != null && plano.eyeline != null
-        && a.eyeline * plano.eyeline < 0)
+    }
+    if (a.sujeto === plano.sujeto && a.eyeline != null && plano.eyeline != null &&
+        a.eyeline * plano.eyeline < 0) {
       notas.push('⚠️ Eyeline invertido respecto al plano anterior');
-    if (a.intencion && plano.intencion && a.intencion !== plano.intencion)
+    }
+    if (a.intencion && plano.intencion && a.intencion !== plano.intencion) {
       notas.push(`Cambio de intención: ${a.intencion} → ${plano.intencion}`);
+    }
     if (a.paleta && plano.paleta) {
       const d = distanciaPaleta(a.paleta, plano.paleta);
-      if (d > 0.5) notas.push(`Salto cromático respecto al plano anterior (${(d*100).toFixed(0)}%)`);
+      if (d > 0.5) {
+        notas.push(`Salto cromático respecto al plano anterior (${(d*100).toFixed(0)}%)`);
+      }
+    }
+    if (a.estilo && plano.estilo && a.estilo !== plano.estilo) {
+      notas.push(`⚠️ Cambio de estilo: ${a.estilo} → ${plano.estilo}`);
     }
   }
 
-  return { ok: true, planoId: plano.id, prompt: partes.join(', '),
-           negativePrompt: [...negs].join(', '), suggestedParams, notas };
+  return {
+    ok: true,
+    planoId: plano.id,
+    prompt,
+    negativePrompt: [...negs].join(', '),
+    suggestedParams,
+    notas
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   MINI-CORE
+   SECCIÓN 6 · MINI-CORE (event sourcing)
+   ───────────────────────────────────────────────────────────────────────
+   Guarda el log de eventos y mantiene el estado de las 5 vistas.
+   Cada append aplica el evento a TODAS las vistas.
    ═══════════════════════════════════════════════════════════════════════ */
 
 class MiniCore {
@@ -463,6 +981,7 @@ class MiniCore {
     this.eventos = [];
     for (const v of vistas) this.estados.set(v.id, v.init());
   }
+
   append(evento) {
     this.eventos.push(evento);
     for (const v of this.vistas) {
@@ -470,26 +989,41 @@ class MiniCore {
       this.estados.set(v.id, v.apply(e, evento));
     }
   }
-  resultado(id) {
-    const v = this.vistas.find(x => x.id === id);
+
+  resultado(vistaId) {
+    const v = this.vistas.find(x => x.id === vistaId);
     return v ? v.result(this.estados.get(v.id)) : null;
+  }
+
+  /** Historial de eventos de un plano concreto. */
+  historialDe(planoId) {
+    return this.eventos.filter(e => e.entidadId === planoId);
   }
 }
 
-const VISTAS = [VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura];
+/* Instancia global del core con las 5 vistas */
+const VISTAS = [VistaContinuidad, VistaRitmo, VistaPaleta, VistaCobertura, VistaEstilo];
 let core = new MiniCore(VISTAS);
-let editingId = null;
-let promptCache = {};
+let editingId = null;   // id del plano que se está editando (null = nuevo)
+let promptCache = {};   // planoId → resultado de generarPrompt
 
 /* ═══════════════════════════════════════════════════════════════════════
-   FORMULARIO · generado desde el schema
+   SECCIÓN 7 · FORMULARIO GENERADO DESDE EL SCHEMA
+   ───────────────────────────────────────────────────────────────────────
+   renderForm() recorre PLANO_SCHEMA y dibuja un control por campo.
+   readFormValues() lee los valores del formulario.
+   fillForm(plano) rellena el formulario con los datos de un plano.
+   clearForm() resetea el formulario a los defaults del schema.
    ═══════════════════════════════════════════════════════════════════════ */
 
 function renderForm() {
   const form = document.getElementById('planForm');
   form.innerHTML = '';
   for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
-    if (def.tipo === 'paleta') { form.appendChild(renderPaletaField(def)); continue; }
+    if (def.tipo === 'paleta') {
+      form.appendChild(renderPaletaField(def));
+      continue;
+    }
     const row = document.createElement('div');
     row.className = 'form-row';
     const label = document.createElement('label');
@@ -542,7 +1076,6 @@ function renderPaletaField(def) {
   addBtn.style.marginTop = '4px';
   addBtn.onclick = () => addPaletteRow('#c97a3a');
   wrap.appendChild(addBtn);
-  // Initialize with defaults
   if (def.default) for (const hex of def.default) addPaletteRow(hex);
   return wrap;
 }
@@ -568,7 +1101,8 @@ function readFormValues() {
   const values = {};
   for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
     if (def.tipo === 'paleta') {
-      values[key] = [...document.querySelectorAll('#paletteRows input[type=color]')].map(i => i.value);
+      values[key] = [...document.querySelectorAll('#paletteRows input[type=color]')]
+        .map(i => i.value);
       continue;
     }
     const input = document.getElementById('form_' + key);
@@ -606,10 +1140,14 @@ function clearForm() {
   document.getElementById('editorMode').className = 'pill';
   document.getElementById('btnDuplicate').disabled = true;
   document.getElementById('btnDelete').disabled = true;
+
   for (const [key, def] of Object.entries(PLANO_SCHEMA)) {
     if (def.tipo === 'paleta') {
       const rows = document.getElementById('paletteRows');
-      if (rows) { rows.innerHTML = ''; for (const hex of (def.default || [])) addPaletteRow(hex); }
+      if (rows) {
+        rows.innerHTML = '';
+        for (const hex of (def.default || [])) addPaletteRow(hex);
+      }
       continue;
     }
     const input = document.getElementById('form_' + key);
@@ -618,7 +1156,8 @@ function clearForm() {
     else if (def.default !== undefined) input.value = def.default;
     else input.value = '';
   }
-  // Auto-fill next order
+
+  // Auto-rellenar orden con max+1
   const planos = Object.values(core.resultado('continuidad').planos);
   const maxOrden = planos.reduce((m, p) => Math.max(m, p.orden ?? 0), 0);
   document.getElementById('form_orden').value = maxOrden + 1;
@@ -638,10 +1177,19 @@ function validateForm(values) {
   return errors;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   SECCIÓN 8 · OPERACIONES DEL EDITOR (crear, editar, duplicar, eliminar)
+   ───────────────────────────────────────────────────────────────────────
+   Cada operación emite eventos inmutables al MiniCore.
+   La edición emite un campo_modificado POR CADA CAMPO CAMBIADO, para
+   mantener trazabilidad campo a campo.
+   ═══════════════════════════════════════════════════════════════════════ */
+
 function saveForm() {
   const values = readFormValues();
   const errors = validateForm(values);
   const status = document.getElementById('formStatus');
+
   if (errors.length) {
     status.textContent = '❌ ' + errors.join(' · ');
     status.className = 'status err';
@@ -649,30 +1197,45 @@ function saveForm() {
   }
 
   if (editingId) {
+    // ── Editar: emitir campo_modificado por cada campo cambiado ──
     const original = core.resultado('continuidad').planos[editingId];
     if (!original) { clearForm(); return; }
+
     let cambios = 0;
     for (const [key, v] of Object.entries(values)) {
       if (JSON.stringify(original[key]) === JSON.stringify(v)) continue;
       core.append({
-        id: 'ev_' + editingId + '_' + key + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
-        entidad: 'plano', entidadId: editingId,
-        tipo: 'campo_modificado', campo: key, de: original[key], a: v,
-        ts: new Date().toISOString(), actor: 'usuario', version: 1
+        id: 'ev_' + editingId + '_' + key + '_' + Date.now() + '_' +
+            Math.random().toString(36).slice(2, 6),
+        entidad: 'plano',
+        entidadId: editingId,
+        tipo: 'campo_modificado',
+        campo: key,
+        de: original[key],
+        a: v,
+        ts: new Date().toISOString(),
+        actor: 'usuario',
+        version: 1
       });
       cambios++;
     }
     status.textContent = cambios
-      ? `✅ Plano ${editingId} actualizado (${cambios} cambio${cambios>1?'s':''})`
+      ? `✅ Plano ${editingId} actualizado (${cambios} cambio${cambios > 1 ? 's' : ''})`
       : '⏸ Sin cambios';
     status.className = 'status ok';
   } else {
+    // ── Crear: emitir plano_creado con el plano completo ──
     const id = 'P' + Date.now().toString(36).slice(-6);
     const plano = { ...values, id };
     core.append({
-      id: 'ev_' + id, entidad: 'plano', entidadId: id,
-      tipo: 'plano_creado', campo: null, de: null, a: plano,
-      ts: new Date().toISOString(), actor: 'usuario', version: 1
+      id: 'ev_' + id,
+      entidad: 'plano',
+      entidadId: id,
+      tipo: 'plano_creado',
+      campo: null, de: null, a: plano,
+      ts: new Date().toISOString(),
+      actor: 'usuario',
+      version: 1
     });
     editingId = id;
     document.getElementById('editorMode').textContent = 'Editando: ' + id;
@@ -690,9 +1253,13 @@ function deletePlan() {
   if (!confirm(`¿Eliminar plano ${editingId}?`)) return;
   core.append({
     id: 'ev_del_' + editingId + '_' + Date.now(),
-    entidad: 'plano', entidadId: editingId,
-    tipo: 'plano_eliminado', campo: null, de: null, a: null,
-    ts: new Date().toISOString(), actor: 'usuario', version: 1
+    entidad: 'plano',
+    entidadId: editingId,
+    tipo: 'plano_eliminado',
+    campo: null, de: null, a: null,
+    ts: new Date().toISOString(),
+    actor: 'usuario',
+    version: 1
   });
   clearForm();
   render();
@@ -707,9 +1274,14 @@ function duplicatePlan() {
   const maxOrden = planos.reduce((m, p) => Math.max(m, p.orden ?? 0), 0);
   const copia = { ...original, id, orden: maxOrden + 1 };
   core.append({
-    id: 'ev_' + id, entidad: 'plano', entidadId: id,
-    tipo: 'plano_creado', campo: null, de: null, a: copia,
-    ts: new Date().toISOString(), actor: 'usuario', version: 1
+    id: 'ev_' + id,
+    entidad: 'plano',
+    entidadId: id,
+    tipo: 'plano_creado',
+    campo: null, de: null, a: copia,
+    ts: new Date().toISOString(),
+    actor: 'usuario',
+    version: 1
   });
   editingId = id;
   fillForm(copia);
@@ -723,11 +1295,17 @@ function duplicatePlan() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   UI
+   SECCIÓN 9 · RENDERIZADO DE PANELES
+   ───────────────────────────────────────────────────────────────────────
+   render() llama a todos los renders. Cada uno lee del MiniCore y
+   actualiza su panel. No hay estado duplicado en la UI: todo se deriva
+   del log de eventos.
    ═══════════════════════════════════════════════════════════════════════ */
 
 function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
 }
 
 function getPlanosOrdenados() {
@@ -741,6 +1319,7 @@ function render() {
   renderRitmo();
   renderPaleta();
   renderCobertura();
+  renderEstilo();
   renderPrompts();
 }
 
@@ -748,17 +1327,28 @@ function renderLista() {
   const cont = document.getElementById('listaShots');
   const planos = getPlanosOrdenados();
   document.getElementById('shotCount').textContent = planos.length + ' planos';
-  if (!planos.length) { cont.innerHTML = '<div class="empty">Sin planos. Crea uno arriba.</div>'; return; }
+
+  if (!planos.length) {
+    cont.innerHTML = '<div class="empty">Sin planos. Crea uno arriba.</div>';
+    return;
+  }
+
   cont.innerHTML = planos.map(p => `
     <div class="shot ${editingId === p.id ? 'selected' : ''}" data-id="${esc(p.id)}">
       <div class="line">
         <strong>${esc(p.id)}</strong>
         <span class="meta">${esc(p.encuadre)} · ${esc(p.angulo)} · ${p.duracion}s</span>
       </div>
-      <div class="meta">${esc(p.sujeto)} · ${esc(p.intencion)} · eje ${p.eje}° · eyeline ${p.eyeline}</div>
-      <div class="swatches">${(p.paleta || []).map(h => `<span style="background:${esc(h)}"></span>`).join('')}</div>
+      <div class="meta">
+        ${esc(p.sujeto)} · ${esc(p.intencion)} · eje ${p.eje}° · eyeline ${p.eyeline}
+        <span class="estilo-tag">${esc(p.estilo || '—')}</span>
+      </div>
+      <div class="swatches">
+        ${(p.paleta || []).map(h => `<span style="background:${esc(h)}"></span>`).join('')}
+      </div>
     </div>
   `).join('');
+
   cont.querySelectorAll('.shot').forEach(el => {
     el.onclick = () => {
       const plano = core.resultado('continuidad').planos[el.dataset.id];
@@ -778,7 +1368,10 @@ function renderLista() {
 function renderContinuidad() {
   const cont = document.getElementById('vContinuidad');
   const v = core.resultado('continuidad').violaciones;
-  if (!v.length) { cont.innerHTML = '<div class="alert info">Sin violaciones.</div>'; return; }
+  if (!v.length) {
+    cont.innerHTML = '<div class="alert info">Sin violaciones de eje ni eyeline.</div>';
+    return;
+  }
   cont.innerHTML = v.map(x => `<div class="alert ${x.severidad}">
     <span class="pill ${x.severidad}">${esc(x.tipo)}</span>${esc(x.mensaje)}
   </div>`).join('');
@@ -800,20 +1393,28 @@ function renderRitmo() {
 function renderPaleta() {
   const cont = document.getElementById('vPaleta');
   const r = core.resultado('paleta').S1;
-  if (!r || !r.transiciones.length) { cont.innerHTML = '<div class="alert info">Sin transiciones.</div>'; return; }
+  if (!r || !r.transiciones.length) {
+    cont.innerHTML = '<div class="alert info">Sin transiciones.</div>';
+    return;
+  }
   cont.innerHTML = r.transiciones.map(t => `
-    <div class="kv"><span class="k">${esc(t.desde)} → ${esc(t.hasta)}</span>
-    <span class="v">${t.distancia}% · ${esc(t.intencionA||'')}→${esc(t.intencionB||'')}</span></div>
-    <div class="bar"><div style="width:${Math.min(100,t.distancia)}%"></div></div>
-  `).join('') + r.alertas.map(a => `<div class="alert warn">${esc(a.desde)} → ${esc(a.hasta)}: ${esc(a.mensaje)}</div>`).join('');
+    <div class="kv">
+      <span class="k">${esc(t.desde)} → ${esc(t.hasta)}</span>
+      <span class="v">${t.distancia}% · ${esc(t.intencionA || '')}→${esc(t.intencionB || '')}</span>
+    </div>
+    <div class="bar"><div style="width:${Math.min(100, t.distancia)}%"></div></div>
+  `).join('') + r.alertas.map(a =>
+    `<div class="alert warn">${esc(a.desde)} → ${esc(a.hasta)}: ${esc(a.mensaje)}</div>`
+  ).join('');
 }
 
 function renderCobertura() {
   const cont = document.getElementById('vCobertura');
   const r = core.resultado('cobertura').S1;
   if (!r) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
-  const list = (o) => Object.entries(o).map(([k,v]) =>
-    `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`).join('') || '<div class="empty">—</div>';
+  const list = (o) => Object.entries(o).map(([k, v]) =>
+    `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`
+  ).join('') || '<div class="empty">—</div>';
   cont.innerHTML = `
     <div class="kv"><span class="k">total</span><span class="v">${r.n}</span></div>
     <h3 style="margin-top:6px;">Encuadre</h3>${list(r.porEncuadre)}
@@ -823,29 +1424,54 @@ function renderCobertura() {
   `;
 }
 
+function renderEstilo() {
+  const cont = document.getElementById('vEstilo');
+  const r = core.resultado('estilo').S1;
+  if (!r) { cont.innerHTML = '<div class="empty">Sin datos.</div>'; return; }
+  const list = Object.entries(r.estilos).map(([k, v]) =>
+    `<div class="kv"><span class="k">${esc(k)}</span><span class="v">${v} planos</span></div>`
+  ).join('') || '<div class="empty">—</div>';
+  cont.innerHTML = `
+    ${list}
+    ${r.alertas.map(a => `<div class="alert ${a.nivel}">${esc(a.mensaje)}</div>`).join('')}
+  `;
+}
+
 function renderPrompts() {
   const cont = document.getElementById('vPrompts');
   const planos = getPlanosOrdenados();
   promptCache = {};
+
   if (!planos.length) {
     cont.innerHTML = '<div class="empty">Sin planos.</div>';
     document.getElementById('promptCount').textContent = '0 planos';
     return;
   }
+
   let html = '';
   for (let i = 0; i < planos.length; i++) {
     const p = planos[i];
-    const ctx = { anterior: i > 0 ? planos[i-1] : null };
+    const ctx = { anterior: i > 0 ? planos[i - 1] : null };
     const r = generarPrompt(p, ctx);
     promptCache[p.id] = r;
+
     if (!r.ok) {
-      html += `<div class="prompt-card"><div class="head"><strong>${esc(p.id)}</strong><span class="meta pill err">${esc(r.error)}</span></div></div>`;
+      html += `<div class="prompt-card">
+        <div class="head">
+          <strong>${esc(p.id)}</strong>
+          <span class="meta pill err">${esc(r.error)}</span>
+        </div>
+      </div>`;
       continue;
     }
+
     html += `
       <div class="prompt-card" data-id="${esc(p.id)}">
         <div class="head">
-          <div><strong>${esc(p.id)}</strong> <span class="meta">· ${esc(p.encuadre)} ${esc(p.angulo)} · ${p.duracion}s</span></div>
+          <div>
+            <strong>${esc(p.id)}</strong>
+            <span class="meta"> · ${esc(p.encuadre)} ${esc(p.angulo)} · ${p.duracion}s · ${esc(p.estilo)}</span>
+          </div>
           <button class="small primary copy-one" data-id="${esc(p.id)}">📋 Copiar</button>
         </div>
         <div class="label">Prompt</div>
@@ -855,16 +1481,21 @@ function renderPrompts() {
         <div class="params">
           <span>⏱ ${r.suggestedParams.duration}s</span>
           <span>📐 ${r.suggestedParams.aspectRatio}</span>
+          <span>🎞 ${r.suggestedParams.fps}fps</span>
           <span>🔍 ${r.suggestedParams.focalLength}mm</span>
-          <span>🎬 ${esc(r.suggestedParams.cameraMotion)}</span>
+          <span>🎬 ${esc(r.suggestedParams.cameraMotion)} (${r.suggestedParams.motionIntensity})</span>
           <span>🌱 ${r.suggestedParams.seed}</span>
         </div>
-        ${r.notas.length ? `<div class="notas">${r.notas.map(n => `· ${esc(n)}`).join('<br>')}</div>` : ''}
+        ${r.notas.length
+          ? `<div class="notas">${r.notas.map(n => `· ${esc(n)}`).join('<br>')}</div>`
+          : ''}
       </div>
     `;
   }
+
   cont.innerHTML = html;
   document.getElementById('promptCount').textContent = `${planos.length} planos`;
+
   cont.querySelectorAll('.copy-one').forEach(btn => {
     btn.onclick = async () => {
       const r = promptCache[btn.dataset.id];
@@ -882,43 +1513,22 @@ function formatPromptText(r) {
   return [
     'PROMPT:', r.prompt, '',
     'NEGATIVE:', r.negativePrompt, '',
-    `PARAMS: duration=${r.suggestedParams.duration}s, aspect=${r.suggestedParams.aspectRatio}, focal=${r.suggestedParams.focalLength}mm, motion=${r.suggestedParams.motionIntensity}, seed=${r.suggestedParams.seed}`,
+    `PARAMS: duration=${r.suggestedParams.duration}s, ` +
+    `aspect=${r.suggestedParams.aspectRatio}, ` +
+    `fps=${r.suggestedParams.fps}, ` +
+    `focal=${r.suggestedParams.focalLength}mm, ` +
+    `motion=${r.suggestedParams.motionIntensity}, ` +
+    `seed=${r.suggestedParams.seed}`,
     r.notas.length ? `\nNOTAS:\n${r.notas.map(n => '- ' + n).join('\n')}` : ''
   ].filter(Boolean).join('\n');
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   BOOT + DEMO + IMPORT/EXPORT
+   SECCIÓN 10 · EVENTOS DE UI (botones, import/export)
+   ───────────────────────────────────────────────────────────────────────
+   Todos los handlers están aquí. Nada de lógica de dominio: solo
+   orquestan llamadas a las funciones de las secciones anteriores.
    ═══════════════════════════════════════════════════════════════════════ */
-
-function cargarDemo() {
-  const calida = ['#c97a3a','#e0a060','#8a4a2a'];
-  const fria = ['#3a5a8a','#6a8ac0','#2a3a5a'];
-  const planos = [
-    { id:'P1', escenaId:'S1', orden:1, encuadre:'general', angulo:'normal',
-      movimiento:'estatico', focal:24, duracion:6.0, sujeto:'héroe',
-      intencion:'establecer', eje:0, eyeline:0, paleta:calida, permiteCruce:false },
-    { id:'P2', escenaId:'S1', orden:2, encuadre:'medio', angulo:'normal',
-      movimiento:'travelling', focal:35, duracion:4.0, sujeto:'héroe',
-      intencion:'intimidad', eje:0, eyeline:1, paleta:calida, permiteCruce:false },
-    { id:'P3', escenaId:'S1', orden:3, encuadre:'primer', angulo:'contrapicado',
-      movimiento:'estatico', focal:50, duracion:2.5, sujeto:'héroe',
-      intencion:'tension', eje:0, eyeline:1, paleta:calida, permiteCruce:false },
-    { id:'P4', escenaId:'S1', orden:4, encuadre:'medio', angulo:'normal',
-      movimiento:'estatico', focal:35, duracion:3.5, sujeto:'villano',
-      intencion:'tension', eje:180, eyeline:-1, paleta:fria, permiteCruce:true },
-    { id:'P5', escenaId:'S1', orden:5, encuadre:'primer', angulo:'normal',
-      movimiento:'handheld', focal:85, duracion:1.0, sujeto:'héroe',
-      intencion:'tension', eje:0, eyeline:1, paleta:calida, permiteCruce:false }
-  ];
-  for (const p of planos) {
-    core.append({
-      id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
-      tipo: 'plano_creado', campo: null, de: null, a: p,
-      ts: new Date().toISOString(), actor: 'demo', version: 1
-    });
-  }
-}
 
 document.getElementById('btnSave').onclick = saveForm;
 document.getElementById('btnNew').onclick = () => { clearForm(); render(); };
@@ -927,8 +1537,12 @@ document.getElementById('btnDuplicate').onclick = duplicatePlan;
 
 document.getElementById('btnExportJson').onclick = () => {
   const planos = getPlanosOrdenados();
-  const payload = { scene: 'S1', generated: new Date().toISOString(),
-                    globalContext: CONTEXTO_GLOBAL, planos };
+  const payload = {
+    scene: 'S1',
+    generated: new Date().toISOString(),
+    globalContext: CONTEXTO_GLOBAL,
+    planos
+  };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -952,9 +1566,14 @@ document.getElementById('importFile').onchange = (e) => {
       for (const p of planos) {
         if (!p.id) p.id = 'P' + Date.now().toString(36).slice(-6);
         core.append({
-          id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
-          tipo: 'plano_creado', campo: null, de: null, a: p,
-          ts: new Date().toISOString(), actor: 'import', version: 1
+          id: 'ev_' + p.id,
+          entidad: 'plano',
+          entidadId: p.id,
+          tipo: 'plano_creado',
+          campo: null, de: null, a: p,
+          ts: new Date().toISOString(),
+          actor: 'import',
+          version: 1
         });
       }
       document.getElementById('formStatus').textContent = `✅ ${planos.length} planos importados`;
@@ -982,7 +1601,8 @@ document.getElementById('btnCopyAllPrompts').onclick = async () => {
   const txt = planos.map(p => {
     const r = promptCache[p.id];
     if (!r?.ok) return `=== ${p.id} ===\n[error]`;
-    return `=== ${p.id} · ${p.encuadre} · ${p.angulo} · ${p.duracion}s ===\n${formatPromptText(r)}\n`;
+    return `=== ${p.id} · ${p.encuadre} · ${p.angulo} · ${p.duracion}s · ${p.estilo} ===\n` +
+           formatPromptText(r) + '\n';
   }).join('\n');
   try {
     await navigator.clipboard.writeText(txt);
@@ -994,9 +1614,12 @@ document.getElementById('btnCopyAllPrompts').onclick = async () => {
 
 document.getElementById('btnDownloadPrompts').onclick = () => {
   const planos = getPlanosOrdenados();
-  const payload = { scene: 'S1', generated: new Date().toISOString(),
-                    globalContext: CONTEXTO_GLOBAL,
-                    prompts: planos.map(p => promptCache[p.id]).filter(Boolean) };
+  const payload = {
+    scene: 'S1',
+    generated: new Date().toISOString(),
+    globalContext: CONTEXTO_GLOBAL,
+    prompts: planos.map(p => promptCache[p.id]).filter(Boolean)
+  };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1005,48 +1628,240 @@ document.getElementById('btnDownloadPrompts').onclick = () => {
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TESTS
+   SECCIÓN 11 · DEMO INICIAL
+   ───────────────────────────────────────────────────────────────────────
+   Carga 5 planos de ejemplo: escena de tensión con Odiseo y el villano.
+   El P4 es un cruce de eje intencionado (permiteCruce: true).
+   El estilo es teatro_griego en todos.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function cargarDemo() {
+  const calida = ['#c97a3a', '#e0a060', '#8a4a2a'];
+  const fria = ['#3a5a8a', '#6a8ac0', '#2a3a5a'];
+  const planos = [
+    { id: 'P1', escenaId: 'S1', orden: 1, encuadre: 'general', angulo: 'normal',
+      movimiento: 'estatico', focal: 24, duracion: 6.0, sujeto: 'odiseo',
+      intencion: 'establecer', eje: 0, eyeline: 0, permiteCruce: false,
+      estilo: 'teatro_griego', paleta: calida },
+    { id: 'P2', escenaId: 'S1', orden: 2, encuadre: 'medio', angulo: 'normal',
+      movimiento: 'travelling', focal: 35, duracion: 4.0, sujeto: 'odiseo',
+      intencion: 'intimidad', eje: 0, eyeline: 1, permiteCruce: false,
+      estilo: 'teatro_griego', paleta: calida },
+    { id: 'P3', escenaId: 'S1', orden: 3, encuadre: 'primer', angulo: 'contrapicado',
+      movimiento: 'estatico', focal: 50, duracion: 2.5, sujeto: 'odiseo',
+      intencion: 'trickster_hubris', eje: 0, eyeline: 1, permiteCruce: false,
+      estilo: 'teatro_griego', paleta: calida },
+    { id: 'P4', escenaId: 'S1', orden: 4, encuadre: 'medio', angulo: 'normal',
+      movimiento: 'estatico', focal: 35, duracion: 3.5, sujeto: 'polifemo',
+      intencion: 'amenaza', eje: 180, eyeline: -1, permiteCruce: true,
+      estilo: 'teatro_griego', paleta: fria },
+    { id: 'P5', escenaId: 'S1', orden: 5, encuadre: 'primer', angulo: 'normal',
+      movimiento: 'handheld', focal: 85, duracion: 1.0, sujeto: 'odiseo',
+      intencion: 'tension', eje: 0, eyeline: 1, permiteCruce: false,
+      estilo: 'teatro_griego', paleta: calida }
+  ];
+  for (const p of planos) {
+    core.append({
+      id: 'ev_' + p.id,
+      entidad: 'plano',
+      entidadId: p.id,
+      tipo: 'plano_creado',
+      campo: null, de: null, a: p,
+      ts: new Date().toISOString(),
+      actor: 'demo',
+      version: 1
+    });
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SECCIÓN 12 · TESTS
+   ───────────────────────────────────────────────────────────────────────
+   Tests puros: no tocan el DOM, no modifican el core global.
+   Cubren las 5 vistas, el generador de prompts, los mapas de estilo
+   y el schema.
    ═══════════════════════════════════════════════════════════════════════ */
 
 function runTests() {
   const out = document.getElementById('testsOut');
   let pass = 0, fail = 0;
-  const t = (name, fn) => {
-    try { fn(); pass++; out.innerHTML += `<div class="t"><span class="pill ok">PASS</span>${name}</div>`; }
-    catch (e) { fail++; out.innerHTML += `<div class="t"><span class="pill err">FAIL</span>${name}: ${e.message}</div>`; }
+
+  const t = (nombre, fn) => {
+    try { fn(); pass++; out.innerHTML +=
+      `<div class="t"><span class="pill ok">PASS</span>${nombre}</div>`; }
+    catch (e) { fail++; out.innerHTML +=
+      `<div class="t"><span class="pill err">FAIL</span>${nombre}: ${e.message}</div>`; }
   };
   const assert = (c, m) => { if (!c) throw new Error(m); };
-  const eq = (a, b, m) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m || ''} esperado ${JSON.stringify(b)}, recibido ${JSON.stringify(a)}`); };
+  const eq = (a, b, m) => {
+    if (JSON.stringify(a) !== JSON.stringify(b)) {
+      throw new Error(`${m || ''} esperado ${JSON.stringify(b)}, recibido ${JSON.stringify(a)}`);
+    }
+  };
 
-  const c = new MiniCore(VISTAS);
-  const evp = (p) => ({ id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
-                       tipo: 'plano_creado', campo: null, de: null, a: p, ts: new Date().toISOString() });
-  c.append(evp({ id:'A', escenaId:'S', orden:1, eje:0, duracion:2 }));
-  c.append(evp({ id:'B', escenaId:'S', orden:2, eje:180, duracion:4 }));
+  // Helper: crear un core temporal con eventos dados
+  const buildCore = (eventos) => {
+    const c = new MiniCore(VISTAS);
+    for (const ev of eventos) c.append(ev);
+    return c;
+  };
+  const evPlano = (p) => ({
+    id: 'ev_' + p.id, entidad: 'plano', entidadId: p.id,
+    tipo: 'plano_creado', campo: null, de: null, a: p,
+    ts: new Date().toISOString()
+  });
 
-  t('continuidad: cruce de eje detectado', () => {
+  /* ── CONTINUIDAD ───────────────────────────────────────────────── */
+  t('continuidad: eje 0 → 180 sin permiteCruce viola', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 180 })
+    ]);
     const v = c.resultado('continuidad').violaciones;
-    assert(v.length === 1 && v[0].tipo === 'eje', 'sin cruce');
+    assert(v.length === 1 && v[0].tipo === 'eje', `esperado 1 eje, hay ${v.length}`);
   });
 
+  t('continuidad: eje 0 → 180 con permiteCruce NO viola', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eje: 180, permiteCruce: true })
+    ]);
+    eq(c.resultado('continuidad').violaciones.length, 0);
+  });
+
+  t('continuidad: eyeline invertido mismo sujeto viola', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eyeline: 1, sujeto: 'odiseo' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, eyeline: -1, sujeto: 'odiseo' })
+    ]);
+    const v = c.resultado('continuidad').violaciones;
+    assert(v.some(x => x.tipo === 'eyeline'), 'sin violación eyeline');
+  });
+
+  /* ── RITMO ─────────────────────────────────────────────────────── */
   t('ritmo: media correcta', () => {
-    eq(c.resultado('ritmo').S.media, 3);
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 2 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 4 }),
+      evPlano({ id: 'C', escenaId: 'S', orden: 3, duracion: 6 })
+    ]);
+    const r = c.resultado('ritmo').S;
+    eq(r.total, 12); eq(r.media, 4); eq(r.min, 2); eq(r.max, 6);
   });
 
-  t('prompt: generado desde plano', () => {
-    const r = generarPrompt({ id:'X', sujeto:'héroe', encuadre:'primer',
-                              angulo:'contrapicado', intencion:'tension',
-                              duracion:3, focal:85, paleta:['#c97a3a'] });
-    assert(r.ok && r.prompt.includes('close-up') && r.prompt.includes('85mm'), 'prompt mal formado');
+  t('ritmo: alerta ritmo lento', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, duracion: 10 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, duracion: 12 })
+    ]);
+    assert(c.resultado('ritmo').S.alertas.some(a => a.mensaje.includes('lento')),
+      'sin alerta lento');
+  });
+
+  /* ── PALETA ────────────────────────────────────────────────────── */
+  t('paleta: salto sin cambio intención alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, paleta: ['#ff0000'], intencion: 'tension' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, paleta: ['#0000ff'], intencion: 'tension' })
+    ]);
+    assert(c.resultado('paleta').S.alertas.length >= 1, 'sin alerta');
+  });
+
+  t('paleta: cambio intención con salto NO alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, paleta: ['#ff0000'], intencion: 'tension' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, paleta: ['#0000ff'], intencion: 'intimidad' })
+    ]);
+    eq(c.resultado('paleta').S.alertas.length, 0);
+  });
+
+  /* ── COBERTURA ─────────────────────────────────────────────────── */
+  t('cobertura: sin general alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, encuadre: 'primer', angulo: 'normal' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, encuadre: 'medio', angulo: 'normal' })
+    ]);
+    assert(c.resultado('cobertura').S.alertas.some(a => a.mensaje.includes('establecimiento')),
+      'sin alerta');
+  });
+
+  /* ── ESTILO ────────────────────────────────────────────────────── */
+  t('estilo: escena con 1 estilo no alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, estilo: 'teatro_griego' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, estilo: 'teatro_griego' })
+    ]);
+    eq(c.resultado('estilo').S.alertas.length, 0);
+  });
+
+  t('estilo: escena mixta alerta', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, estilo: 'teatro_griego' }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2, estilo: 'cel_shading_anime' })
+    ]);
+    assert(c.resultado('estilo').S.alertas.length >= 1, 'sin alerta');
+  });
+
+  /* ── PROMPTS ───────────────────────────────────────────────────── */
+  t('prompt: plano completo genera ok', () => {
+    const r = generarPrompt({
+      id: 'X', sujeto: 'odiseo', encuadre: 'primer', angulo: 'contrapicado',
+      intencion: 'tension', movimiento: 'estatico', focal: 85,
+      duracion: 3, estilo: 'teatro_griego', paleta: ['#c97a3a', '#e0a060']
+    });
+    assert(r.ok, 'no generó');
+    assert(r.prompt.includes('close-up'), 'falta close-up');
+    assert(r.prompt.includes('Odysseus'), 'sujeto no traducido');
+    assert(r.prompt.includes('85mm'), 'falta focal');
+    assert(r.prompt.includes('#c97a3a'), 'falta paleta');
+    assert(r.prompt.includes('Greek theatre'), 'falta estilo');
+  });
+
+  t('prompt: sin sujeto falla', () => {
+    const r = generarPrompt({ id: 'X', encuadre: 'medio' });
+    assert(!r.ok, 'debería fallar');
+    eq(r.error, 'plano sin sujeto');
   });
 
   t('prompt: determinista', () => {
-    const p = { id:'X', sujeto:'h', encuadre:'medio', angulo:'normal' };
+    const p = { id: 'X', sujeto: 'odiseo', encuadre: 'medio', angulo: 'normal',
+                intencion: 'intimidad', focal: 35, estilo: 'teatro_griego' };
     eq(generarPrompt(p).prompt, generarPrompt(p).prompt);
+    eq(generarPrompt(p).negativePrompt, generarPrompt(p).negativePrompt);
   });
 
-  t('schema: 13 campos declarados', () => {
-    eq(Object.keys(PLANO_SCHEMA).length, 13);
+  t('prompt: negativo incluye base y estilo', () => {
+    const r = generarPrompt({
+      id: 'X', sujeto: 'odiseo', encuadre: 'medio', angulo: 'normal',
+      estilo: 'teatro_griego'
+    });
+    assert(r.negativePrompt.includes('low quality'), 'falta low quality');
+    assert(r.negativePrompt.includes('watermark'), 'falta watermark');
+    assert(r.negativePrompt.includes('subtle facial expression'),
+      'falta negativo del estilo teatro');
+  });
+
+  t('prompt: seed determinista por id', () => {
+    const r1 = generarPrompt({ id: 'PLANO_X', sujeto: 'a', encuadre: 'medio',
+                               angulo: 'normal', estilo: 'teatro_griego' });
+    const r2 = generarPrompt({ id: 'PLANO_X', sujeto: 'a', encuadre: 'medio',
+                               angulo: 'normal', estilo: 'teatro_griego' });
+    eq(r1.suggestedParams.seed, r2.suggestedParams.seed);
+    assert(r1.suggestedParams.seed > 0, 'seed positivo');
+  });
+
+  t('prompt: nota de cambio de estilo', () => {
+    const r = generarPrompt(
+      { id: 'B', sujeto: 'odiseo', encuadre: 'medio', angulo: 'normal',
+        estilo: 'pulp_flash_gordon' },
+      { anterior: { id: 'A', sujeto: 'odiseo', estilo: 'teatro_griego' } }
+    );
+    assert(r.notas.some(n => n.includes('estilo')), 'sin nota de estilo');
+  });
+
+  /* ── SCHEMA ────────────────────────────────────────────────────── */
+  t('schema: 14 campos declarados', () => {
+    eq(Object.keys(PLANO_SCHEMA).length, 14);
   });
 
   t('schema: todos con label y tipo', () => {
@@ -1056,11 +1871,83 @@ function runTests() {
     }
   });
 
-  out.innerHTML += `<div class="t" style="margin-top:8px;"><strong>${pass} pasan · ${fail} fallan</strong></div>`;
+  t('schema: estilo es enum con 10 opciones', () => {
+    eq(PLANO_SCHEMA.estilo.enum.length, 10);
+    assert(PLANO_SCHEMA.estilo.enum.includes('teatro_griego'), 'falta teatro_griego');
+    assert(PLANO_SCHEMA.estilo.enum.includes('pulp_flash_gordon'), 'falta pulp');
+  });
+
+  /* ── MAPAS DE ESTILO ───────────────────────────────────────────── */
+  t('estilos: los 10 tienen positivo y negativo', () => {
+    for (const [id, e] of Object.entries(ESTILO_PROMPT)) {
+      assert(e.positivo, `${id} sin positivo`);
+      assert(e.negativo, `${id} sin negativo`);
+      assert(e.motionIntensity, `${id} sin motionIntensity`);
+    }
+  });
+
+  t('estilos: todos los del schema están en ESTILO_PROMPT', () => {
+    for (const id of PLANO_SCHEMA.estilo.enum) {
+      assert(ESTILO_PROMPT[id], `${id} sin entrada en ESTILO_PROMPT`);
+    }
+  });
+
+  /* ── INTEGRACIÓN ───────────────────────────────────────────────── */
+  t('integración: prompt generado desde eventos del core', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, sujeto: 'odiseo',
+                encuadre: 'general', angulo: 'normal', duracion: 5,
+                estilo: 'teatro_griego' })
+    ]);
+    const planos = Object.values(c.resultado('continuidad').planos)
+      .sort((a, b) => a.orden - b.orden);
+    const r = generarPrompt(planos[0]);
+    assert(r.ok, 'fallo integración');
+    assert(r.prompt.includes('Odysseus'), 'falta sujeto');
+    assert(r.prompt.includes('Greek theatre'), 'falta estilo');
+  });
+
+  t('integración: edición emite campo_modificado y actualiza vistas', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1, eje: 0, duracion: 2 })
+    ]);
+    eq(c.resultado('ritmo').S.total, 2);
+    c.append({
+      id: 'ev_m', entidad: 'plano', entidadId: 'A',
+      tipo: 'campo_modificado', campo: 'duracion', de: 2, a: 8,
+      ts: new Date().toISOString()
+    });
+    eq(c.resultado('ritmo').S.total, 8);
+  });
+
+  t('integración: eliminar plano limpia estado', () => {
+    const c = buildCore([
+      evPlano({ id: 'A', escenaId: 'S', orden: 1 }),
+      evPlano({ id: 'B', escenaId: 'S', orden: 2 })
+    ]);
+    c.append({
+      id: 'ev_del', entidad: 'plano', entidadId: 'B',
+      tipo: 'plano_eliminado', ts: new Date().toISOString()
+    });
+    assert(!c.resultado('continuidad').planos.B, 'B sigue en planos');
+    eq(c.resultado('ritmo').S.n, 1);
+  });
+
+  /* ── RESUMEN ───────────────────────────────────────────────────── */
+  out.innerHTML += `<div class="t" style="margin-top:8px;font-weight:600;">` +
+    `${pass} pasan · ${fail} fallan</div>`;
+  console.log(`[tests] ${pass} pasan · ${fail} fallan`);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   INICIO
+   SECCIÓN 13 · BOOT
+   ───────────────────────────────────────────────────────────────────────
+   Orden de arranque:
+     1. Renderizar formulario (aún vacío)
+     2. Cargar demo (5 planos de ejemplo)
+     3. Limpiar formulario (deja el editor listo para nuevo plano)
+     4. Renderizar todos los paneles
+     5. Ejecutar tests
    ═══════════════════════════════════════════════════════════════════════ */
 
 renderForm();
