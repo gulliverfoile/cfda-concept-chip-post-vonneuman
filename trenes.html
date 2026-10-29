@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Simulador red ferroviaria · juguete</title>
+<style>
+  :root {
+    --bg:#0f1115; --fg:#e5e7eb; --muted:#9ca3af; --panel:#161922;
+    --border:#2a2f3a; --accent:#22d3ee; --warn:#f59e0b; --danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:ui-sans-serif,system-ui,sans-serif;
+    background:var(--bg);color:var(--fg);overflow:hidden}
+  #app{display:grid;grid-template-columns:1fr 400px;height:100vh}
+  #cv-wrap{position:relative;overflow:hidden}
+  #cv{display:block;width:100%;height:100%}
+  #panel{background:var(--panel);border-left:1px solid var(--border);
+    overflow-y:auto;padding:12px;font-size:13px}
+  #panel::-webkit-scrollbar{width:8px}
+  #panel::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:4px}
+  h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  h3{margin:12px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .row label{flex:1;color:var(--muted)}
+  .row input[type=range]{flex:2}
+  .row .val{min-width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px}
+  select,input[type=number],button{
+    background:#2a2f3a;color:var(--fg);border:1px solid var(--border);
+    padding:4px 8px;border-radius:4px;font-size:12px;font-family:inherit}
+  button{cursor:pointer}
+  button:hover{background:#353b4a}
+  button.primary{background:#1e3a5f;border-color:#2a4a7f}
+  button.primary:hover{background:#2a4a7f}
+  button.active{background:#1e3a5f;border-color:#2a4a7f}
+  .disclaimer{font-size:11px;color:var(--warn);padding:6px 8px;
+    border:1px solid var(--warn);border-radius:4px;margin-bottom:12px;
+    background:rgba(245,158,11,.08);line-height:1.4}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;
+    font-size:12px;padding:8px;background:#1c2030;border-radius:4px}
+  .stats dt{color:var(--muted);margin:0}
+  .stats dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+  hr{border:0;border-top:1px solid var(--border);margin:12px 0}
+  .node-info{padding:8px;background:#1c2030;border-radius:4px;font-size:12px;line-height:1.5}
+  .node-info .tag{display:inline-block;padding:1px 6px;border-radius:3px;
+    font-size:10px;margin-right:4px;text-transform:uppercase;color:#000}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0;font-size:11px}
+  .legend-item{display:flex;align-items:center;gap:4px}
+  .legend-swatch{width:10px;height:10px;border-radius:2px}
+  #toast{position:fixed;bottom:16px;left:16px;padding:8px 12px;
+    background:#1e3a5f;border:1px solid #2a4a7f;border-radius:6px;
+    font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.visible{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="cv-wrap"><canvas id="cv"></canvas></div>
+  <aside id="panel">
+    <div class="disclaimer">⚠️ Simulador exploratorio. Datos aproximados, sin contrastar. No es una predicción: es un juguete para razonar sobre diseño de red.</div>
+
+    <h2>Objetivo</h2>
+    <div class="row"><select id="sel-obj" style="flex:1"></select></div>
+    <div class="row">
+      <label>α distancia</label>
+      <input type="range" id="rng-alpha" min="0.8" max="2.5" step="0.1" value="1.5">
+      <span class="val" id="val-alpha">1.5</span>
+    </div>
+    <div class="row">
+      <label>Sinuosidad</label>
+      <input type="range" id="rng-sin" min="1" max="1.8" step="0.05" value="1.25">
+      <span class="val" id="val-sin">1.25</span>
+    </div>
+    <div class="row">
+      <label>Presupuesto</label>
+      <input type="range" id="rng-pres" min="0" max="100000" step="1000" value="20000">
+      <span class="val" id="val-pres">20.000 M€</span>
+    </div>
+    <div class="row">
+      <button class="primary" id="btn-build" style="flex:1">Construir óptimo</button>
+      <button id="btn-clear">Limpiar</button>
+    </div>
+
+    <hr>
+    <h2>Vista</h2>
+    <div class="row">
+      <button id="btn-hex" style="flex:1">Hex</button>
+      <button id="btn-geo" style="flex:1">Geográfico</button>
+    </div>
+    <div class="row"><label><input type="checkbox" id="cb-exist" checked> Mostrar red existente</label></div>
+    <div class="row"><label><input type="checkbox" id="cb-cand" checked> Mostrar candidatas (top 15)</label></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#1f2937"></div>Existente buena</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#4b5563"></div>Existente deficiente</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#ef4444"></div>Propuesta</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f59e0b"></div>Candidata</div>
+    </div>
+
+    <hr>
+    <h2>Costes reales</h2>
+    <dl class="stats" id="stats-costes"></dl>
+    <h2 style="margin-top:12px">Demanda</h2>
+    <dl class="stats" id="stats-demanda"></dl>
+
+    <hr>
+    <h2>Nodo seleccionado</h2>
+    <div id="node-info" class="node-info" style="color:var(--muted)">Click en un nodo para ver detalles.</div>
+  </aside>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+// Polyfill roundRect
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    this.beginPath();
+    this.moveTo(x+r,y);
+    this.lineTo(x+w-r,y); this.quadraticCurveTo(x+w,y,x+w,y+r);
+    this.lineTo(x+w,y+h-r); this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    this.lineTo(x+r,y+h); this.quadraticCurveTo(x,y+h,x,y+h-r);
+    this.lineTo(x,y+r); this.quadraticCurveTo(x,y,x+r,y);
+    this.closePath();
+  };
+}
+
+// ============================================================
+// 1. EVENT BUS
+// ============================================================
+class EventBus {
+  constructor(){ this.h = new Map(); }
+  on(ev, fn){ if(!this.h.has(ev)) this.h.set(ev, new Set()); this.h.get(ev).add(fn); return () => this.off(ev, fn); }
+  off(ev, fn){ this.h.get(ev)?.delete(fn); }
+  emit(ev, data){ this.h.get(ev)?.forEach(fn => fn(data)); }
+}
+const bus = new EventBus();
+
+// ============================================================
+// 2. DATOS
+// ============================================================
+const SECTORES = {
+  servicios:    { color:'#3b82f6', label:'Servicios' },
+  industrial:   { color:'#ef4444', label:'Industrial' },
+  naval:        { color:'#0ea5e9', label:'Naval' },
+  automocion:   { color:'#f59e0b', label:'Automoción' },
+  agro:         { color:'#22c55e', label:'Agroalim.' },
+  turismo:      { color:'#a855f7', label:'Turismo' },
+  logistica:    { color:'#f97316', label:'Logística' },
+  energia:      { color:'#eab308', label:'Energía' },
+  quimica:      { color:'#ec4899', label:'Química' },
+  aeroespacial: { color:'#06b6d4', label:'Aeroespacial' }
+};
+
+// [id, lat, lon, poblacion_millones, sectores]
+const NODOS_RAW = [
+  ['Madrid',40.42,-3.70,6.9,['servicios','logistica']],
+  ['Barcelona',41.39,2.17,5.8,['servicios','industrial','turismo']],
+  ['Valencia',39.47,-0.38,2.7,['logistica','agro']],
+  ['Alicante',38.35,-0.48,2.0,['turismo','agro']],
+  ['Sevilla',37.39,-5.98,1.95,['servicios','aeroespacial']],
+  ['Málaga',36.72,-4.42,1.75,['turismo','servicios']],
+  ['Murcia',37.99,-1.13,1.55,['agro','quimica']],
+  ['Cádiz',36.53,-6.29,1.25,['naval','logistica']],
+  ['Baleares',39.57,2.65,1.20,['turismo']],
+  ['Bizkaia',43.26,-2.93,1.15,['industrial','naval']],
+  ['Coruña',43.37,-8.40,1.12,['naval','servicios']],
+  ['Palmas',28.12,-15.43,1.15,['turismo']],
+  ['Asturias',43.36,-5.85,1.01,['energia','industrial']],
+  ['Zaragoza',41.65,-0.88,0.98,['logistica','automocion']],
+  ['Granada',37.18,-3.60,0.93,['servicios','agro']],
+  ['Pontevedra',42.24,-8.72,0.94,['automocion','naval']],
+  ['Santa Cruz de Tenerife',28.47,-16.25,1.05,['turismo']],
+  ['Córdoba',37.89,-4.78,0.77,['agro','energia']],
+  ['Gipuzkoa',43.32,-1.98,0.73,['industrial','servicios']],
+  ['Girona',41.98,2.82,0.80,['turismo','agro']],
+  ['Tarragona',41.12,1.25,0.85,['quimica','logistica']],
+  ['Almería',36.84,-2.46,0.75,['agro']],
+  ['Toledo',39.86,-4.03,0.72,['industrial','servicios']],
+  ['Cantabria',43.46,-3.81,0.59,['industrial','servicios']],
+  ['Castellón',39.99,-0.04,0.60,['agro','logistica']],
+  ['Ciudad Real',38.99,-3.93,0.49,['agro','energia']],
+  ['Badajoz',38.88,-6.97,0.66,['agro']],
+  ['Huelva',37.26,-6.94,0.53,['quimica','agro']],
+  ['Navarra',42.81,-1.64,0.67,['agro','automocion']],
+  ['Valladolid',41.65,-4.72,0.52,['automocion','agro']],
+  ['Jaén',37.77,-3.79,0.62,['agro']],
+  ['León',42.60,-5.57,0.45,['energia']],
+  ['Lleida',41.61,0.62,0.44,['agro','logistica']],
+  ['Lugo',43.01,-7.56,0.32,['agro','naval']],
+  ['Rioja',42.46,-2.45,0.32,['agro']],
+  ['Salamanca',40.96,-5.66,0.33,['servicios','agro']],
+  ['Burgos',42.34,-3.70,0.36,['agro','automocion']],
+  ['Cáceres',39.47,-6.37,0.39,['agro','energia']],
+  ['Albacete',38.99,-1.86,0.38,['agro','energia']],
+  ['Ourense',42.34,-7.86,0.31,['agro','energia']],
+  ['Álava',42.85,-2.67,0.33,['industrial','servicios']],
+  ['Ávila',40.66,-4.68,0.16,['agro','turismo']],
+  ['Guadalajara',40.63,-3.17,0.27,['logistica','servicios']],
+  ['Huesca',42.14,-0.41,0.22,['agro','turismo']],
+  ['Cuenca',40.07,-2.13,0.20,['energia','agro']],
+  ['Palencia',42.01,-4.53,0.16,['automocion','agro']],
+  ['Segovia',40.95,-4.12,0.15,['agro','turismo']],
+  ['Teruel',40.34,-1.11,0.13,['energia','agro']],
+  ['Zamora',41.50,-5.75,0.16,['agro','energia']],
+  ['Soria',41.76,-2.47,0.09,['agro','energia']],
+  ['Ceuta',35.89,-5.32,0.08,['servicios','logistica']],
+  ['Melilla',35.29,-2.94,0.09,['servicios','logistica']]
+];
+
+const NODOS = {};
+for (const [id,lat,lon,pob,sectores] of NODOS_RAW) {
+  NODOS[id] = { id, lat, lon, poblacion:pob, sectores,
+    isla: (id==='Baleares'||id==='Palmas'||id==='Santa Cruz de Tenerife'||id==='Ceuta'||id==='Melilla')
+  };
+}
+
+// Sinergia productiva (simétrica, 0-1)
+const SINERGIA_MAT = {
+  'servicios|servicios':0.10,'servicios|industrial':0.20,'servicios|naval':0.15,
+  'servicios|automocion':0.20,'servicios|agro':0.20,'servicios|turismo':0.30,
+  'servicios|logistica':0.60,'servicios|energia':0.20,'servicios|quimica':0.20,'servicios|aeroespacial':0.20,
+  'industrial|industrial':0.30,'industrial|naval':0.90,'industrial|automocion':0.85,
+  'industrial|agro':0.40,'industrial|turismo':0.10,'industrial|logistica':0.80,
+  'industrial|energia':0.70,'industrial|quimica':0.60,'industrial|aeroespacial':0.75,
+  'naval|naval':0.20,'naval|automocion':0.70,'naval|agro':0.10,'naval|turismo':0.10,
+  'naval|logistica':0.75,'naval|energia':0.40,'naval|quimica':0.50,'naval|aeroespacial':0.60,
+  'automocion|automocion':0.30,'automocion|agro':0.30,'automocion|turismo':0.10,
+  'automocion|logistica':0.75,'automocion|energia':0.40,'automocion|quimica':0.50,'automocion|aeroespacial':0.70,
+  'agro|agro':0.15,'agro|turismo':0.30,'agro|logistica':0.85,'agro|energia':0.20,'agro|quimica':0.40,'agro|aeroespacial':0.10,
+  'turismo|turismo':0.10,'turismo|logistica':0.40,'turismo|energia':0.10,'turismo|quimica':0.10,'turismo|aeroespacial':0.10,
+  'logistica|logistica':0.40,'logistica|energia':0.50,'logistica|quimica':0.60,'logistica|aeroespacial':0.50,
+  'energia|energia':0.20,'energia|quimica':0.60,'energia|aeroespacial':0.30,
+  'quimica|quimica':0.30,'quimica|aeroespacial':0.30,
+  'aeroespacial|aeroespacial':0.20
+};
+function sinergia(a,b){
+  if(a===b) return SINERGIA_MAT[a+'|'+b] ?? 0.1;
+  return SINERGIA_MAT[a+'|'+b] ?? SINERGIA_MAT[b+'|'+a] ?? 0.1;
+}
+function sinergiaNodos(i,j){
+  const si=NODOS[i].sectores, sj=NODOS[j].sectores;
+  let m=0; for(const a of si) for(const b of sj) m=Math.max(m,sinergia(a,b));
+  return m;
+}
+
+// Red existente [a, b, calidad]
+const EXISTENTES_RAW = [
+  ['Madrid','Barcelona','alta'],['Madrid','Valencia','alta'],['Madrid','Alicante','alta'],
+  ['Madrid','Sevilla','alta'],['Madrid','Málaga','alta'],['Madrid','Córdoba','alta'],
+  ['Madrid','Zaragoza','alta'],['Madrid','Valladolid','alta'],['Madrid','Toledo','alta'],
+  ['Madrid','Segovia','alta'],['Madrid','Cuenca','alta'],['Madrid','Albacete','alta'],
+  ['Madrid','Ciudad Real','alta'],['Madrid','Granada','alta'],['Madrid','Guadalajara','alta'],
+  ['Madrid','Navarra','alta'],['Madrid','Rioja','alta'],['Madrid','Castellón','alta'],
+  ['Madrid','Palencia','def'],['Madrid','Burgos','def'],['Madrid','León','def'],
+  ['Madrid','Salamanca','def'],['Madrid','Badajoz','def'],['Madrid','Cáceres','def'],
+  ['Madrid','Jaén','def'],['Madrid','Almería','def'],['Madrid','Huelva','def'],
+  ['Madrid','Cádiz','alta'],['Madrid','Murcia','alta'],['Madrid','Soria','def'],
+  ['Madrid','Teruel','def'],['Madrid','Ávila','def'],['Madrid','Zamora','def'],
+  ['Madrid','Lugo','def'],['Madrid','Cantabria','def'],['Madrid','Bizkaia','def'],
+  ['Madrid','Gipuzkoa','def'],['Madrid','Álava','def'],['Madrid','Asturias','alta'],
+  ['Madrid','Ourense','alta'],['Madrid','Coruña','alta'],['Madrid','Pontevedra','alta'],
+  ['Madrid','Lleida','alta'],['Madrid','Huesca','alta'],['Madrid','Tarragona','alta'],
+  ['Madrid','Girona','alta'],
+  ['Barcelona','Valencia','alta'],['Barcelona','Zaragoza','alta'],['Barcelona','Girona','alta'],
+  ['Barcelona','Tarragona','alta'],['Barcelona','Lleida','alta'],['Barcelona','Huesca','alta'],
+  ['Valencia','Alicante','alta'],['Valencia','Castellón','alta'],['Valencia','Tarragona','def'],
+  ['Valencia','Cuenca','alta'],['Valencia','Albacete','def'],
+  ['Alicante','Murcia','alta'],['Alicante','Albacete','alta'],
+  ['Murcia','Almería','def'],
+  ['Sevilla','Cádiz','def'],['Sevilla','Huelva','def'],['Sevilla','Córdoba','alta'],
+  ['Sevilla','Málaga','alta'],['Sevilla','Granada','def'],
+  ['Málaga','Granada','def'],['Granada','Almería','def'],['Córdoba','Jaén','def'],
+  ['Zaragoza','Lleida','alta'],['Zaragoza','Navarra','def'],['Zaragoza','Bizkaia','def'],
+  ['Zaragoza','Teruel','def'],
+  ['Bizkaia','Cantabria','def'],['Bizkaia','Gipuzkoa','def'],['Bizkaia','Álava','def'],
+  ['Gipuzkoa','Álava','def'],['Gipuzkoa','Navarra','def'],
+  ['Cantabria','Asturias','def'],['Asturias','León','def'],['León','Ourense','def'],
+  ['Ourense','Pontevedra','alta'],['Ourense','Coruña','alta'],['Pontevedra','Coruña','alta'],
+  ['Lugo','Ourense','def'],['Lugo','Coruña','def'],
+  ['Valladolid','León','alta'],['Valladolid','Burgos','def'],['Valladolid','Palencia','def'],
+  ['Valladolid','Salamanca','def'],
+  ['Salamanca','Badajoz','def'],['Badajoz','Cáceres','def'],['Huelva','Badajoz','def'],
+  ['Burgos','Palencia','def'],['Burgos','Soria','def'],['Soria','Guadalajara','def'],
+  ['Cuenca','Teruel','def'],['Castellón','Tarragona','def'],['Almería','Murcia','def'],
+  ['Ceuta','Cádiz','def'],['Melilla','Málaga','def'],
+  ['Baleares','Valencia','def'],['Baleares','Barcelona','def'],
+  ['Palmas','Santa Cruz de Tenerife','def']
+];
+
+// Hex positions [fila, col] del mapa original
+const HEX_POS = {
+  'Cantabria':[0,5],'Bizkaia':[0,6],'Gipuzkoa':[0,7],
+  'Coruña':[1,1],'Asturias':[1,3],'León':[1,4],'Palencia':[1,5],
+  'Álava':[1,6],'Navarra':[1,7],'Huesca':[1,8],'Lleida':[1,9],'Girona':[1,10],
+  'Lugo':[2,2],'Zamora':[2,3],'Valladolid':[2,4],'Burgos':[2,5],
+  'Rioja':[2,6],'Zaragoza':[2,7],'Barcelona':[2,9],
+  'Ourense':[3,2],'Salamanca':[3,3],'Segovia':[3,4],'Soria':[3,5],
+  'Guadalajara':[3,6],'Teruel':[3,7],'Tarragona':[3,9],
+  'Pontevedra':[4,1],'Ávila':[4,4],'Madrid':[4,5],'Cuenca':[4,6],'Castellón':[4,8],
+  'Cáceres':[5,2],'Toledo':[5,4],'Albacete':[5,6],'Valencia':[5,8],'Baleares':[5,10],
+  'Badajoz':[6,2],'Ciudad Real':[6,5],'Alicante':[6,8],
+  'Huelva':[7,1],'Sevilla':[7,3],'Córdoba':[7,4],'Jaén':[7,5],'Murcia':[7,8],
+  'Cádiz':[8,2],'Málaga':[8,3],'Granada':[8,5],'Almería':[8,6],
+  'Palmas':[11,0],'Santa Cruz de Tenerife':[11,1],
+  'Ceuta':[10,11],'Melilla':[10,12]
+};
+
+// ============================================================
+// 3. ESTADO
+// ============================================================
+const State = (() => {
+  let _objetivo='pasajeros', _alpha=1.5, _sinuosidad=1.25, _presupuesto=20000;
+  let _layout='hex';
+  let _propuestas=new Set();
+  let _mostrarExistentes=true, _mostrarCandidatas=true;
+  let _nodoSel=null;
+  let _candidatas=new Set();
+  let _zoom=1;
+
+  const api = {
+    get objetivo(){return _objetivo}, get alpha(){return _alpha},
+    get sinuosidad(){return _sinuosidad}, get presupuesto(){return _presupuesto},
+    get layout(){return _layout}, get propuestas(){return _propuestas},
+    get mostrarExistentes(){return _mostrarExistentes},
+    get mostrarCandidatas(){return _mostrarCandidatas},
+    get nodoSel(){return _nodoSel}, get candidatas(){return _candidatas},
+    get zoom(){return _zoom},
+
+    setObjetivo(v){ _objetivo=v; api._recalcularCandidatas(); bus.emit('change'); },
+    setAlpha(v){ _alpha=v; api._recalcularCandidatas(); bus.emit('change'); },
+    setSinuosidad(v){ _sinuosidad=v; api._recalcularCandidatas(); bus.emit('change'); },
+    setPresupuesto(v){ _presupuesto=v; bus.emit('change'); },
+    setLayout(v){ _layout=v; bus.emit('change'); },
+    setMostrarExistentes(v){ _mostrarExistentes=!!v; bus.emit('change'); },
+    setMostrarCandidatas(v){ _mostrarCandidatas=!!v; bus.emit('change'); },
+    setNodoSel(id){ _nodoSel=id; bus.emit('change'); },
+    setZoom(z){ _zoom=Math.max(0.5,Math.min(4,z)); bus.emit('change'); },
+
+    togglePropuesta(i,j){
+      const k=edgeKey(i,j);
+      if(_propuestas.has(k)) _propuestas.delete(k); else _propuestas.add(k);
+      bus.emit('change');
+    },
+    limpiar(){ _propuestas.clear(); bus.emit('change'); },
+    construirOptimo(){
+      const prop=Modelo.construirOptimo(_objetivo,_presupuesto);
+      _propuestas=new Set(prop.map(e=>edgeKey(e.i,e.j)));
+      bus.emit('change');
+    },
+    _recalcularCandidatas(){
+      const top=Modelo.topCandidatas(_objetivo,15);
+      _candidatas=new Set(top.map(e=>edgeKey(e.i,e.j)));
+    }
+  };
+  return api;
+})();
+
+function edgeKey(i,j){ return i<j ? i+'|'+j : j+'|'+i; }
+function edgeParts(k){ return k.split('|'); }
+
+// ============================================================
+// 4. MODELO
+// ============================================================
+const Modelo = (() => {
+  function haversine(a,b){
+    const R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLon=(b.lon-a.lon)*Math.PI/180;
+    const la1=a.lat*Math.PI/180, la2=b.lat*Math.PI/180;
+    const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+    return 2*R*Math.asin(Math.sqrt(h));
+  }
+  function distancia(i,j){
+    return Math.max(haversine(NODOS[i],NODOS[j])*State.sinuosidad, 10);
+  }
+  function esIsla(i,j){ return NODOS[i].isla || NODOS[j].isla; }
+
+  function costeCAPEX(i,j){
+    let f=8; if(esIsla(i,j)) f*=8;
+    return distancia(i,j)*f;
+  }
+  function costeOPEX(i,j){
+    let f=0.1; if(esIsla(i,j)) f*=3;
+    return distancia(i,j)*f;
+  }
+  function demandaPasajeros(i,j){
+    const Pi=NODOS[i].poblacion, Pj=NODOS[j].poblacion;
+    return 1e6*(Pi*Pj)/Math.pow(distancia(i,j),State.alpha);
+  }
+  function demandaMercancia(i,j){
+    const Pi=NODOS[i].poblacion, Pj=NODOS[j].poblacion;
+    return 1e5*sinergiaNodos(i,j)*Math.sqrt(Pi*Pj)/Math.sqrt(distancia(i,j));
+  }
+  function scoreEdge(i,j,obj){
+    const pas=demandaPasajeros(i,j), mer=demandaMercancia(i,j);
+    const cos=costeCAPEX(i,j);
+    switch(obj){
+      case 'pasajeros': return pas;
+      case 'mercancia': return mer;
+      case 'mixta': return pas*0.5+mer*0.5;
+      case 'eficiencia': return (pas+mer*0.5)/cos;
+      case 'equidad': {
+        const Pi=NODOS[i].poblacion, Pj=NODOS[j].poblacion;
+        return (1/Pi+1/Pj)/(distancia(i,j)+100);
+      }
+      default: return pas;
+    }
+  }
+  function allPairs(){
+    const ids=Object.keys(NODOS), out=[];
+    for(let i=0;i<ids.length;i++) for(let j=i+1;j<ids.length;j++) out.push({i:ids[i],j:ids[j]});
+    return out;
+  }
+  let _existCache=null;
+  function existentesSet(){
+    if(_existCache) return _existCache;
+    _existCache=new Set();
+    for(const [a,b] of EXISTENTES_RAW) _existCache.add(edgeKey(a,b));
+    return _existCache;
+  }
+  function topCandidatas(obj,n){
+    const exist=existentesSet();
+    const cands=allPairs().filter(p=>!exist.has(edgeKey(p.i,p.j)));
+    const scored=cands.map(p=>({...p,score:scoreEdge(p.i,p.j,obj)}));
+    scored.sort((a,b)=>b.score-a.score);
+    return scored.slice(0,n);
+  }
+  function construirOptimo(obj,presupuesto){
+    const exist=existentesSet();
+    const cands=allPairs().filter(p=>!exist.has(edgeKey(p.i,p.j)));
+    const scored=cands.map(p=>({...p,score:scoreEdge(p.i,p.j,obj),coste:costeCAPEX(p.i,p.j)}))
+      .filter(e=>e.coste>0);
+    scored.sort((a,b)=>(b.score/b.coste)-(a.score/a.coste));
+    const prop=[]; let total=0;
+    for(const e of scored){
+      if(total+e.coste<=presupuesto){ prop.push(e); total+=e.coste; }
+    }
+    return prop;
+  }
+  function statsCostes(){
+    const exist=existentesSet();
+    let kmExist=0, kmProp=0, capexProp=0;
+    for(const k of exist){ const [a,b]=edgeParts(k); kmExist+=distancia(a,b); }
+    for(const k of State.propuestas){ const [a,b]=edgeParts(k); kmProp+=distancia(a,b); capexProp+=costeCAPEX(a,b); }
+    const opex=(kmExist+kmProp)*0.1;
+    return { kmExist, kmProp, kmTotal:kmExist+kmProp, capexProp, opex };
+  }
+  function statsDemanda(){
+    const exist=existentesSet();
+    const todos=new Set([...exist,...State.propuestas]);
+    let pas=0, mer=0; const conectados=new Set();
+    for(const k of todos){
+      const [a,b]=edgeParts(k);
+      pas+=demandaPasajeros(a,b); mer+=demandaMercancia(a,b);
+      conectados.add(a); conectados.add(b);
+    }
+    const conAlta=new Set();
+    for(const [a,b,q] of EXISTENTES_RAW) if(q==='alta'){ conAlta.add(a); conAlta.add(b); }
+    for(const k of State.propuestas){ const [a,b]=edgeParts(k); conAlta.add(a); conAlta.add(b); }
+    const n=Object.keys(NODOS).length;
+    return { pas, mer, conectados:conectados.size, n, aislados:n-conAlta.size };
+  }
+  return { distancia, costeCAPEX, costeOPEX, demandaPasajeros, demandaMercancia,
+    scoreEdge, topCandidatas, construirOptimo, allPairs, existentesSet,
+    statsCostes, statsDemanda };
+})();
+
+// ============================================================
+// 5. RENDERER
+// ============================================================
+function distToSeg(px,py,ax,ay,bx,by){
+  const dx=bx-ax, dy=by-ay, len2=dx*dx+dy*dy;
+  if(len2===0) return Math.hypot(px-ax,py-ay);
+  const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/len2));
+  return Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
+}
+
+class Renderer {
+  constructor(canvas){
+    this.cv=canvas; this.ctx=canvas.getContext('2d');
+    this.hoverEdge=null; this.hoverNode=null;
+    this._lastPos=null; this._lastMouse=null;
+    this._bind();
+    window.addEventListener('resize',()=>this.resize());
+    this.resize();
+  }
+  resize(){
+    const dpr=window.devicePixelRatio||1;
+    const r=this.cv.getBoundingClientRect();
+    this.cv.width=Math.floor(r.width*dpr);
+    this.cv.height=Math.floor(r.height*dpr);
+    this.ctx.setTransform(dpr,0,0,dpr,0,0);
+    bus.emit('change');
+  }
+  _nodePositions(){
+    const ids=Object.keys(NODOS), pos={};
+    if(State.layout==='geo'){
+      let minLat=Infinity,maxLat=-Infinity,minLon=Infinity,maxLon=-Infinity;
+      for(const id of ids){
+        const n=NODOS[id];
+        if(n.lat<minLat)minLat=n.lat; if(n.lat>maxLat)maxLat=n.lat;
+        if(n.lon<minLon)minLon=n.lon; if(n.lon>maxLon)maxLon=n.lon;
+      }
+      for(const id of ids){
+        const n=NODOS[id];
+        const x=(n.lon-minLon)*Math.cos(40*Math.PI/180);
+        const y=(maxLat-n.lat);
+        pos[id]={x,y};
+      }
+    } else {
+      for(const id of ids){
+        const p=HEX_POS[id]||[0,0];
+        const row=p[0], col=p[1];
+        pos[id]={ x:col*42+(row%2)*21, y:row*38 };
+      }
+    }
+    // Fit to canvas
+    const W=this.cv.clientWidth, H=this.cv.clientHeight;
+    const pad=50;
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for(const id in pos){
+      if(pos[id].x<minX)minX=pos[id].x; if(pos[id].x>maxX)maxX=pos[id].x;
+      if(pos[id].y<minY)minY=pos[id].y; if(pos[id].y>maxY)maxY=pos[id].y;
+    }
+    const w=maxX-minX||1, h=maxY-minY||1;
+    const s=Math.min((W-pad*2)/w, (H-pad*2)/h)*State.zoom;
+    const offX=pad+(W-pad*2-w*s)/2-minX*s;
+    const offY=pad+(H-pad*2-h*s)/2-minY*s;
+    const out={};
+    for(const id in pos) out[id]={x:pos[id].x*s+offX, y:pos[id].y*s+offY};
+    return out;
+  }
+  draw(){
+    const ctx=this.ctx, W=this.cv.clientWidth, H=this.cv.clientHeight;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#0f1115'; ctx.fillRect(0,0,W,H);
+    const pos=this._nodePositions(); this._lastPos=pos;
+    const existSet=Modelo.existentesSet();
+
+    if(State.mostrarExistentes){
+      for(const [a,b,q] of EXISTENTES_RAW){
+        if(!pos[a]||!pos[b]) continue;
+        ctx.beginPath(); ctx.moveTo(pos[a].x,pos[a].y); ctx.lineTo(pos[b].x,pos[b].y);
+        if(q==='alta'){ ctx.strokeStyle='#1f2937'; ctx.lineWidth=2.5; ctx.setLineDash([]); }
+        else { ctx.strokeStyle='#4b5563'; ctx.lineWidth=1.5; ctx.setLineDash([4,4]); }
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
+    if(State.mostrarCandidatas){
+      for(const k of State.candidatas){
+        if(existSet.has(k)||State.propuestas.has(k)) continue;
+        const [a,b]=edgeParts(k);
+        if(!pos[a]||!pos[b]) continue;
+        ctx.beginPath(); ctx.moveTo(pos[a].x,pos[a].y); ctx.lineTo(pos[b].x,pos[b].y);
+        ctx.strokeStyle='rgba(245,158,11,0.4)'; ctx.lineWidth=1.2; ctx.setLineDash([2,3]);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
+    for(const k of State.propuestas){
+      const [a,b]=edgeParts(k);
+      if(!pos[a]||!pos[b]) continue;
+      ctx.beginPath(); ctx.moveTo(pos[a].x,pos[a].y); ctx.lineTo(pos[b].x,pos[b].y);
+      ctx.strokeStyle='#ef4444'; ctx.lineWidth=2.5; ctx.setLineDash([]); ctx.stroke();
+    }
+
+    if(this.hoverEdge){
+      const [a,b]=edgeParts(this.hoverEdge);
+      if(pos[a]&&pos[b]){
+        ctx.beginPath(); ctx.moveTo(pos[a].x,pos[a].y); ctx.lineTo(pos[b].x,pos[b].y);
+        ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=3; ctx.stroke();
+      }
+    }
+
+    for(const id in pos){
+      const p=pos[id], n=NODOS[id];
+      const r=Math.max(4,Math.min(20, 3+4*Math.sqrt(n.poblacion)));
+      const sector=n.sectores[0];
+      ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+      ctx.fillStyle=SECTORES[sector]?.color||'#888'; ctx.fill();
+      ctx.strokeStyle = (id===State.nodoSel||id===this.hoverNode)?'#fff':'rgba(0,0,0,0.5)';
+      ctx.lineWidth = id===State.nodoSel?2.5:(id===this.hoverNode?2:1); ctx.stroke();
+      if(n.poblacion>1.5||id===State.nodoSel||id===this.hoverNode){
+        ctx.fillStyle='#fff'; ctx.font='10px ui-sans-serif'; ctx.textAlign='center';
+        ctx.fillText(id,p.x,p.y-r-4);
+      }
+    }
+
+    if(this.hoverEdge && this._lastMouse){
+      const [a,b]=edgeParts(this.hoverEdge);
+      const d=Modelo.distancia(a,b), pas=Modelo.demandaPasajeros(a,b),
+            mer=Modelo.demandaMercancia(a,b), cos=Modelo.costeCAPEX(a,b);
+      const text=`${a} — ${b}\n${d.toFixed(0)} km · CAPEX ~${cos.toFixed(0)} M€\nPasajeros: ${pas.toFixed(0)}\nMercancías: ${mer.toFixed(0)}`;
+      this._drawTooltip(text,this._lastMouse);
+    }
+  }
+  _drawTooltip(text,m){
+    const ctx=this.ctx, lines=text.split('\n');
+    ctx.font='11px ui-sans-serif';
+    let w=0; for(const l of lines) w=Math.max(w,ctx.measureText(l).width);
+    const pad=6, h=lines.length*14+pad*2;
+    let x=m.x+12, y=m.y+12;
+    if(x+w+pad*2>this.cv.clientWidth) x=m.x-w-pad*2-12;
+    if(y+h>this.cv.clientHeight) y=m.y-h-12;
+    ctx.fillStyle='rgba(22,25,34,0.95)'; ctx.strokeStyle='#2a2f3a';
+    ctx.beginPath(); ctx.roundRect(x,y,w+pad*2,h,4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#e5e7eb'; ctx.textAlign='left';
+    for(let i=0;i<lines.length;i++) ctx.fillText(lines[i],x+pad,y+pad+11+i*14);
+  }
+  _bind(){
+    this.cv.addEventListener('mousemove',e=>{
+      this._lastMouse={x:e.offsetX,y:e.offsetY};
+      if(!this._lastPos) return;
+      const pos=this._lastPos;
+      let bn=null, bnD=15;
+      for(const id in pos){
+        const d=Math.hypot(pos[id].x-e.offsetX,pos[id].y-e.offsetY);
+        if(d<bnD){ bnD=d; bn=id; }
+      }
+      let be=null, beD=8;
+      if(!bn){
+        const all=new Set([...EXISTENTES_RAW.map(([a,b])=>edgeKey(a,b)),...State.propuestas,...State.candidatas]);
+        for(const k of all){
+          const [a,b]=edgeParts(k);
+          if(!pos[a]||!pos[b]) continue;
+          const d=distToSeg(e.offsetX,e.offsetY,pos[a].x,pos[a].y,pos[b].x,pos[b].y);
+          if(d<beD){ beD=d; be=k; }
+        }
+      }
+      if(bn!==this.hoverNode||be!==this.hoverEdge){
+        this.hoverNode=bn; this.hoverEdge=be; bus.emit('change');
+      }
+    });
+    this.cv.addEventListener('mouseleave',()=>{
+      this.hoverNode=null; this.hoverEdge=null; this._lastMouse=null; bus.emit('change');
+    });
+    this.cv.addEventListener('click',e=>{
+      if(!this._lastPos) return;
+      let bn=null, bnD=15;
+      for(const id in this._lastPos){
+        const d=Math.hypot(this._lastPos[id].x-e.offsetX,this._lastPos[id].y-e.offsetY);
+        if(d<bnD){ bnD=d; bn=id; }
+      }
+      if(bn){ State.setNodoSel(bn===State.nodoSel?null:bn); return; }
+      const all=new Set([...EXISTENTES_RAW.map(([a,b])=>edgeKey(a,b)),...State.propuestas,...State.candidatas]);
+      let be=null, beD=8;
+      for(const k of all){
+        const [a,b]=edgeParts(k);
+        if(!this._lastPos[a]||!this._lastPos[b]) continue;
+        const d=distToSeg(e.offsetX,e.offsetY,this._lastPos[a].x,this._lastPos[a].y,
+                        this._lastPos[b].x,this._lastPos[b].y);
+        if(d<beD){ beD=d; be=k; }
+      }
+      if(be){
+        const exist=Modelo.existentesSet();
+        if(!exist.has(be)){ const [a,b]=edgeParts(be); State.togglePropuesta(a,b); }
+      }
+    });
+    this.cv.addEventListener('wheel',e=>{
+      e.preventDefault();
+      State.setZoom(State.zoom*(e.deltaY<0?1.15:1/1.15));
+    },{passive:false});
+  }
+}
+
+// ============================================================
+// 6. UI
+// ============================================================
+const OBJETIVOS = [
+  ['pasajeros','Demanda de pasajeros (gravedad)'],
+  ['mercancia','Sinergia productiva (mercancías)'],
+  ['mixta','Mixta (pasajeros + mercancías)'],
+  ['eficiencia','Eficiencia (demanda / coste)'],
+  ['equidad','Equidad (nodos pequeños primero)']
+];
+
+class UI {
+  constructor(renderer){
+    this.renderer=renderer;
+    this._build();
+    bus.on('change',()=>this._render());
+  }
+  _build(){
+    const sel=document.getElementById('sel-obj');
+    for(const [k,v] of OBJETIVOS){
+      const o=document.createElement('option'); o.value=k; o.textContent=v; sel.appendChild(o);
+    }
+    sel.value=State.objetivo;
+    sel.onchange=()=>State.setObjetivo(sel.value);
+
+    document.getElementById('rng-alpha').oninput=e=>{
+      document.getElementById('val-alpha').textContent=e.target.value;
+      State.setAlpha(parseFloat(e.target.value));
+    };
+    document.getElementById('rng-sin').oninput=e=>{
+      document.getElementById('val-sin').textContent=e.target.value;
+      State.setSinuosidad(parseFloat(e.target.value));
+    };
+    document.getElementById('rng-pres').oninput=e=>{
+      document.getElementById('val-pres').textContent=(+e.target.value).toLocaleString('es-ES')+' M€';
+      State.setPresupuesto(parseFloat(e.target.value));
+    };
+    document.getElementById('btn-build').onclick=()=>{ State.construirOptimo(); toast('Red óptima construida'); };
+    document.getElementById('btn-clear').onclick=()=>{ State.limpiar(); toast('Propuestas eliminadas'); };
+    document.getElementById('btn-hex').onclick=()=>State.setLayout('hex');
+    document.getElementById('btn-geo').onclick=()=>State.setLayout('geo');
+    document.getElementById('cb-exist').onchange=e=>State.setMostrarExistentes(e.target.checked);
+    document.getElementById('cb-cand').onchange=e=>State.setMostrarCandidatas(e.target.checked);
+
+    State._recalcularCandidatas();
+  }
+  _render(){
+    document.getElementById('btn-hex').classList.toggle('active',State.layout==='hex');
+    document.getElementById('btn-geo').classList.toggle('active',State.layout==='geo');
+
+    const c=Modelo.statsCostes();
+    document.getElementById('stats-costes').innerHTML=`
+      <dt>km existentes</dt><dd>${c.kmExist.toFixed(0)}</dd>
+      <dt>km propuestos</dt><dd>${c.kmProp.toFixed(0)}</dd>
+      <dt>km totales</dt><dd>${c.kmTotal.toFixed(0)}</dd>
+      <dt>CAPEX propuesto</dt><dd>${c.capexProp.toFixed(0)} M€</dd>
+      <dt>OPEX anual</dt><dd>${c.opex.toFixed(1)} M€/año</dd>
+      <dt>OPEX 10 años</dt><dd>${(c.opex*10).toFixed(0)} M€</dd>`;
+
+    const d=Modelo.statsDemanda();
+    document.getElementById('stats-demanda').innerHTML=`
+      <dt>Pasajeros (índice)</dt><dd>${d.pas.toFixed(0)}</dd>
+      <dt>Mercancías (índice)</dt><dd>${d.mer.toFixed(0)}</dd>
+      <dt>Nodos conectados</dt><dd>${d.conectados} / ${d.n}</dd>
+      <dt>Sin alta calidad</dt><dd>${d.aislados}</dd>`;
+
+    this._renderNodo();
+    this.renderer.draw();
+  }
+  _renderNodo(){
+    const el=document.getElementById('node-info');
+    const id=State.nodoSel;
+    if(!id){ el.innerHTML='<span style="color:var(--muted)">Click en un nodo para ver detalles.</span>'; return; }
+    const n=NODOS[id];
+    const tags=n.sectores.map(s=>`<span class="tag" style="background:${SECTORES[s].color}">${SECTORES[s].label}</span>`).join('');
+    const exist=Modelo.existentesSet();
+    const conexiones=[];
+    for(const k of exist){ const [a,b]=edgeParts(k); if(a===id) conexiones.push(b); else if(b===id) conexiones.push(a); }
+    el.innerHTML=`<strong>${id}</strong><br>
+      Población: ${(n.poblacion*1000).toFixed(0)}k hab<br>
+      Coord: ${n.lat.toFixed(2)}, ${n.lon.toFixed(2)}<br>
+      ${n.isla?'<em style="color:var(--warn)">⚠ Isla / no peninsular</em><br>':''}
+      Sectores: ${tags}<br>
+      <span style="color:var(--muted)">Conexiones existentes (${conexiones.length}):</span> ${conexiones.join(', ')||'—'}`;
+  }
+}
+
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('visible');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('visible'),1800);
+}
+
+// ============================================================
+// 7. TESTS
+// ============================================================
+function runTests(){
+  const res=[]; const t=(n,c,x='')=>res.push({n,ok:!!c,x});
+  const dMB=Modelo.distancia('Madrid','Barcelona');
+  t('Distancia Madrid-BCN razonable (500-800 km con sinuosidad)', dMB>500&&dMB<800, `=${dMB.toFixed(0)}`);
+  t('Madrid-BCN > Madrid-Soria (pasajeros)', Modelo.demandaPasajeros('Madrid','Barcelona')>Modelo.demandaPasajeros('Madrid','Soria'));
+  t('Sinergia industrial-naval alta', sinergia('industrial','naval')>0.7);
+  t('Sinergia turismo-turismo baja', sinergia('turismo','turismo')<0.3);
+  t('Sinergia logística-agro alta', sinergia('logistica','agro')>0.7);
+  t('CAPEX isla > CAPEX peninsular', Modelo.costeCAPEX('Baleares','Valencia')>Modelo.costeCAPEX('Valencia','Castellón'));
+  t('topCandidatas devuelve 15', Modelo.topCandidatas('pasajeros',15).length===15);
+  t('edgeKey simétrico', edgeKey('A','B')===edgeKey('B','A'));
+  t('Madrid-BCN existe', Modelo.existentesSet().has(edgeKey('Madrid','Barcelona')));
+  let allValid=true;
+  for(const id in NODOS) for(const s of NODOS[id].sectores) if(!SECTORES[s]) allValid=false;
+  t('Todos los sectores válidos', allValid);
+
+  console.group('%cTests · simulador ferroviario','color:#22d3ee;font-weight:bold');
+  let fails=0;
+  for(const r of res){ if(r.ok) console.log(`  ✅ ${r.n} ${r.x}`); else { console.error(`  ❌ ${r.n} ${r.x}`); fails++; } }
+  console.log(`${res.length-fails}/${res.length} OK`);
+  console.groupEnd();
+}
+
+// ============================================================
+// 8. INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded',()=>{
+  const renderer=new Renderer(document.getElementById('cv'));
+  new UI(renderer);
+  runTests();
+  bus.emit('change');
+});
+</script>
+</body>
+</html>
